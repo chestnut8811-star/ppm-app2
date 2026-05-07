@@ -15,8 +15,7 @@ Chrome / Edge / Safari などの通常ブラウザで動作します。インタ
 ## GitHub Pagesでのテスト公開
 
 このテスト版では `index.html` は置かず、入口を `PaceCheckLab.html` にしています。
-GitHub Pagesでは、同梱のGitHub Actionsワークフローが静的ファイルを公開します。
-Actionsのデプロイが成功した後、以下の形式で直接開いてください。
+GitHub Pagesで公開した場合は、以下の形式で直接開いてください。
 
 ```text
 https://<GitHubユーザー名>.github.io/<リポジトリ名>/PaceCheckLab.html
@@ -26,8 +25,8 @@ GitHub Pagesの設定例:
 
 1. GitHubにこのフォルダの中身をアップロードする
 2. Repository Settings → Pages を開く
-3. Build and deployment の Source を `GitHub Actions` にする
-4. Actionsタブで `Deploy PaceCheck Lab to GitHub Pages` が成功するまで待つ
+3. Sourceを `Deploy from a branch` にする
+4. Branchを `gh-pages`、Folderを `/(root)` にする
 5. 表示されたURLの末尾に `/PaceCheckLab.html` を付けて開く
 
 公開リポジトリにする場合、患者情報・施設固有情報・個人情報は含めないでください。
