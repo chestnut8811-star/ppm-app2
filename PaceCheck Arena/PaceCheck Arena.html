@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PaceCheck Arena</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">プログラマー操作シミュレーター</p>
+        <h1>PaceCheck Arena</h1>
+      </div>
+      <div class="top-actions">
+        <a class="ghost-button lab-return" href="../PaceCheckLab.html">Labへ戻る</a>
+        <button id="resetRun" class="ghost-button" type="button">設定リセット</button>
+        <button id="newRun" class="primary-button" type="button">ランダム症例</button>
+      </div>
+    </header>
+
+    <main class="app">
+      <section class="hero-panel">
+        <div class="case-picker">
+          <label>
+            <span>トレーニング症例</span>
+            <select id="scenarioSelect"></select>
+          </label>
+          <div class="hero-note">
+            <span>Focus</span>
+            <strong>設定変更 → 作動変化 → 波高値/閾値チェック</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="workbench-grid">
+        <article class="sim-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">ECG + Marker</p>
+              <h2 id="caseTitle">症例</h2>
+            </div>
+            <span id="rhythmBadge" class="pill">--</span>
+          </div>
+
+          <div id="caseBrief" class="case-brief"></div>
+
+          <div class="canvas-wrap">
+            <div class="ecg-controls">
+              <div class="segmented" role="group" aria-label="ECG speed">
+                <button class="speed-button" type="button" data-speed="pause">停止</button>
+                <button class="speed-button active" type="button" data-speed="slow">ゆっくり</button>
+                <button class="speed-button" type="button" data-speed="normal">標準</button>
+              </div>
+              <span id="speedReadout">観察優先</span>
+            </div>
+            <canvas id="ecgCanvas" width="1200" height="380" aria-label="ECG and marker simulation"></canvas>
+          </div>
+
+          <div class="telemetry-strip">
+            <div>
+              <span>Mode</span>
+              <strong id="telemetryMode">--</strong>
+            </div>
+            <div>
+              <span>Marker</span>
+              <strong id="telemetryMarker">--</strong>
+            </div>
+            <div>
+              <span>LRL</span>
+              <strong id="telemetryRate">--</strong>
+            </div>
+            <div>
+              <span>AV Delay</span>
+              <strong id="telemetryAv">--</strong>
+            </div>
+            <div>
+              <span>Sensing</span>
+              <strong id="telemetrySensing">--</strong>
+            </div>
+            <div>
+              <span>Capture</span>
+              <strong id="telemetryCapture">--</strong>
+            </div>
+          </div>
+        </article>
+
+        <aside class="programmer">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Programmer</p>
+              <h2>設定操作</h2>
+            </div>
+          </div>
+
+          <div id="settingsGrid" class="settings-grid"></div>
+          <div id="manualControls" class="manual-controls"></div>
+        </aside>
+
+        <article class="measurement-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Measurements</p>
+              <h2>波高値・閾値チェック</h2>
+            </div>
+          </div>
+          <div id="simulatorPanel" class="simulator-panel"></div>
+          <div id="measurementGrid" class="measurement-grid"></div>
+          <div id="feedbackBox" class="feedback-box"></div>
+        </article>
+      </section>
+
+      <section class="learning-panel">
+        <article>
+          <p class="eyebrow">Marker Legend</p>
+          <h2>マーカーの読み方</h2>
+          <div class="legend-grid">
+            <div><strong>AS</strong><span>心房自己波を感知。P波波高値を評価できる条件。</span></div>
+            <div><strong>AP</strong><span>心房ペーシング。A閾値評価の条件になりやすい。</span></div>
+            <div><strong>VS</strong><span>心室自己波を感知。R波波高値を評価できる条件。</span></div>
+            <div><strong>VP</strong><span>心室ペーシング。V閾値評価の条件になりやすい。</span></div>
+          </div>
+        </article>
+        <article>
+          <p class="eyebrow">Follow-up Items</p>
+          <h2>シミュレーターで見る項目</h2>
+          <div class="legend-grid">
+            <div><strong>波高値</strong><span>自己P/R波が出ている時に測る。感度設定との余裕を見る。</span></div>
+            <div><strong>閾値</strong><span>ペーシングを出して捕捉を確認する。スイープで捕捉/脱落を見る。</span></div>
+            <div><strong>抵抗</strong><span>設定変更なしで確認。単回値よりトレンドと他項目が重要。</span></div>
+            <div><strong>イベント</strong><span>カウンタ、持続時間、保存EGM、症状時刻を分けて見る。</span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="reference-panel">
+        <div>
+          <p class="eyebrow">Safety + References</p>
+          <h2>教育用の前提</h2>
+        </div>
+        <p>
+          このアプリは教育用シミュレーターです。実臨床では施設手順、医師指示、各社プログラマーマニュアル、患者状態に従ってください。
+          一時設定変更、自己脈確認、閾値測定は監視体制と復帰確認を前提にしています。
+        </p>
+        <ul>
+          <li><a href="https://academic.oup.com/europace/article/10/6/707/661858" target="_blank" rel="noreferrer">HRS/EHRA CIED monitoring consensus</a></li>
+          <li><a href="https://cardiocases.com/traditional-pacing-modes" target="_blank" rel="noreferrer">Cardiocases: Traditional pacing modes</a></li>
+          <li><a href="https://cardiocases.com/en/pacingdefibrillation/specificities/pm-av-delays-refractory-periods-management-tachycardia/medtronic" target="_blank" rel="noreferrer">Cardiocases: AV delays and refractory periods</a></li>
+          <li><a href="https://cardvasc.org/ecg-pacemaker-rhythm-malfunction-failure-tachyarrhythmia/" target="_blank" rel="noreferrer">Pacemaker ECG interpretation</a></li>
+        </ul>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

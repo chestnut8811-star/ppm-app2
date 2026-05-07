@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PaceCheck CRT</title>
+    <link rel="icon" href="data:,">
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f7f8;
+        --surface: #ffffff;
+        --surface-soft: #eef5f3;
+        --ink: #21313a;
+        --muted: #667780;
+        --line: #d7e2df;
+        --primary: #0f766e;
+        --primary-dark: #0b5f59;
+        --accent: #a15c07;
+        --danger: #b42318;
+        --ok: #15803d;
+        --shadow: 0 18px 40px rgba(24, 39, 46, 0.09);
+        --right-rail-offset: 280px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+      }
+
+      button,
+      select {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 18px 28px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(10px);
+      }
+
+      .topbar h1,
+      .panel-heading h2,
+      .case-title {
+        margin: 0;
+        letter-spacing: 0;
+      }
+
+      .topbar h1 {
+        font-size: 30px;
+      }
+
+      .eyebrow {
+        margin: 0 0 4px;
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .top-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .ghost-button,
+      .primary-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+        padding: 8px 14px;
+        background: #ffffff;
+        color: var(--ink);
+        font-weight: 800;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .primary-button {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: #ffffff;
+      }
+
+      .ghost-button:hover {
+        border-color: var(--primary);
+        color: var(--primary-dark);
+      }
+
+      .primary-button:hover {
+        background: var(--primary-dark);
+      }
+
+      .app {
+        width: min(1500px, 100%);
+        margin: 0 auto;
+        padding: 22px;
+      }
+
+      .hero,
+      .card,
+      .timeline,
+      .control-panel,
+      .logic-panel,
+      .reference-panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(320px, 1fr) minmax(360px, 560px);
+        gap: 16px;
+        align-items: end;
+        padding: 14px;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      select {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #ffffff;
+        color: var(--ink);
+        padding: 8px 10px;
+      }
+
+      .hero-note {
+        min-height: 42px;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface-soft);
+      }
+
+      .hero-note span,
+      .metric span,
+      .setting-cell span,
+      .source-chip span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .hero-note strong {
+        display: block;
+        margin-top: 1px;
+        font-size: 14px;
+      }
+
+      .dashboard {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+        gap: 18px;
+        margin-top: 18px;
+        align-items: start;
+      }
+
+      .left-stack,
+      .right-stack {
+        display: grid;
+        gap: 18px;
+      }
+
+      .right-stack {
+        margin-top: var(--right-rail-offset);
+      }
+
+      .card,
+      .timeline,
+      .control-panel,
+      .logic-panel,
+      .reference-panel {
+        padding: 18px;
+      }
+
+      .panel-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 28px;
+        border-radius: 999px;
+        padding: 4px 10px;
+        background: var(--surface-soft);
+        color: var(--primary-dark);
+        font-size: 12px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .pill.warn {
+        background: #fff7e8;
+        color: var(--accent);
+      }
+
+      .pill.ok {
+        background: #edf8f1;
+        color: var(--ok);
+      }
+
+      .case-grid,
+      .metrics,
+      .settings-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .case-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-top: 14px;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .metric,
+      .setting-cell,
+      .check-item {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfcfc;
+        padding: 10px;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 2px;
+        font-size: 20px;
+      }
+
+      .crt-lanes {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .lane {
+        display: grid;
+        grid-template-columns: 54px minmax(0, 1fr) 70px;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .lane-label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .lane-track {
+        position: relative;
+        height: 24px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(15, 118, 110, 0.08) 0 1px, transparent 1px 20%);
+        overflow: hidden;
+      }
+
+      .pulse {
+        position: absolute;
+        top: 4px;
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        background: var(--primary);
+        box-shadow: 0 0 0 5px rgba(15, 118, 110, 0.12);
+        transform: translateX(-50%);
+      }
+
+      .pulse.rv {
+        background: #3f6f88;
+      }
+
+      .pulse.lv {
+        background: #a15c07;
+      }
+
+      .qrs-bar {
+        margin-top: 18px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfcfc;
+        padding: 12px;
+      }
+
+      .qrs-track {
+        height: 22px;
+        border-radius: 999px;
+        background: var(--surface-soft);
+        overflow: hidden;
+      }
+
+      .qrs-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: var(--primary);
+      }
+
+      .ecg-panel {
+        margin-top: 18px;
+        border: 1px solid #20333a;
+        border-radius: 8px;
+        background: #0f171b;
+        color: #eef7f7;
+        padding: 12px;
+      }
+
+      .ecg-panel .panel-heading {
+        margin-bottom: 10px;
+      }
+
+      .ecg-panel .eyebrow {
+        color: #8fd6d0;
+      }
+
+      .ecg-panel h3 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: 0;
+      }
+
+      #crtEcgCanvas {
+        display: block;
+        width: 100%;
+        height: 300px;
+        border-radius: 6px;
+        background: #0b1316;
+      }
+
+      .ecg-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+        color: #b8c8ca;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .ecg-legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .ecg-legend span::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #8fd6d0;
+      }
+
+      .ecg-legend .rv::before {
+        background: #7fb2d5;
+      }
+
+      .ecg-legend .lv::before {
+        background: #ffbf73;
+      }
+
+      .settings-grid {
+        margin-top: 14px;
+      }
+
+      .setting-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 36px 68px 36px;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .step-button {
+        min-height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #ffffff;
+        font-weight: 900;
+      }
+
+      .step-button:hover {
+        border-color: var(--primary);
+        color: var(--primary-dark);
+      }
+
+      .value-box {
+        min-height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 6px;
+        background: var(--surface-soft);
+        font-weight: 900;
+      }
+
+      .toggle-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .toggle {
+        min-width: 74px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #ffffff;
+        padding: 7px 12px;
+        font-weight: 900;
+      }
+
+      .toggle.on {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: #ffffff;
+      }
+
+      .check-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .check-item strong {
+        display: block;
+      }
+
+      .check-item p {
+        margin: 4px 0 0;
+        color: var(--muted);
+      }
+
+      .check-item.ok {
+        border-color: rgba(21, 128, 61, 0.45);
+        background: #f5fbf7;
+      }
+
+      .check-item.warn {
+        border-color: rgba(161, 92, 7, 0.42);
+        background: #fffaf0;
+      }
+
+      .logic-panel p {
+        color: var(--muted);
+      }
+
+      .logic-panel ul,
+      .reference-panel ul {
+        margin: 10px 0 0;
+        padding-left: 20px;
+      }
+
+      .reference-panel a {
+        color: var(--primary-dark);
+        font-weight: 800;
+      }
+
+      @media (max-width: 1100px) {
+        .hero,
+        .dashboard,
+        .case-grid,
+        .metrics {
+          grid-template-columns: 1fr;
+        }
+
+        .right-stack {
+          margin-top: 0;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .topbar,
+        .top-actions,
+        .panel-heading {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .app {
+          padding: 14px;
+        }
+
+        .setting-row {
+          grid-template-columns: 1fr 36px 68px 36px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">CRT-P / CRT-D 教育・最適化</p>
+        <h1>PaceCheck CRT</h1>
+      </div>
+      <div class="top-actions">
+        <a class="ghost-button" href="../PaceCheckLab.html">Labへ戻る</a>
+        <button id="resetButton" class="ghost-button" type="button">初期設定</button>
+      </div>
+    </header>
+
+    <main class="app">
+      <section class="hero">
+        <label>
+          <span>CRT症例</span>
+          <select id="scenarioSelect"></select>
+        </label>
+        <div class="hero-note">
+          <span>Focus</span>
+          <strong>BiV capture、LV閾値、AV/VV最適化、LV offset、MPPを心不全評価とセットで確認</strong>
+        </div>
+      </section>
+
+      <section class="dashboard">
+        <div class="left-stack">
+          <article class="card">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Case Context</p>
+                <h2 id="caseTitle" class="case-title">症例</h2>
+              </div>
+              <span id="deviceBadge" class="pill">CRT</span>
+            </div>
+            <div id="caseGrid" class="case-grid"></div>
+          </article>
+
+          <article class="timeline">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Resynchronization View</p>
+                <h2>作動と同期の見方</h2>
+              </div>
+              <span id="syncBadge" class="pill">--</span>
+            </div>
+            <div id="metrics" class="metrics"></div>
+            <div class="ecg-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">CRT ECG</p>
+                  <h3>同期に応じた疑似ECG</h3>
+                </div>
+                <span id="ecgReadout" class="pill">--</span>
+              </div>
+              <canvas id="crtEcgCanvas" width="1200" height="300" aria-label="CRT ECG simulation"></canvas>
+              <div class="ecg-legend">
+                <span>A/AS</span>
+                <span class="rv">RV pace</span>
+                <span class="lv">LV pace</span>
+                <span>教育用の模式波形。診断用途ではありません。</span>
+              </div>
+            </div>
+            <div class="crt-lanes">
+              <div class="lane">
+                <span class="lane-label">A/AS</span>
+                <div class="lane-track"><span id="pulseA" class="pulse"></span></div>
+                <span id="labelA" class="lane-label">0 ms</span>
+              </div>
+              <div class="lane">
+                <span class="lane-label">RV</span>
+                <div class="lane-track"><span id="pulseRv" class="pulse rv"></span></div>
+                <span id="labelRv" class="lane-label">0 ms</span>
+              </div>
+              <div class="lane">
+                <span class="lane-label">LV</span>
+                <div class="lane-track"><span id="pulseLv" class="pulse lv"></span></div>
+                <span id="labelLv" class="lane-label">0 ms</span>
+              </div>
+            </div>
+            <div class="qrs-bar">
+              <div class="panel-heading">
+                <strong>推定QRS幅</strong>
+                <span id="qrsText" class="pill">-- ms</span>
+              </div>
+              <div class="qrs-track"><div id="qrsFill" class="qrs-fill"></div></div>
+            </div>
+          </article>
+
+          <article class="logic-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">CRT Logic</p>
+                <h2>チェック時の考え方</h2>
+              </div>
+            </div>
+            <p id="logicSummary"></p>
+            <ul id="logicList"></ul>
+          </article>
+        </div>
+
+        <aside class="right-stack">
+          <section class="control-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Programmer</p>
+                <h2>設定操作</h2>
+              </div>
+            </div>
+            <div id="settingsGrid" class="settings-grid"></div>
+          </section>
+
+          <section class="card">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Checklist</p>
+                <h2>重点確認</h2>
+              </div>
+            </div>
+            <div id="checkList" class="check-list"></div>
+          </section>
+        </aside>
+      </section>
+
+      <section class="reference-panel">
+        <p class="eyebrow">References</p>
+        <h2>教育用の前提</h2>
+        <p>このページはCRTチェック教育用です。実臨床では施設手順、医師指示、各社プログラマーマニュアル、患者状態、心エコー/12誘導ECGなどに従ってください。</p>
+        <ul>
+          <li><a href="https://www.acc.org/Latest-in-Cardiology/ten-points-to-remember/2021/08/31/18/37/2021-ESC-Guidelines-on-Cardiac-Pacing-ESC-2021" target="_blank" rel="noreferrer">2021 ESC pacing/CRT guideline key points</a></li>
+          <li><a href="https://lahrs.org/guias/terapia-de-resincronizacion-y-estimulacion-fisiologica/2023-hrs-aphrs-lahrs-guideline-on-cardiac-physiologic-pacing-for-the-avoidance-and-mitigation-of-heart-failure/" target="_blank" rel="noreferrer">2023 HRS/APHRS/LAHRS cardiac physiologic pacing guideline</a></li>
+        </ul>
+      </section>
+    </main>
+
+    <script>
+      "use strict";
+
+      const scenarios = [
+        {
+          id: "lbbb-crtp",
+          title: "LBBB HFrEF / CRT-P: AV・VV最適化",
+          device: "CRT-P",
+          context: { lvef: "28%", qrs: "168 ms", rhythm: "洞調律", hf: "NYHA III", biv: "96%" },
+          baselineQrs: 168,
+          optimal: { avDelay: 120, vvDelay: -20, lvOffset: -20, bivPace: 97, lvOutput: 2.5, mpp: false },
+          settings: { avDelay: 150, vvDelay: 0, lvOffset: 0, bivPace: 94, lvOutput: 2.5, mpp: false },
+          notes: [
+            "LBBB + HFrEFではBiV capture率とQRS短縮をセットで見る。",
+            "AV delayは短すぎても長すぎても融合/自己伝導との競合が起きる。",
+            "VV delay/LV offsetは12誘導ECGや施設手順に沿って調整する。"
+          ]
+        },
+        {
+          id: "af-crtd-low-biv",
+          title: "恒久性AF / CRT-D: BiV capture低下",
+          device: "CRT-D",
+          context: { lvef: "25%", qrs: "160 ms", rhythm: "AF", hf: "NYHA III", biv: "82%" },
+          baselineQrs: 160,
+          optimal: { avDelay: 120, vvDelay: -10, lvOffset: -10, bivPace: 96, lvOutput: 2.7, mpp: false },
+          settings: { avDelay: 150, vvDelay: 0, lvOffset: 0, bivPace: 82, lvOutput: 2.7, mpp: false },
+          notes: [
+            "AFではBiV captureが低いとCRT効果が落ちる。",
+            "レート管理、PVC、AF高頻度伝導、AVJ ablation後かを確認する。",
+            "CRT-DではICD治療設定と心不全評価も同時に確認する。"
+          ]
+        },
+        {
+          id: "phrenic-lv-vector",
+          title: "LVリード / 横隔神経刺激: ベクトルと出力調整",
+          device: "CRT-P",
+          context: { lvef: "32%", qrs: "154 ms", rhythm: "洞調律", hf: "NYHA II", biv: "98%" },
+          baselineQrs: 154,
+          optimal: { avDelay: 130, vvDelay: -30, lvOffset: -30, bivPace: 98, lvOutput: 2.0, mpp: false },
+          settings: { avDelay: 130, vvDelay: -10, lvOffset: -10, bivPace: 98, lvOutput: 3.5, mpp: false },
+          notes: [
+            "LV閾値と横隔神経刺激閾値の安全域を分けて見る。",
+            "出力低下だけでなくLVベクトル変更も候補になる。",
+            "捕捉安全域を残したまま症状を回避できるかがポイント。"
+          ]
+        },
+        {
+          id: "mpp-nonresponder",
+          title: "CRT-D Non-responder: LV multipoint pacing検討",
+          device: "CRT-D",
+          context: { lvef: "24%", qrs: "176 ms", rhythm: "洞調律", hf: "NYHA III", biv: "97%" },
+          baselineQrs: 176,
+          optimal: { avDelay: 110, vvDelay: -40, lvOffset: -40, bivPace: 98, lvOutput: 2.8, mpp: true },
+          settings: { avDelay: 150, vvDelay: 0, lvOffset: 0, bivPace: 97, lvOutput: 2.8, mpp: false },
+          notes: [
+            "BiV captureが十分でも症状やQRSが改善しない場合、設定・リード・心不全治療を総合的に見直す。",
+            "MPPは電池消費、閾値、横隔神経刺激、施設方針を合わせて確認する。",
+            "CRT-DではICDイベント、VT治療、心不全増悪を同じ時系列で見る。"
+          ]
+        },
+        {
+          id: "upgrade-rv-pacing",
+          title: "高RV pacing負荷 / CRT-D upgrade: BiV capture確認",
+          device: "CRT-D",
+          context: { lvef: "35%", qrs: "paced 182 ms", rhythm: "AVB", hf: "NYHA II", biv: "90%" },
+          baselineQrs: 182,
+          optimal: { avDelay: 140, vvDelay: -20, lvOffset: -20, bivPace: 97, lvOutput: 2.4, mpp: false },
+          settings: { avDelay: 160, vvDelay: 0, lvOffset: 0, bivPace: 90, lvOutput: 2.4, mpp: false },
+          notes: [
+            "高RV pacing負荷ではCRT化後にBiV captureとQRS変化を見る。",
+            "PVCや自己伝導混入でBiV率が下がっていないか確認する。",
+            "電池、LV閾値、リード抵抗、心不全症状を前回値と比較する。"
+          ]
+        }
+      ];
+
+      let currentId = localStorage.getItem("pacecheck-crt-scenario") || scenarios[0].id;
+      let settings = {};
+      let animationId = null;
+      let ecgPhase = 0;
+      let lastFrameTime = 0;
+
+      document.addEventListener("DOMContentLoaded", init);
+
+      function init() {
+        const select = document.getElementById("scenarioSelect");
+        select.innerHTML = scenarios.map((scenario) => `<option value="${scenario.id}">${escapeHtml(scenario.title)}</option>`).join("");
+        select.addEventListener("change", () => loadScenario(select.value));
+        document.getElementById("resetButton").addEventListener("click", () => loadScenario(currentId, true));
+        loadScenario(currentId);
+        startEcgAnimation();
+      }
+
+      function loadScenario(id, reset = false) {
+        const scenario = scenarios.find((item) => item.id === id) || scenarios[0];
+        currentId = scenario.id;
+        localStorage.setItem("pacecheck-crt-scenario", currentId);
+        document.getElementById("scenarioSelect").value = currentId;
+        const saved = reset ? null : localStorage.getItem(`pacecheck-crt-settings-${currentId}`);
+        settings = saved ? { ...scenario.settings, ...JSON.parse(saved) } : { ...scenario.settings };
+        render();
+      }
+
+      function saveSettings() {
+        localStorage.setItem(`pacecheck-crt-settings-${currentId}`, JSON.stringify(settings));
+      }
+
+      function currentScenario() {
+        return scenarios.find((item) => item.id === currentId) || scenarios[0];
+      }
+
+      function render() {
+        const scenario = currentScenario();
+        const score = syncScore(scenario);
+        const qrs = estimatedQrs(scenario, score);
+        document.getElementById("caseTitle").textContent = scenario.title;
+        document.getElementById("deviceBadge").textContent = scenario.device;
+        document.getElementById("deviceBadge").className = scenario.device === "CRT-D" ? "pill warn" : "pill";
+        document.getElementById("caseGrid").innerHTML = Object.entries(scenario.context)
+          .map(([key, value]) => metricCell(labelForContext(key), value))
+          .join("");
+        document.getElementById("metrics").innerHTML = [
+          ["同期スコア", `${score} / 100`],
+          ["推定QRS", `${qrs} ms`],
+          ["BiV capture", `${settings.bivPace}%`],
+          ["LV出力", `${settings.lvOutput.toFixed(1)} V`]
+        ].map(([label, value]) => metricCell(label, value)).join("");
+        document.getElementById("syncBadge").textContent = score >= 82 ? "良好" : score >= 65 ? "要調整" : "再評価";
+        document.getElementById("syncBadge").className = score >= 82 ? "pill ok" : "pill warn";
+        document.getElementById("ecgReadout").textContent = `${qrs} ms / ${ecgMorphologyLabel(score)}`;
+        renderLanes();
+        drawCrtEcg(scenario, score, qrs, ecgPhase);
+        renderControls();
+        renderLogic(scenario, score, qrs);
+        renderChecks(scenario, score);
+      }
+
+      function metricCell(label, value) {
+        return `<div class="metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
+      }
+
+      function labelForContext(key) {
+        return { lvef: "LVEF", qrs: "Baseline QRS", rhythm: "Rhythm", hf: "HF status", biv: "Current BiV" }[key] || key;
+      }
+
+      function syncScore(scenario) {
+        const target = scenario.optimal;
+        let score = 100;
+        score -= Math.min(28, Math.abs(settings.avDelay - target.avDelay) / 5);
+        score -= Math.min(22, Math.abs(settings.vvDelay - target.vvDelay) / 4);
+        score -= Math.min(16, Math.abs(settings.lvOffset - target.lvOffset) / 5);
+        score -= Math.max(0, target.bivPace - settings.bivPace) * 2.3;
+        if (scenario.id === "phrenic-lv-vector" && settings.lvOutput > 3.0) score -= 22;
+        if (scenario.optimal.mpp !== settings.mpp) score -= scenario.optimal.mpp ? 12 : 5;
+        return Math.max(0, Math.round(score));
+      }
+
+      function estimatedQrs(scenario, score) {
+        const narrow = Math.round((score / 100) * 42);
+        const mppBonus = settings.mpp && scenario.optimal.mpp ? 8 : 0;
+        return Math.max(105, scenario.baselineQrs - narrow - mppBonus);
+      }
+
+      function ecgMorphologyLabel(score) {
+        if (score >= 82) return "BiV同期良好";
+        if (score >= 65) return "融合/最適化余地";
+        return "非同期・QRS広め";
+      }
+
+      function startEcgAnimation() {
+        if (animationId) cancelAnimationFrame(animationId);
+        const tick = (time) => {
+          if (!lastFrameTime) lastFrameTime = time;
+          const delta = Math.min(48, time - lastFrameTime);
+          lastFrameTime = time;
+          const scenario = currentScenario();
+          const score = syncScore(scenario);
+          const qrs = estimatedQrs(scenario, score);
+          const rate = scenario.context.rhythm === "AF" ? 78 : 64;
+          ecgPhase = (ecgPhase + (delta / 1000) * (rate / 60)) % 1;
+          drawCrtEcg(scenario, score, qrs, ecgPhase);
+          animationId = requestAnimationFrame(tick);
+        };
+        animationId = requestAnimationFrame(tick);
+      }
+
+      function drawCrtEcg(scenario, score, qrs, phase) {
+        const canvas = document.getElementById("crtEcgCanvas");
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        const width = Math.max(720, Math.floor(rect.width || 1040));
+        const height = 300;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.height = `${height}px`;
+        const ctx = canvas.getContext("2d");
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+        drawEcgGrid(ctx, width, height);
+
+        const rate = scenario.context.rhythm === "AF" ? 78 : 64;
+        const seconds = 6;
+        const period = 60 / rate;
+        const baseline = 112;
+        const amplitude = 42;
+        const qrsCenter = qrsCenterFraction(period);
+
+        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = score >= 82 ? "#e8ffff" : score >= 65 ? "#f5f1cf" : "#ffd8d0";
+        ctx.shadowBlur = 9;
+        ctx.shadowColor = score >= 82 ? "rgba(132, 231, 226, 0.45)" : "rgba(255, 191, 115, 0.35)";
+        ctx.beginPath();
+        for (let x = 0; x <= width; x += 2) {
+          const time = (x / width) * seconds + phase * period;
+          const local = positiveModulo(time, period) / period;
+          const value = ecgValue(local, period, qrs, score, scenario);
+          const y = baseline - value * amplitude;
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        drawPacingMarkers(ctx, width, seconds, period, phase, baseline, qrsCenter, scenario, score);
+        drawMarkerChannel(ctx, width, height, seconds, period, phase, qrsCenter, scenario);
+      }
+
+      function drawEcgGrid(ctx, width, height) {
+        ctx.fillStyle = "#0b1316";
+        ctx.fillRect(0, 0, width, height);
+        ctx.strokeStyle = "rgba(143, 214, 208, 0.07)";
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= width; x += 20) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        }
+        for (let y = 0; y <= height; y += 20) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+        ctx.strokeStyle = "rgba(143, 214, 208, 0.14)";
+        for (let x = 0; x <= width; x += 100) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        }
+        for (let y = 0; y <= height; y += 100) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+      }
+
+      function ecgValue(local, period, qrs, score, scenario) {
+        const qrsCenter = qrsCenterFraction(period);
+        const qrsWidth = clamp(qrs / 1000 / period, 0.055, 0.2);
+        const atrialFib = scenario.context.rhythm === "AF";
+        let value = atrialFib
+          ? 0.035 * Math.sin(local * Math.PI * 42) + 0.025 * Math.sin(local * Math.PI * 77)
+          : 0.13 * gaussian(local, 0.11, 0.025);
+
+        value += -0.24 * gaussian(local, qrsCenter - qrsWidth * 0.45, qrsWidth * 0.16);
+        value += 1.16 * gaussian(local, qrsCenter, qrsWidth * 0.20);
+        value += -0.48 * gaussian(local, qrsCenter + qrsWidth * 0.46, qrsWidth * 0.22);
+
+        if (score < 78) {
+          const notch = score < 60 ? 0.46 : 0.28;
+          value += notch * gaussian(local, qrsCenter + qrsWidth * 0.95, qrsWidth * 0.30);
+          value += -0.18 * gaussian(local, qrsCenter + qrsWidth * 1.35, qrsWidth * 0.26);
+        }
+
+        if (settings.mpp) {
+          value += 0.16 * gaussian(local, qrsCenter + qrsWidth * 0.55, qrsWidth * 0.18);
+        }
+
+        value += 0.28 * gaussian(local, clamp(qrsCenter + 0.25, 0.56, 0.78), 0.07);
+        return value;
+      }
+
+      function drawPacingMarkers(ctx, width, seconds, period, phase, baseline, qrsCenter, scenario, score) {
+        const atrialFib = scenario.context.rhythm === "AF";
+        const offsetSeconds = (settings.vvDelay + settings.lvOffset / 2) / 1000;
+        const qrsTime = qrsCenter * period;
+        const rvTime = qrsTime;
+        const lvTime = qrsTime + offsetSeconds;
+        const startBeat = Math.floor(phase - 2);
+        const endBeat = Math.ceil(phase + seconds / period + 2);
+        for (let beat = startBeat; beat <= endBeat; beat += 1) {
+          const beatStart = beat * period;
+          if (!atrialFib) {
+            drawSpike(ctx, timeToX(beatStart + 0.11 * period, seconds, phase, period, width), baseline, "#8fd6d0", 28);
+          }
+          drawSpike(ctx, timeToX(beatStart + rvTime, seconds, phase, period, width), baseline, "#7fb2d5", 44);
+          if (settings.bivPace >= 92 || beat % 5 !== 0) {
+            drawSpike(ctx, timeToX(beatStart + lvTime, seconds, phase, period, width), baseline, "#ffbf73", 38);
+          } else {
+            drawMissedLv(ctx, timeToX(beatStart + lvTime, seconds, phase, period, width), baseline);
+          }
+        }
+      }
+
+      function drawSpike(ctx, x, baseline, color, height) {
+        if (x < -20 || x > ctx.canvas.width + 20) return;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(x, baseline + 24);
+        ctx.lineTo(x, baseline - height);
+        ctx.stroke();
+      }
+
+      function drawMissedLv(ctx, x, baseline) {
+        if (x < -20 || x > ctx.canvas.width + 20) return;
+        ctx.strokeStyle = "rgba(255, 191, 115, 0.45)";
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(x, baseline + 22);
+        ctx.lineTo(x, baseline - 24);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      function drawMarkerChannel(ctx, width, height, seconds, period, phase, qrsCenter, scenario) {
+        const top = 210;
+        const rows = [
+          ["A", "#8fd6d0", 0.11 * period],
+          ["RV", "#7fb2d5", qrsCenter * period],
+          ["LV", "#ffbf73", qrsCenter * period + (settings.vvDelay + settings.lvOffset / 2) / 1000]
+        ];
+        ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+        rows.forEach(([label, color, eventTime], index) => {
+          const y = top + index * 25;
+          ctx.fillStyle = "#b8c8ca";
+          ctx.fillText(label, 8, y + 4);
+          ctx.strokeStyle = "rgba(184, 200, 202, 0.16)";
+          ctx.beginPath();
+          ctx.moveTo(42, y);
+          ctx.lineTo(width - 10, y);
+          ctx.stroke();
+          const startBeat = Math.floor(phase - 2);
+          const endBeat = Math.ceil(phase + seconds / period + 2);
+          for (let beat = startBeat; beat <= endBeat; beat += 1) {
+            if (label === "A" && scenario.context.rhythm === "AF") continue;
+            const x = timeToX(beat * period + eventTime, seconds, phase, period, width);
+            if (x < 42 || x > width - 10) continue;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
+        ctx.fillStyle = "#8fa3a7";
+        ctx.fillText("Marker: A/RV/LV timing", 8, height - 8);
+      }
+
+      function qrsCenterFraction(period) {
+        return clamp(0.11 + settings.avDelay / 1000 / period, 0.27, 0.58);
+      }
+
+      function timeToX(time, seconds, phase, period, width) {
+        return ((time - phase * period) / seconds) * width;
+      }
+
+      function positiveModulo(value, modulo) {
+        return ((value % modulo) + modulo) % modulo;
+      }
+
+      function gaussian(x, center, width) {
+        return Math.exp(-Math.pow((x - center) / width, 2) / 2);
+      }
+
+      function renderLanes() {
+        const av = clamp(settings.avDelay, 80, 220);
+        const rv = clamp(av, 80, 220);
+        const lv = clamp(av + settings.vvDelay + settings.lvOffset / 2, 60, 240);
+        const toPercent = (value) => 8 + ((value - 40) / 220) * 84;
+        document.getElementById("pulseA").style.left = "8%";
+        document.getElementById("pulseRv").style.left = `${toPercent(rv)}%`;
+        document.getElementById("pulseLv").style.left = `${toPercent(lv)}%`;
+        document.getElementById("labelA").textContent = "0 ms";
+        document.getElementById("labelRv").textContent = `${rv} ms`;
+        document.getElementById("labelLv").textContent = `${Math.round(lv)} ms`;
+        const qrs = estimatedQrs(currentScenario(), syncScore(currentScenario()));
+        document.getElementById("qrsText").textContent = `${qrs} ms`;
+        document.getElementById("qrsFill").style.width = `${clamp((qrs - 90) / 110 * 100, 18, 100)}%`;
+      }
+
+      function renderControls() {
+        const rows = [
+          { key: "avDelay", label: "AV delay", unit: "ms", step: 10, min: 80, max: 220 },
+          { key: "vvDelay", label: "VV delay", unit: "ms", step: 10, min: -60, max: 60 },
+          { key: "lvOffset", label: "LV offset", unit: "ms", step: 10, min: -80, max: 40 },
+          { key: "bivPace", label: "BiV capture", unit: "%", step: 1, min: 70, max: 100 },
+          { key: "lvOutput", label: "LV output", unit: "V", step: 0.1, min: 0.5, max: 5.0 }
+        ];
+        document.getElementById("settingsGrid").innerHTML = rows.map((row) => `
+          <div class="setting-cell">
+            <div class="setting-row">
+              <strong>${escapeHtml(row.label)}</strong>
+              <button class="step-button" type="button" data-step="${row.key}" data-dir="-1">▼</button>
+              <span class="value-box">${escapeHtml(formatValue(settings[row.key], row.unit))}</span>
+              <button class="step-button" type="button" data-step="${row.key}" data-dir="1">▲</button>
+            </div>
+          </div>
+        `).join("") + `
+          <div class="setting-cell toggle-row">
+            <strong>LV multipoint pacing</strong>
+            <button class="toggle ${settings.mpp ? "on" : ""}" type="button" data-toggle-mpp>${settings.mpp ? "ON" : "OFF"}</button>
+          </div>
+        `;
+        document.querySelectorAll("[data-step]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const row = rows.find((item) => item.key === button.dataset.step);
+            const next = Number(settings[row.key]) + Number(button.dataset.dir) * row.step;
+            settings[row.key] = clamp(Number(next.toFixed(1)), row.min, row.max);
+            saveSettings();
+            render();
+          });
+        });
+        document.querySelector("[data-toggle-mpp]").addEventListener("click", () => {
+          settings.mpp = !settings.mpp;
+          saveSettings();
+          render();
+        });
+      }
+
+      function renderLogic(scenario, score, qrs) {
+        document.getElementById("logicSummary").textContent = scenario.notes[0];
+        const dynamic = [
+          settings.bivPace < 95 ? "BiV captureが低めです。AF、PVC、自己伝導混入、AVJ ablation後かを確認します。" : "BiV captureは保たれています。次にQRS幅、症状、閾値、電池消費を見ます。",
+          qrs > 150 ? "推定QRSが広めです。AV/VV delay、LV offset、リード位置、12誘導ECGでの変化を確認します。" : "QRS短縮は良好です。心不全症状と前回値の変化を合わせます。",
+          scenario.id === "phrenic-lv-vector" && settings.lvOutput > 3.0 ? "LV出力が高く横隔神経刺激リスクがあります。捕捉安全域を残しつつベクトル変更を検討します。" : "LV閾値、横隔神経刺激閾値、出力安全域を分けて記録します。",
+          scenario.device === "CRT-D" ? "CRT-DではICDイベント、VT/VFゾーン、ATP/ショック履歴も同じ時系列で確認します。" : "CRT-Pでは心不全指標、BiV率、LVリード安全性を中心に見ます。"
+        ];
+        document.getElementById("logicList").innerHTML = [...scenario.notes.slice(1), ...dynamic]
+          .map((item) => `<li>${escapeHtml(item)}</li>`)
+          .join("");
+      }
+
+      function renderChecks(scenario, score) {
+        const checks = [
+          {
+            title: "BiV capture",
+            ok: settings.bivPace >= 95,
+            body: settings.bivPace >= 95 ? "95%以上を維持。心不全症状とQRS変化を確認します。" : "低めです。AF、PVC、自己伝導、設定、AVJ ablation後かを確認します。"
+          },
+          {
+            title: "AV/VV最適化",
+            ok: score >= 75,
+            body: score >= 75 ? "同期条件は概ね良好です。" : "AV delay、VV delay、LV offsetを再評価します。"
+          },
+          {
+            title: "LV閾値・横隔神経刺激",
+            ok: !(scenario.id === "phrenic-lv-vector" && settings.lvOutput > 3.0),
+            body: scenario.id === "phrenic-lv-vector" && settings.lvOutput > 3.0 ? "横隔神経刺激リスクあり。LVベクトル変更や出力調整を検討します。" : "LV出力安全域と刺激症状を分けて確認します。"
+          },
+          {
+            title: "LV multipoint pacing",
+            ok: scenario.optimal.mpp === settings.mpp,
+            body: settings.mpp ? "MPP ON。電池消費、閾値、刺激症状も確認します。" : "MPP OFF。Non-responder症例では適応とデメリットを検討します。"
+          }
+        ];
+        document.getElementById("checkList").innerHTML = checks.map((check) => `
+          <div class="check-item ${check.ok ? "ok" : "warn"}">
+            <strong>${escapeHtml(check.title)}</strong>
+            <p>${escapeHtml(check.body)}</p>
+          </div>
+        `).join("");
+      }
+
+      function formatValue(value, unit) {
+        return `${Number(value).toFixed(unit === "V" ? 1 : 0)} ${unit}`;
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;"
+        })[char]);
+      }
+    </script>
+  </body>
+</html>
