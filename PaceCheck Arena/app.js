@@ -776,12 +776,12 @@ function renderSimulatorPanel(scenario) {
         <p>${escapeHtml(judgeView.body)}</p>
       </div>
     </div>
-    ${safety ? `
-      <div class="safety-alert">
+    <div class="safety-alert ${safety ? "" : "is-empty"}" aria-hidden="${safety ? "false" : "true"}">
+      ${safety ? `
         <strong>${escapeHtml(safety.title)}</strong>
         <p>${escapeHtml(safety.body)}</p>
-      </div>
-    ` : ""}
+      ` : `<span class="placeholder-text">安全確認の警告はありません</span>`}
+    </div>
     <div class="objective-box">
       <span>${hints ? "Current Hint" : "Goal"}</span>
       <strong>${escapeHtml(objectiveTitle)}</strong>
@@ -801,16 +801,17 @@ function renderSimulatorPanel(scenario) {
         `;
       }).join("")}
     </div>
-    ${logItems.length ? `
-      <ol class="judge-log">
-        ${logItems.map((item) => `
-          <li class="${escapeHtml(item.type)}">
-            <span>${escapeHtml(item.displayDelta || formatScoreDelta(item.delta, scenario))}</span>
-            <p>${escapeHtml(item.title)}</p>
-          </li>
-        `).join("")}
-      </ol>
-    ` : ""}
+    <ol class="judge-log ${logItems.length ? "" : "is-empty"}">
+      ${logItems.length
+        ? logItems.map((item) => `
+            <li class="${escapeHtml(item.type)}">
+              <span>${escapeHtml(item.displayDelta || formatScoreDelta(item.delta, scenario))}</span>
+              <p>${escapeHtml(item.title)}</p>
+            </li>
+          `).join("")
+        : `<li class="empty-log"><p>操作判定の履歴がここに表示されます。</p></li>`
+      }
+    </ol>
   `;
 
   document.querySelector("[data-hint-toggle]")?.addEventListener("click", () => {

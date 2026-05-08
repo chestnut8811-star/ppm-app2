@@ -848,12 +848,28 @@ button:focus-visible {
 }
 
 .safety-alert {
+  min-height: 56px;
   padding: 12px;
   border: 1px solid rgba(180, 35, 24, 0.45);
   border-left: 5px solid var(--danger);
   border-radius: 6px;
   background: var(--danger-soft);
   color: var(--danger);
+}
+
+.safety-alert.is-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--line);
+  border-left: 5px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+}
+
+.safety-alert.is-empty .placeholder-text {
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .safety-alert strong {
@@ -944,11 +960,16 @@ button:focus-visible {
 .judge-log {
   display: grid;
   gap: 5px;
+  min-height: 118px;
   max-height: 118px;
   overflow: auto;
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.judge-log.is-empty {
+  align-content: center;
 }
 
 .judge-log li {
@@ -960,6 +981,22 @@ button:focus-visible {
   border: 1px solid var(--line);
   border-radius: 6px;
   background: #ffffff;
+}
+
+.judge-log li.empty-log {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.judge-log li.empty-log p {
+  margin: 0;
 }
 
 .judge-log span {
