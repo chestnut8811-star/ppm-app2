@@ -1354,14 +1354,9 @@ function formatScoreDelta(rawDelta, scenario, rawScoreAfter = state.score || 0) 
 }
 
 function scaledDeltaValue(rawDelta, scenario, rawScoreAfter = state.score || 0) {
-  if (!rawDelta) return 0;
-  const after = scaledScoreValue(rawScoreAfter, scenario);
-  const before = scaledScoreValue(rawScoreAfter - rawDelta, scenario);
-  const scaled = after - before;
-  // When the displayed score is capped (raw is at/above maxPoints),
-  // surface the raw delta so penalties remain visible to the user.
-  if (scaled === 0) return rawDelta;
-  return scaled;
+  // Always show the raw delta so the user sees consistent penalty/bonus amounts
+  // (e.g. -10 always shows as -10) regardless of score scaling curve position.
+  return rawDelta || 0;
 }
 
 function scoringStep(scenario, stepId) {
