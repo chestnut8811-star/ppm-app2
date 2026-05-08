@@ -129,6 +129,17 @@ button {
   color: var(--primary-dark);
 }
 
+.ghost-button.danger {
+  color: var(--danger);
+  border-color: rgba(180, 35, 24, 0.35);
+}
+
+.ghost-button.danger:hover {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
 .lab-return {
   display: inline-flex;
   align-items: center;

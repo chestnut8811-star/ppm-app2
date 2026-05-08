@@ -656,6 +656,7 @@ function renderScoreHistory() {
         <p class="eyebrow">Score History</p>
         <h2>練習履歴（直近10件）</h2>
       </div>
+      <button id="clearHistory" class="ghost-button danger" type="button" title="履歴をすべて削除">履歴を消去</button>
     </div>
     <div class="history-table-wrap">
       <table class="history-table">
@@ -676,6 +677,15 @@ function renderScoreHistory() {
       </table>
     </div>
   `;
+  const clearBtn = document.getElementById("clearHistory");
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      if (window.confirm("練習履歴をすべて削除します。よろしいですか？")) {
+        localStorage.removeItem(SCORE_HISTORY_KEY);
+        renderScoreHistory();
+      }
+    });
+  }
 }
 
 function renderHeader(scenario, rhythm) {
