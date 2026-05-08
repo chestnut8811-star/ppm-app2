@@ -1136,6 +1136,44 @@ button:focus-visible {
   color: var(--primary-dark);
 }
 
+.end-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.end-actions .restore-button,
+.end-actions .end-test-button {
+  margin: 0;
+}
+
+.end-test-button {
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.end-test-button:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+.end-test-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+[data-theme="dark"] .end-test-button:disabled {
+  background: #2a3840;
+  border-color: #2a3840;
+  color: var(--muted);
+}
+
 .feedback-box {
   margin-top: 14px;
   padding: 12px;

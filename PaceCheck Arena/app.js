@@ -1132,7 +1132,10 @@ function renderMeasurements(scenario) {
         </div>
       </div>
     `).join("")}
-    <button class="restore-button" type="button" data-check="restore">初期設定へ戻す</button>
+    <div class="end-actions">
+      <button class="restore-button" type="button" data-check="restore" ${state.runComplete ? "disabled" : ""}>初期設定へ戻す</button>
+      <button class="end-test-button" type="button" data-check="end" ${state.runComplete ? "disabled" : ""}>テスト終了</button>
+    </div>
   `;
 
   document.querySelectorAll("[data-check]").forEach((button) => {
@@ -1235,6 +1238,14 @@ function performDirectCheck(checkId) {
     } else {
       setFeedback("設定復帰", "初期設定へ戻しました。必要な手順が未完了なら続けてやり直してください。");
     }
+    saveState();
+    render();
+    return;
+  }
+
+  if (checkId === "end") {
+    if (state.runComplete) return;
+    endTestRun(scenario);
     saveState();
     render();
     return;
@@ -1421,28 +1432,49 @@ function blindCorrectBody(stepId, body) {
 }
 
 function finishSimulatorIfComplete(scenario, silent = false) {
-  if (!measurementGoalComplete(scenario) || state.runComplete) return;
-  // Wait until any active threshold sweep is closed before finalizing
+  // Auto-completion no longer ends the test. The user must click "テスト終了" explicitly.
+  // We just surface a hint when measurements are done but the user hasn't ended yet.
+  if (state.runComplete) return;
   if (state.activeTest) return;
+  if (!measurementGoalComplete(scenario)) return;
+  if (silent) return;
+  setFeedback(
+    "テスト終了の準備が整いました",
+    "全ての測定が完了しました。設定を初期値へ戻してから「テスト終了」ボタンを押してください。"
+  );
+}
 
-  // Penalty: ended without restoring settings (V output / A output etc. left altered)
-  let penaltyApplied = 0;
-  if (!settingsRestored(scenario)) {
-    penaltyApplied = 10;
-    state.score = (state.score || 0) - penaltyApplied;
+function endTestRun(scenario) {
+  if (state.runComplete) return;
+  const measurementsDone = measurementGoalComplete(scenario);
+  const restored = settingsRestored(scenario);
+  let penalty = 0;
+  const notes = [];
+
+  if (!measurementsDone) {
+    penalty += 20;
+    notes.push("未完了の測定があるまま終了しました（-20点）");
+  }
+  if (!restored) {
+    penalty += 10;
+    notes.push("設定が初期値へ戻されていません（-10点）。実臨床では必ず設定を戻してください。");
+  }
+  if (penalty > 0) {
+    state.score = (state.score || 0) - penalty;
     state.mistakes = (state.mistakes || 0) + 1;
   }
 
   state.runComplete = true;
-  state.score = (state.score || 0) + COMPLETION_BONUS;
-  state.combo = (state.combo || 0) + 1;
+  state.activeTest = null;
+  if (measurementsDone) {
+    state.score = (state.score || 0) + COMPLETION_BONUS;
+    state.combo = (state.combo || 0) + 1;
+  }
   const score = scoreSummary(scenario);
   const resultTitle = score.value >= PASSING_SCORE ? "完了：合格" : "完了：不合格";
-  const restoreNote = penaltyApplied
-    ? `ただし設定が初期値へ戻されていません（-${penaltyApplied}点）。実臨床では必ず設定を戻してください。`
-    : "設定も初期値へ戻りました。";
-  const resultBody = `4種類のチェックが完了しました。${restoreNote} 最終得点は${score.value}/100点です。合格基準は${PASSING_SCORE}点です。`;
-  setJudge("correct", resultTitle, resultBody, COMPLETION_BONUS, silent);
+  const noteText = notes.length ? notes.join(" / ") : "全項目を適切に終了しました。";
+  const resultBody = `${noteText} 最終得点は${score.value}/100点です。合格基準は${PASSING_SCORE}点です。`;
+  setJudge("correct", resultTitle, resultBody, measurementsDone ? COMPLETION_BONUS : 0, false);
   setFeedback(resultTitle, resultBody);
   saveScoreHistory(scenario.id, scenario.title, score.value, state.mistakes || 0);
 }
