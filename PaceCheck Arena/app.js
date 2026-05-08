@@ -183,30 +183,35 @@ const SCENARIOS = [
 ];
 
 const SCORE_MAX = 100;
-const PASSING_SCORE = 90;
-const STRICT_SCORE_EXPONENT = 1.6;
-const WRONG_PENALTY_MULTIPLIER = 1.5;
+const PASSING_SCORE = 80;
+const WRONG_PENALTY = 10;
 const ECG_SAFETY_OVERLAY_DELAY_MS = 1200;
 const COMPLETION_BONUS = 10;
 const SCORE_HISTORY_KEY = "pacecheck-arena-history";
+// 自己AV伝導の生理学的上限を超えたとみなす SAV 値。これ以上延ばしてVSが出なければ
+// 「VSは出ない」と確認したと扱う閾値（CAVB系シナリオで confirm-no-vs を自動完了させる）。
+const NO_VS_CONFIRM_SAV_MS = 280;
 
+// Fallback used when a stepId isn't part of the active scenario's profile.
+// Points are 0 here so off-profile auto-triggers don't inflate the per-scenario score
+// (which is balanced to total 100 via the profile sums + COMPLETION_BONUS).
 const COMMON_STEPS = {
-  "confirm-no-vs": { label: "AV延長でVSが出ないことを確認", hint: "AV delayを延長し、自己R波が出ないことを観察します。", points: 10 },
-  "create-vs-for-r": { label: "VSを出してR波測定条件を作る", hint: "VPからVSへ切り替え、R波が見える条件を作ります。", points: 10 },
-  "create-as-for-p": { label: "ASを出してP波測定条件を作る", hint: "APからASへ切り替え、P波が見える条件を作ります。", points: 10 },
-  "create-ap-for-a-threshold": { label: "APを出してA閾値条件を作る", hint: "ASからAPへ切り替え、A閾値テストの条件を作ります。", points: 8 },
-  "create-vp-for-v-threshold": { label: "VPを出してV閾値条件を作る", hint: "VSからVPへ切り替え、V閾値テストの条件を作ります。", points: 8 },
-  "start-a-threshold": { label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 5, check: "aThreshold" },
-  "find-a-loss": { label: "A出力を下げてLOCを確認", hint: "A出力を下げ、A LOCが出る境界を観察します。", points: 10 },
-  "record-a-threshold": { label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 10, check: "aThreshold" },
-  "start-v-threshold": { label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 5, check: "vThreshold" },
-  "find-v-loss": { label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 10 },
-  "record-v-threshold": { label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 10, check: "vThreshold" },
-  "record-p-wave": { label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 10, check: "pWave" },
-  "record-r-wave": { label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 10, check: "rWave" },
-  "record-r-difficult": { label: "V波高値を評価困難として記録", hint: "自己R波が出ないことを確認し、評価困難として記録します。", points: 10, check: "rDifficult" },
-  "record-events": { label: "イベント情報を確認", hint: "イベントカウンタと保存EGMを確認します。", points: 8, check: "events" },
-  "restore-settings": { label: "初期設定へ戻す", hint: "一時的に変更した設定を症例開始時の値へ戻します。", points: 5, check: "restore" }
+  "confirm-no-vs": { label: "AV延長でVSが出ないことを確認", hint: "AV delayを延長し、自己R波が出ないことを観察します。", points: 0 },
+  "create-vs-for-r": { label: "VSを出してR波測定条件を作る", hint: "VPからVSへ切り替え、R波が見える条件を作ります。", points: 0 },
+  "create-as-for-p": { label: "ASを出してP波測定条件を作る", hint: "APからASへ切り替え、P波が見える条件を作ります。", points: 0 },
+  "create-ap-for-a-threshold": { label: "APを出してA閾値条件を作る", hint: "ASからAPへ切り替え、A閾値テストの条件を作ります。", points: 0 },
+  "create-vp-for-v-threshold": { label: "VPを出してV閾値条件を作る", hint: "VSからVPへ切り替え、V閾値テストの条件を作ります。", points: 0 },
+  "start-a-threshold": { label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 0, check: "aThreshold" },
+  "find-a-loss": { label: "A出力を下げてLOCを確認", hint: "A出力を下げ、A LOCが出る境界を観察します。", points: 0 },
+  "record-a-threshold": { label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 0, check: "aThreshold" },
+  "start-v-threshold": { label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 0, check: "vThreshold" },
+  "find-v-loss": { label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 0 },
+  "record-v-threshold": { label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 0, check: "vThreshold" },
+  "record-p-wave": { label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 0, check: "pWave" },
+  "record-r-wave": { label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 0, check: "rWave" },
+  "record-r-difficult": { label: "V波高値を評価困難として記録", hint: "自己R波が出ないことを確認し、評価困難として記録します。", points: 0, check: "rDifficult" },
+  "record-events": { label: "イベント情報を確認", hint: "イベントカウンタと保存EGMを確認します。", points: 0, check: "events" },
+  "restore-settings": { label: "初期設定へ戻す", hint: "一時的に変更した設定を症例開始時の値へ戻します。", points: 0, check: "restore" }
 };
 
 const AUTO_STEP_IDS = [
@@ -221,134 +226,134 @@ const AUTO_STEP_IDS = [
 
 const SIMULATOR_PROFILES = {
   "cavb-asvp-rwave-no-vs": [
-    { id: "confirm-no-vs", label: "AV延長でVSが出ないことを確認", hint: "SAVを延長し、AS-VPのまま自己R波が出ないことを観察します。", points: 10 },
-    { id: "record-r-difficult", label: "V波高値を評価困難として記録", hint: "自己R波が出ないため、R波測定へ進まず評価困難を記録します。", points: 10, check: "rDifficult" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "一時的に変更した設定を症例開始時の値へ戻します。", points: 8, check: "restore" }
+    { id: "confirm-no-vs", label: "AV延長でVSが出ないことを確認", hint: "SAVを延長し、AS-VPのまま自己R波が出ないことを観察します。", points: 30 },
+    { id: "record-r-difficult", label: "V波高値を評価困難として記録", hint: "自己R波が出ないため、R波測定へ進まず評価困難を記録します。", points: 35, check: "rDifficult" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "一時的に変更した設定を症例開始時の値へ戻します。", points: 25, check: "restore" }
   ],
   "intermittent-avb-asvp-rwave": [
-    { id: "create-vs-for-r", label: "VSを出してR波測定条件を作る", hint: "SAVを延長し、AS-VPからAS-VSへ切り替えます。", points: 10 },
-    { id: "record-r-wave", label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 10, check: "rWave" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は一時設定を戻します。", points: 8, check: "restore" }
+    { id: "create-vs-for-r", label: "VSを出してR波測定条件を作る", hint: "SAVを延長し、AS-VPからAS-VSへ切り替えます。", points: 30 },
+    { id: "record-r-wave", label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 35, check: "rWave" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は一時設定を戻します。", points: 25, check: "restore" }
   ],
   "sss-apvs-pwave": [
-    { id: "create-as-for-p", label: "ASを出してP波測定条件を作る", hint: "下限レートを下げ、APからASへ切り替えます。", points: 10 },
-    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 10, check: "pWave" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レートを戻します。", points: 8, check: "restore" }
+    { id: "create-as-for-p", label: "ASを出してP波測定条件を作る", hint: "下限レートを下げ、APからASへ切り替えます。", points: 30 },
+    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 35, check: "pWave" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レートを戻します。", points: 25, check: "restore" }
   ],
   "ddd-asvs-v-threshold": [
-    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "SAVを短縮し、AS-VSからAS-VPへ切り替えます。", points: 8 },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 6, check: "vThreshold" },
-    { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 10 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 10, check: "vThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は出力とAV delayを戻します。", points: 8, check: "restore" }
+    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "SAVを短縮し、AS-VSからAS-VPへ切り替えます。", points: 18 },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 12, check: "vThreshold" },
+    { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 22 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 22, check: "vThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は出力とAV delayを戻します。", points: 16, check: "restore" }
   ],
   "sss-apvp-a-threshold": [
-    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 6, check: "aThreshold" },
-    { id: "find-a-loss", label: "A出力を下げてLOCを確認", hint: "A出力を下げ、A LOCが出る境界を観察します。", points: 10 },
-    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 10, check: "aThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は出力を戻します。", points: 8, check: "restore" }
+    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 18, check: "aThreshold" },
+    { id: "find-a-loss", label: "A出力を下げてLOCを確認", hint: "A出力を下げ、A LOCが出る境界を観察します。", points: 25 },
+    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 25, check: "aThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は出力を戻します。", points: 22, check: "restore" }
   ],
   "brady-af-vvi-rwave": [
-    { id: "create-vs-for-r", label: "VSを出してR波測定条件を作る", hint: "下限レートを自己心拍より下げ、VVI-VPからVVI-VSへ切り替えます。", points: 10 },
-    { id: "record-r-wave", label: "R波波高値を記録", hint: "VVI-VS表示中にVリード波高値を記録します。", points: 10, check: "rWave" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レートを戻します。", points: 8, check: "restore" }
+    { id: "create-vs-for-r", label: "VSを出してR波測定条件を作る", hint: "下限レートを自己心拍より下げ、VVI-VPからVVI-VSへ切り替えます。", points: 30 },
+    { id: "record-r-wave", label: "R波波高値を記録", hint: "VVI-VS表示中にVリード波高値を記録します。", points: 35, check: "rWave" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レートを戻します。", points: 25, check: "restore" }
   ],
   "tachy-brady-events": [
-    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 10, check: "pWave" },
-    { id: "record-events", label: "イベント情報を確認", hint: "洞不全症候群（徐脈頻脈型）ではMode Switchなどのイベントも確認します。", points: 8, check: "events" },
-    { id: "restore-settings", label: "初期設定を確認", hint: "一時変更が残っていないことを確認します。", points: 8, check: "restore" }
+    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 35, check: "pWave" },
+    { id: "record-events", label: "イベント情報を確認", hint: "洞不全症候群（徐脈頻脈型）ではMode Switchなどのイベントも確認します。", points: 28, check: "events" },
+    { id: "restore-settings", label: "初期設定を確認", hint: "一時変更が残っていないことを確認します。", points: 27, check: "restore" }
   ],
   "ddd-apvp-v-threshold-dependent": [
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "依存疑いのため、VP表示を確認してからV閾値テストを開始します。", points: 6, check: "vThreshold" },
-    { id: "find-v-loss", label: "V出力を慎重に下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 10 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 10, check: "vThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は出力安全域と復帰を確認します。", points: 8, check: "restore" }
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "依存疑いのため、VP表示を確認してからV閾値テストを開始します。", points: 18, check: "vThreshold" },
+    { id: "find-v-loss", label: "V出力を慎重に下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 25 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 25, check: "vThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は出力安全域と復帰を確認します。", points: 22, check: "restore" }
   ],
   "ddd-apvp-pwave-vthreshold": [
-    { id: "create-as-for-p", label: "ASを出してP波測定条件を作る", hint: "下限レートを下げ、APからASへ切り替えます。", points: 8 },
-    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 8, check: "pWave" },
-    { id: "record-r-difficult", label: "V波高値は無記録で終了", hint: "自己R波が出ない症例と判断し、無記録で終了します。", points: 8, check: "rDifficult" },
-    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "下限レートを戻すかAV delayを短縮し、VP優位に戻します。", points: 6 },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 5, check: "vThreshold" },
-    { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 8 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 8, check: "vThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レート・出力を戻します。", points: 6, check: "restore" }
+    { id: "create-as-for-p", label: "ASを出してP波測定条件を作る", hint: "下限レートを下げ、APからASへ切り替えます。", points: 12 },
+    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 12, check: "pWave" },
+    { id: "record-r-difficult", label: "V波高値は無記録で終了", hint: "自己R波が出ない症例と判断し、無記録で終了します。", points: 12, check: "rDifficult" },
+    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "下限レートを戻すかAV delayを短縮し、VP優位に戻します。", points: 10 },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 8, check: "vThreshold" },
+    { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 12 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 12, check: "vThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レート・出力を戻します。", points: 12, check: "restore" }
   ],
   "vvi-vs-rwave-vthreshold": [
-    { id: "record-r-wave", label: "R波波高値を記録", hint: "VVI-VS表示中にVリード波高値を記録します。", points: 10, check: "rWave" },
-    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "下限レートを上げ、VVI-VPへ切り替えます。", points: 8 },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 5, check: "vThreshold" },
-    { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 8 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 10, check: "vThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レート・出力を戻します。", points: 8, check: "restore" }
+    { id: "record-r-wave", label: "R波波高値を記録", hint: "VVI-VS表示中にVリード波高値を記録します。", points: 18, check: "rWave" },
+    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "下限レートを上げ、VVI-VPへ切り替えます。", points: 14 },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 10, check: "vThreshold" },
+    { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 14 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 18, check: "vThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レート・出力を戻します。", points: 16, check: "restore" }
   ],
   "afib-dependent-vvi-difficult": [
-    { id: "record-r-difficult", label: "V波高値は無記録で終了", hint: "完全依存で自己R波が出ない症例と判断し、無記録で終了します。", points: 12, check: "rDifficult" },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを慎重に開始します。", points: 5, check: "vThreshold" },
-    { id: "find-v-loss", label: "V出力を慎重に下げてLOCを確認", hint: "V出力を下げ、V LOCの境界を観察します。", points: 10 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 10, check: "vThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は出力安全域と復帰を厳守します。", points: 8, check: "restore" }
+    { id: "record-r-difficult", label: "V波高値は無記録で終了", hint: "完全依存で自己R波が出ない症例と判断し、無記録で終了します。", points: 22, check: "rDifficult" },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを慎重に開始します。", points: 10, check: "vThreshold" },
+    { id: "find-v-loss", label: "V出力を慎重に下げてLOCを確認", hint: "V出力を下げ、V LOCの境界を観察します。", points: 20 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 20, check: "vThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は出力安全域と復帰を厳守します。", points: 18, check: "restore" }
   ],
   "ddd-asvs-comprehensive": [
-    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 6, check: "pWave" },
-    { id: "record-r-wave", label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 6, check: "rWave" },
-    { id: "create-ap-for-a-threshold", label: "APを出してA閾値条件を作る", hint: "下限レートを上げ、ASからAPへ切り替えます。", points: 5 },
-    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 5, check: "aThreshold" },
-    { id: "find-a-loss", label: "A出力を下げてLOCを確認", hint: "A出力を下げ、A LOCの境界を観察します。", points: 6 },
-    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 6, check: "aThreshold" },
-    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "AV delayを短縮し、VSからVPへ切り替えます。", points: 5 },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 5, check: "vThreshold" },
-    { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCの境界を観察します。", points: 6 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 6, check: "vThreshold" },
+    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 8, check: "pWave" },
+    { id: "record-r-wave", label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 8, check: "rWave" },
+    { id: "create-ap-for-a-threshold", label: "APを出してA閾値条件を作る", hint: "下限レートを上げ、ASからAPへ切り替えます。", points: 8 },
+    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 7, check: "aThreshold" },
+    { id: "find-a-loss", label: "A出力を下げてLOCを確認", hint: "A出力を下げ、A LOCの境界を観察します。", points: 9 },
+    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 9, check: "aThreshold" },
+    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "AV delayを短縮し、VSからVPへ切り替えます。", points: 8 },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 7, check: "vThreshold" },
+    { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCの境界を観察します。", points: 9 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 9, check: "vThreshold" },
     { id: "restore-settings", label: "初期設定へ戻す", hint: "総合チェック後は全設定を初期値へ戻します。", points: 8, check: "restore" }
   ],
   "ddd-lead-impedance-alert": [
-    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 6, check: "pWave" },
-    { id: "create-vs-for-r", label: "VSを出してR波測定条件を作る", hint: "AV delayを延長してAS-VPからAS-VSへ切り替えます。", points: 6 },
+    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 7, check: "pWave" },
+    { id: "create-vs-for-r", label: "VSを出してR波測定条件を作る", hint: "AV delayを延長してAS-VPからAS-VSへ切り替えます。", points: 7 },
     { id: "record-r-wave", label: "R波波高値を記録（低下に注目）", hint: "VS表示中にVリード波高値を記録。前回値からのトレンドを意識する。", points: 8, check: "rWave" },
-    { id: "create-ap-for-a-threshold", label: "APを出してA閾値条件を作る", hint: "下限レートを上げ、AP誘発します。", points: 5 },
-    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 3, check: "aThreshold" },
-    { id: "find-a-loss", label: "A LOCを確認", hint: "A出力を下げ、捕捉/脱落の境界を確認します。", points: 5 },
-    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 6, check: "aThreshold" },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。閾値上昇に注意。", points: 3, check: "vThreshold" },
-    { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 6 },
-    { id: "record-v-threshold", label: "V閾値を記録（上昇に注目）", hint: "閾値の上昇傾向を記録。リード抵抗とイベントを併せて評価する。", points: 6, check: "vThreshold" },
-    { id: "record-events", label: "イベント情報を確認", hint: "高抵抗アラートと保存EGMを確認します。", points: 8, check: "events" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "総合チェック後は全設定を初期値へ戻します。", points: 6, check: "restore" }
+    { id: "create-ap-for-a-threshold", label: "APを出してA閾値条件を作る", hint: "下限レートを上げ、AP誘発します。", points: 7 },
+    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 6, check: "aThreshold" },
+    { id: "find-a-loss", label: "A LOCを確認", hint: "A出力を下げ、捕捉/脱落の境界を確認します。", points: 8 },
+    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 8, check: "aThreshold" },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。閾値上昇に注意。", points: 6, check: "vThreshold" },
+    { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 8 },
+    { id: "record-v-threshold", label: "V閾値を記録（上昇に注目）", hint: "閾値の上昇傾向を記録。リード抵抗とイベントを併せて評価する。", points: 8, check: "vThreshold" },
+    { id: "record-events", label: "イベント情報を確認", hint: "高抵抗アラートと保存EGMを確認します。", points: 9, check: "events" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "総合チェック後は全設定を初期値へ戻します。", points: 8, check: "restore" }
   ],
   "sinus-arrest-apvs-comprehensive": [
-    { id: "create-as-for-p", label: "ASを出してP波測定条件を作る", hint: "下限レートを下げ、AP-VSからAS-VSへ切り替えます。", points: 6 },
-    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 6, check: "pWave" },
-    { id: "record-r-wave", label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 6, check: "rWave" },
-    { id: "create-ap-for-a-threshold", label: "APを出してA閾値条件を作る", hint: "下限レートを上げ、ASからAPへ戻します。", points: 5 },
-    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 5, check: "aThreshold" },
-    { id: "find-a-loss", label: "A LOCを確認", hint: "A出力を下げ、捕捉/脱落の境界を確認します。", points: 6 },
-    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 6, check: "aThreshold" },
-    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "PAVを短縮し、AP-VSからAP-VPへ切り替えます。", points: 5 },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 5, check: "vThreshold" },
-    { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 6 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 6, check: "vThreshold" },
+    { id: "create-as-for-p", label: "ASを出してP波測定条件を作る", hint: "下限レートを下げ、AP-VSからAS-VSへ切り替えます。", points: 8 },
+    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 8, check: "pWave" },
+    { id: "record-r-wave", label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 8, check: "rWave" },
+    { id: "create-ap-for-a-threshold", label: "APを出してA閾値条件を作る", hint: "下限レートを上げ、ASからAPへ戻します。", points: 7 },
+    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 7, check: "aThreshold" },
+    { id: "find-a-loss", label: "A LOCを確認", hint: "A出力を下げ、捕捉/脱落の境界を確認します。", points: 8 },
+    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 8, check: "aThreshold" },
+    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "PAVを短縮し、AP-VSからAP-VPへ切り替えます。", points: 7 },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 7, check: "vThreshold" },
+    { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 8 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 8, check: "vThreshold" },
     { id: "restore-settings", label: "初期設定へ戻す", hint: "下限レート、AV delay、出力を初期値へ戻します。", points: 6, check: "restore" }
   ],
   "high-grade-avb-asvp-intermittent": [
-    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 5, check: "pWave" },
+    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 7, check: "pWave" },
     { id: "create-vs-for-r", label: "VSを出してR波測定条件を作る", hint: "SAVを延長し、AS-VPからAS-VSへ切り替えます。", points: 8 },
-    { id: "record-r-wave", label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 6, check: "rWave" },
-    { id: "create-ap-for-a-threshold", label: "APを出してA閾値条件を作る", hint: "下限レートを上げ、ASからAPへ切り替えます。", points: 5 },
-    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 5, check: "aThreshold" },
-    { id: "find-a-loss", label: "A LOCを確認", hint: "A出力を下げ、捕捉/脱落の境界を確認します。", points: 6 },
-    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 6, check: "aThreshold" },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 5, check: "vThreshold" },
-    { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 6 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 6, check: "vThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "AV delay、下限レート、出力を初期値へ戻します。", points: 6, check: "restore" }
+    { id: "record-r-wave", label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 8, check: "rWave" },
+    { id: "create-ap-for-a-threshold", label: "APを出してA閾値条件を作る", hint: "下限レートを上げ、ASからAPへ切り替えます。", points: 7 },
+    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 7, check: "aThreshold" },
+    { id: "find-a-loss", label: "A LOCを確認", hint: "A出力を下げ、捕捉/脱落の境界を確認します。", points: 9 },
+    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 9, check: "aThreshold" },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 7, check: "vThreshold" },
+    { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 9 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 9, check: "vThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "AV delay、下限レート、出力を初期値へ戻します。", points: 10, check: "restore" }
   ],
   "post-av-node-ablation-vvi-dependent": [
-    { id: "record-r-difficult", label: "V波高値は評価困難として記録", hint: "自己R波が出ない症例と判断し、評価困難として記録します。", points: 10, check: "rDifficult" },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを慎重に開始します。", points: 6, check: "vThreshold" },
-    { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 10 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 10, check: "vThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "V出力安全域と下限レートを初期値へ戻します。", points: 8, check: "restore" }
+    { id: "record-r-difficult", label: "V波高値は評価困難として記録", hint: "自己R波が出ない症例と判断し、評価困難として記録します。", points: 22, check: "rDifficult" },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを慎重に開始します。", points: 12, check: "vThreshold" },
+    { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 20 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 20, check: "vThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "V出力安全域と下限レートを初期値へ戻します。", points: 16, check: "restore" }
   ]
 };
 
@@ -357,6 +362,61 @@ let animationId = null;
 let ecgPhase = 0;
 let lastFrameTime = 0;
 let ventricularSafetyStartedAt = 0;
+
+let audioCtx = null;
+function getAudioCtx() {
+  if (state.soundEnabled === false) return null;
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch { return null; }
+  }
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+
+function playTones(notes, gainPeak = 0.12) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  notes.forEach((n) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = n.type || "sine";
+    osc.frequency.value = n.freq;
+    gain.gain.setValueAtTime(0, now + n.t);
+    gain.gain.linearRampToValueAtTime(gainPeak, now + n.t + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + n.t + n.dur);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now + n.t);
+    osc.stop(now + n.t + n.dur + 0.05);
+  });
+}
+
+function playStepSound() {
+  // Quick two-note rise: A5 → E6
+  playTones([
+    { freq: 880, t: 0, dur: 0.14 },
+    { freq: 1320, t: 0.09, dur: 0.20 }
+  ]);
+}
+
+function playFinalSound(passed) {
+  if (passed) {
+    // C major arpeggio: C5 E5 G5 C6
+    playTones([
+      { freq: 523.25, t: 0, dur: 0.18 },
+      { freq: 659.25, t: 0.10, dur: 0.18 },
+      { freq: 783.99, t: 0.20, dur: 0.20 },
+      { freq: 1046.50, t: 0.30, dur: 0.40 }
+    ], 0.14);
+  } else {
+    // Soft descending pair
+    playTones([
+      { freq: 440, t: 0, dur: 0.22, type: "triangle" },
+      { freq: 330, t: 0.18, dur: 0.30, type: "triangle" }
+    ], 0.12);
+  }
+}
 
 document.addEventListener("DOMContentLoaded", init);
 
@@ -463,7 +523,10 @@ function defaultState() {
     combo: 0,
     runComplete: false,
     simulatorFlags: {},
-    hintsEnabled: false,
+    hintsEnabled: true,
+    soundEnabled: true,
+    lastPenaltyKey: null,
+    endAttemptPenalized: false,
     lastJudge: {
       type: "info",
       title: "判定待ち",
@@ -560,7 +623,9 @@ function resetRun(scenarioId) {
   state.combo = 0;
   state.runComplete = false;
   state.simulatorFlags = {};
-  state.hintsEnabled = state.hintsEnabled ?? false;
+  state.hintsEnabled = state.hintsEnabled ?? true;
+  state.lastPenaltyKey = null;
+  state.endAttemptPenalized = false;
   state.lastJudge = {
     type: "info",
     title: "判定待ち",
@@ -631,7 +696,6 @@ function render() {
   const scenario = currentScenario();
   const rhythm = computeRhythm(scenario);
   renderHeader(scenario, rhythm);
-  renderSettings(scenario, rhythm);
   renderManualControls(scenario);
   renderSimulatorPanel(scenario);
   renderMeasurements(scenario);
@@ -717,24 +781,6 @@ function renderHeader(scenario, rhythm) {
   document.getElementById("telemetryCapture").textContent = safety ? "V LOC / VSなし" : captureStatus(rhythm);
 }
 
-function renderSettings(scenario, rhythm) {
-  const s = state.settings;
-  const rows = [
-    ["作動", rhythm.marker],
-    ["下限レート", `${s.lowerRate} ppm`],
-    ["AV", scenario.mode === "DDD" ? `S ${s.sensedAv} / P ${s.pacedAv} ms` : "-"],
-    ["出力", scenario.mode === "DDD" ? `A ${s.aOutput} / V ${s.vOutput} V` : `V ${s.vOutput} V`],
-    ["感度", scenario.mode === "DDD" ? `A ${s.aSense} / V ${s.vSense} mV` : `V ${s.vSense} mV`]
-  ];
-
-  document.getElementById("settingsGrid").innerHTML = rows.map(([label, value]) => `
-    <div class="setting-cell">
-      <span>${escapeHtml(label)}</span>
-      <strong>${escapeHtml(value)}</strong>
-    </div>
-  `).join("");
-}
-
 function renderSimulatorPanel(scenario) {
   const targets = measurementTargets(scenario);
   const current = currentSimulatorStep(scenario);
@@ -757,12 +803,18 @@ function renderSimulatorPanel(scenario) {
     ? (current ? current.hint : "この症例のチェックは完了です。")
     : "ヒントOFF中です。ECG、Marker、測定カードの状態から次の操作を判断してください。";
 
+  const sound = state.soundEnabled !== false;
   document.getElementById("simulatorPanel").innerHTML = `
     <div class="simulator-toolbar">
       <span>操作判定</span>
-      <button class="hint-toggle ${hints ? "on" : ""}" type="button" data-hint-toggle>
-        ヒント ${hints ? "ON" : "OFF"}
-      </button>
+      <div class="simulator-toolbar-actions">
+        <button class="hint-toggle ${sound ? "on" : ""}" type="button" data-sound-toggle aria-label="効果音 ${sound ? "ON" : "OFF"}" title="効果音 ${sound ? "ON" : "OFF"}">
+          ${sound ? "🔊" : "🔈"}
+        </button>
+        <button class="hint-toggle ${hints ? "on" : ""}" type="button" data-hint-toggle>
+          ヒント ${hints ? "ON" : "OFF"}
+        </button>
+      </div>
     </div>
     <div class="score-strip">
       <div>
@@ -797,20 +849,6 @@ function renderSimulatorPanel(scenario) {
       <strong>${escapeHtml(objectiveTitle)}</strong>
       <p>${escapeHtml(objectiveBody)}</p>
     </div>
-    <div class="step-list">
-      ${targets.map((target, index) => {
-        const done = target.status === "done";
-        const out = target.status === "out";
-        const active = !state.runComplete && target.available && !done && target.id === nextTargetId(scenario);
-        return `
-          <div class="step-chip ${done ? "done" : ""} ${out ? "out" : ""} ${active ? "active" : ""}">
-            <span>${done ? "OK" : out ? "外" : String(index + 1)}</span>
-            <strong>${escapeHtml(target.label)}</strong>
-            <small>${escapeHtml(targetStatusText(target))}</small>
-          </div>
-        `;
-      }).join("")}
-    </div>
     <ol class="judge-log ${logItems.length ? "" : "is-empty"}">
       ${logItems.length
         ? logItems.map((item) => `
@@ -823,6 +861,13 @@ function renderSimulatorPanel(scenario) {
       }
     </ol>
   `;
+
+  document.querySelector("[data-sound-toggle]")?.addEventListener("click", () => {
+    state.soundEnabled = !(state.soundEnabled !== false);
+    if (state.soundEnabled) playStepSound();
+    saveState();
+    render();
+  });
 
   document.querySelector("[data-hint-toggle]")?.addEventListener("click", () => {
     state.hintsEnabled = !state.hintsEnabled;
@@ -894,27 +939,28 @@ function renderManualControls(scenario) {
   const visibleControls = controls.filter((control) => control.enabled);
 
   document.getElementById("manualControls").innerHTML = `
-    <div class="panel-heading compact">
-      <div>
-        <p class="eyebrow">Live Settings</p>
-        <h2>手動操作</h2>
-      </div>
-    </div>
     ${visibleControls.map((control) => {
       const value = Number(state.settings[control.key] ?? 0);
-      const hint = state.hintsEnabled ? controlHint(control.key, scenario, rhythm) : "ヒントOFF";
+      const initial = Number(scenario.settings[control.key] ?? value);
+      const diff = Number((value - initial).toFixed(control.step >= 1 ? 0 : 1));
+      const diffLabel = diff === 0 ? "" : (diff > 0 ? `+${diff}` : `${diff}`);
+      const showHint = state.hintsEnabled;
+      const hint = showHint ? controlHint(control.key, scenario, rhythm) : "";
       return `
         <div class="control-row ${control.enabled ? "" : "disabled"} ${controlFocusClass(control.key, scenario, rhythm)}">
           <label for="control-${control.key}">
             <span>${escapeHtml(control.label)}</span>
           </label>
-          <strong data-control-value="${control.key}">${escapeHtml(formatControlValue(value, control.unit))}</strong>
+          <strong data-control-value="${control.key}">
+            <span class="control-value-text">${escapeHtml(formatControlValue(value, control.unit))}</span>
+            ${diffLabel ? `<em class="control-diff" aria-label="初期値からの差">${escapeHtml(diffLabel)}</em>` : ""}
+          </strong>
           <div class="stepper" aria-label="${escapeHtml(control.label)} step controls">
             <button type="button" aria-label="Increase ${escapeHtml(control.label)}" title="${control.shortcutUp ? `Increase (${control.shortcutUp})` : "Increase"}" data-step-control="${control.key}" data-step-direction="1" ${control.enabled ? "" : "disabled"}>${control.shortcutUp ? `<kbd class="shortcut-key">${escapeHtml(control.shortcutUp)}</kbd>` : ""}<span class="stepper-arrow">&#9650;</span></button>
             <button type="button" aria-label="Decrease ${escapeHtml(control.label)}" title="${control.shortcutDown ? `Decrease (${control.shortcutDown})` : "Decrease"}" data-step-control="${control.key}" data-step-direction="-1" ${control.enabled ? "" : "disabled"}>${control.shortcutDown ? `<kbd class="shortcut-key">${escapeHtml(control.shortcutDown)}</kbd>` : ""}<span class="stepper-arrow">&#9660;</span></button>
           </div>
           <input id="control-${control.key}" data-control="${control.key}" type="range" min="${control.min}" max="${control.max}" step="${control.step}" value="${value}" ${control.enabled ? "" : "disabled"}>
-          <small class="control-hint">${escapeHtml(hint)}</small>
+          ${showHint && hint ? `<small class="control-hint">${escapeHtml(hint)}</small>` : ""}
         </div>
       `;
     }).join("")}
@@ -970,7 +1016,25 @@ function updateRangeControl(input, controls, shouldSave) {
   input.value = String(next);
 
   const valueNode = document.querySelector(`[data-control-value="${key}"]`);
-  if (valueNode) valueNode.textContent = formatControlValue(next, control.unit);
+  if (valueNode) {
+    const textEl = valueNode.querySelector('.control-value-text');
+    if (textEl) textEl.textContent = formatControlValue(next, control.unit);
+    const initial = Number(scenario.settings[key] ?? next);
+    const decimals = control.step >= 1 ? 0 : 1;
+    const diff = Number((next - initial).toFixed(decimals));
+    let diffEl = valueNode.querySelector('.control-diff');
+    if (diff === 0) {
+      if (diffEl) diffEl.remove();
+    } else {
+      if (!diffEl) {
+        diffEl = document.createElement('em');
+        diffEl.className = 'control-diff';
+        diffEl.setAttribute('aria-label', '初期値からの差');
+        valueNode.appendChild(diffEl);
+      }
+      diffEl.textContent = diff > 0 ? `+${diff}` : String(diff);
+    }
+  }
 
   setFeedbackForSettingChange(key, next, control.unit);
   if (shouldSave) judgeSettingChange(key, beforeValue, next, beforeRhythm);
@@ -1009,7 +1073,6 @@ function refreshLivePanels() {
   const scenario = currentScenario();
   const rhythm = computeRhythm(scenario);
   renderHeader(scenario, rhythm);
-  renderSettings(scenario, rhythm);
   renderSimulatorPanel(scenario);
   renderMeasurements(scenario);
   renderFeedback();
@@ -1108,14 +1171,26 @@ function directGoalText(scenario, rhythm) {
 function renderMeasurements(scenario) {
   const rhythm = computeRhythm(scenario);
   const checks = directChecks(scenario, rhythm);
+  const targets = measurementTargets(scenario);
+  const targetById = Object.fromEntries(targets.map((t, i) => [t.id, { ...t, index: i + 1 }]));
+  const nextId = nextTargetId(scenario);
   document.getElementById("measurementGrid").innerHTML = `
     <div class="condition-box">
       <strong>${escapeHtml(rhythm.marker)}</strong>
       <p>${escapeHtml(state.hintsEnabled ? directGoalText(scenario, rhythm) : "測定条件を満たした項目から記録します。ヒントOFF中は具体的な操作手順を伏せています。")}</p>
     </div>
-    ${checks.map((check) => `
-      <div class="measurement-item ${check.ready ? "ready" : ""} ${check.available ? "" : "disabled"}">
-        <div>
+    ${checks.map((check) => {
+      const target = targetById[check.id];
+      const status = target?.status === "done" ? "done"
+        : target?.status === "out" ? "out"
+        : (!state.runComplete && target?.available && check.id === nextId ? "active" : "todo");
+      const badge = status === "done" ? "✓"
+        : status === "out" ? "—"
+        : target ? String(target.index) : "?";
+      return `
+      <div class="measurement-item ${check.ready ? "ready" : ""} ${check.available ? "" : "disabled"} status-${status}">
+        <div class="measurement-status" aria-hidden="true">${badge}</div>
+        <div class="measurement-body">
           <span>${escapeHtml(check.label)}</span>
           <strong>${escapeHtml(check.value)}</strong>
           <small>${escapeHtml(state.hintsEnabled ? check.hint : measurementBlindHint(check))}</small>
@@ -1131,7 +1206,7 @@ function renderMeasurements(scenario) {
           `).join("")}
         </div>
       </div>
-    `).join("")}
+    `}).join("")}
     <div class="end-actions">
       <button class="restore-button" type="button" data-check="restore" ${state.runComplete ? "disabled" : ""}>初期設定へ戻す</button>
       <button class="end-test-button" type="button" data-check="end" ${state.runComplete ? "disabled" : ""}>テスト終了</button>
@@ -1327,9 +1402,10 @@ function simulatorMaxPoints(scenario) {
 function scoreSummary(scenario) {
   const maxPoints = Math.max(1, simulatorMaxPoints(scenario));
   const raw = state.score || 0;
-  const value = Math.max(0, Math.min(maxPoints, raw));
+  // Show the raw score directly (allow negative values so penalties are visible).
+  // Cap upper bound at maxPoints just in case, but raw cannot normally exceed it.
+  const value = Math.min(maxPoints, raw);
   const complete = Boolean(state.runComplete);
-  // Pass when raw points meet the per-scenario threshold (defined as a ratio of maxPoints).
   const passingThreshold = Math.ceil(maxPoints * (PASSING_SCORE / SCORE_MAX));
   const passed = complete && raw >= passingThreshold;
   return {
@@ -1342,28 +1418,9 @@ function scoreSummary(scenario) {
   };
 }
 
-function scaledScoreValue(rawPoints, scenario) {
-  const maxPoints = Math.max(1, simulatorMaxPoints(scenario));
-  if (rawPoints <= 0) {
-    const negativeScaled = Math.round((rawPoints / maxPoints) * SCORE_MAX);
-    return Object.is(negativeScaled, -0) ? 0 : negativeScaled;
-  }
-  const ratio = Math.min(1, rawPoints / maxPoints);
-  const scaled = Math.round(Math.pow(ratio, STRICT_SCORE_EXPONENT) * SCORE_MAX);
-  const capped = Math.min(SCORE_MAX, scaled);
-  return Object.is(capped, -0) ? 0 : capped;
-}
-
-function formatScoreDelta(rawDelta, scenario, rawScoreAfter = state.score || 0) {
-  const scaled = scaledDeltaValue(rawDelta || 0, scenario, rawScoreAfter);
-  if (scaled > 0) return `+${scaled}`;
-  return String(scaled);
-}
-
-function scaledDeltaValue(rawDelta, scenario, rawScoreAfter = state.score || 0) {
-  // Always show the raw delta so the user sees consistent penalty/bonus amounts
-  // (e.g. -10 always shows as -10) regardless of score scaling curve position.
-  return rawDelta || 0;
+function formatScoreDelta(rawDelta) {
+  const v = rawDelta || 0;
+  return v > 0 ? `+${v}` : String(v);
 }
 
 function scoringStep(scenario, stepId) {
@@ -1422,6 +1479,9 @@ function completeSimulatorStep(stepId, title, body, options = {}) {
   state.completed.push(stepId);
   state.combo = (state.combo || 0) + 1;
   state.score = (state.score || 0) + step.points;
+  state.lastPenaltyKey = null;
+  state.endAttemptPenalized = false;
+  playStepSound();
   const displayBody = state.hintsEnabled ? (body || step.hint) : blindCorrectBody(stepId, body || step.hint);
   setJudge("correct", title || "正解", displayBody, step.points, options.silent);
   setFeedback(title || "正解", displayBody);
@@ -1453,30 +1513,46 @@ function endTestRun(scenario) {
   const measurementsDone = measurementGoalComplete(scenario);
   const restored = settingsRestored(scenario);
 
-  // Incomplete measurements: apply penalty every time and allow the user to resume the test.
+  // Incomplete measurements: penalize once, then warn without re-deducting on repeat presses.
   if (!measurementsDone) {
-    state.score = (state.score || 0) - 10;
-    state.mistakes = (state.mistakes || 0) + 1;
-    setJudge(
-      "wrong",
-      "未完了項目あり：終了不可",
-      "未完了の測定があります（-10点）。残りのチェックを完了してから終了してください。",
-      -10,
-      false
-    );
-    setFeedback(
-      "未完了項目あり：再開してください",
-      "未完了の測定があるため、テストは終了されませんでした（-10点）。残りのチェックを完了してから「テスト終了」を押してください。"
-    );
+    if (!state.endAttemptPenalized) {
+      state.score = (state.score || 0) - WRONG_PENALTY;
+      state.mistakes = (state.mistakes || 0) + 1;
+      state.endAttemptPenalized = true;
+      setJudge(
+        "wrong",
+        "未完了項目あり：終了不可",
+        `未完了の測定があります（-${WRONG_PENALTY}点）。残りのチェックを完了してから終了してください。`,
+        -WRONG_PENALTY,
+        false
+      );
+      setFeedback(
+        "未完了項目あり：再開してください",
+        `未完了の測定があるため、テストは終了されませんでした（-${WRONG_PENALTY}点）。残りのチェックを完了してから「テスト終了」を押してください。`
+      );
+    } else {
+      setJudge(
+        "wrong",
+        "未完了項目あり：終了不可",
+        "未完了の測定があります。残りのチェックを完了してから終了してください。",
+        0,
+        false
+      );
+      setFeedback(
+        "未完了項目あり：再開してください",
+        "未完了の測定があるため、テストは終了できません。残りのチェックを完了してください。"
+      );
+    }
     return;
   }
 
-  // All measurements complete — finalize.
+  // All measurements complete — finalize. Always award the completion bonus,
+  // and apply restore penalty separately so the displayed delta matches actual change.
   let penalty = 0;
   const notes = [];
   if (!restored) {
-    penalty += 10;
-    notes.push("設定が初期値へ戻されていません（-10点）。実臨床では必ず設定を戻してください。");
+    penalty += WRONG_PENALTY;
+    notes.push(`設定が初期値へ戻されていません（-${WRONG_PENALTY}点）。実臨床では必ず設定を戻してください。`);
   }
   if (penalty > 0) {
     state.score = (state.score || 0) - penalty;
@@ -1485,17 +1561,16 @@ function endTestRun(scenario) {
 
   state.runComplete = true;
   state.activeTest = null;
-  // Only award the completion bonus when finished cleanly (no end-time penalties).
-  const bonus = penalty > 0 ? 0 : COMPLETION_BONUS;
-  state.score = (state.score || 0) + bonus;
+  state.score = (state.score || 0) + COMPLETION_BONUS;
   state.combo = (state.combo || 0) + 1;
 
   const score = scoreSummary(scenario);
   const resultTitle = `完了：${score.label}`;
   const noteText = notes.length ? notes.join(" / ") : "全項目を適切に終了しました。";
   const resultBody = `${noteText} 最終得点は${score.value}/${score.maxPoints}点です。合格基準は${score.passingThreshold}点です。`;
-  setJudge("correct", resultTitle, resultBody, bonus - penalty, false);
+  setJudge("correct", resultTitle, resultBody, COMPLETION_BONUS - penalty, false);
   setFeedback(resultTitle, resultBody);
+  playFinalSound(score.raw >= score.passingThreshold);
   saveScoreHistory(scenario.id, scenario.title, score.value, state.mistakes || 0, score.maxPoints, score.passingThreshold);
 }
 
@@ -1521,8 +1596,8 @@ function loadScoreHistory() {
   catch { return []; }
 }
 
-function penalize(title, body, amount = 10) {
-  const strictAmount = Math.max(1, Math.round(amount * WRONG_PENALTY_MULTIPLIER));
+function penalize(title, body, amount = WRONG_PENALTY) {
+  const strictAmount = Math.max(1, Math.round(amount));
   state.mistakes = (state.mistakes || 0) + 1;
   state.combo = 0;
   state.score = (state.score || 0) - strictAmount;
@@ -1619,9 +1694,17 @@ function judgeSettingChange(key, beforeValue, nextValue, beforeRhythm) {
 
   const guide = settingGuidanceForStep(step.id, scenario, beforeRhythm);
 
-  // Steps that require no setting change at all (record / start measurement steps)
+  // Steps that require no setting change at all (record / start measurement steps).
+  // Same-direction or non-regressing tweaks → warn only. Regressions (= breaks the
+  // condition the previous shaping step achieved) → penalize.
   if (guide && guide.unnecessary) {
-    penalize("不要な設定変更です", state.hintsEnabled ? `現在の工程は「${step.label}」です。${step.hint}` : "現在の工程では設定変更は不要です。測定操作を行ってください。", 10);
+    if (unnecessaryMoveRegresses(step.id, key, beforeRhythm, afterRhythm, scenario)) {
+      applySettingPenalty(`${step.id}:regress:${key}:${direction}`, "進捗が後退しています", state.hintsEnabled ? `現在の工程は「${step.label}」です。${step.hint}` : "前の手順で得た条件が崩れます。元の方向へ戻してください。");
+      return;
+    }
+    state.lastPenaltyKey = null;
+    setJudge("info", "追加調整（記録に進んでください）", state.hintsEnabled ? `現在の工程は「${step.label}」で、設定変更は不要です。${step.hint}` : "現在の工程では設定変更は不要です。記録に進んでください。", 0, true);
+    setFeedback("追加調整（記録に進んでください）", state.hintsEnabled ? `現在の工程は「${step.label}」です。${step.hint}` : "現在の工程では設定変更は不要です。測定操作を行ってください。");
     return;
   }
 
@@ -1632,38 +1715,74 @@ function judgeSettingChange(key, beforeValue, nextValue, beforeRhythm) {
       const beforeDist = Math.abs(beforeValue - target);
       const afterDist = Math.abs(nextValue - target);
       if (afterDist > beforeDist) {
-        penalize("初期設定から遠ざかっています", state.hintsEnabled ? `現在の工程は「${step.label}」です。設定を初期値に戻してください。` : "初期設定から遠ざかる操作です。設定を元に戻してください。", 10);
+        applySettingPenalty(`${step.id}:restoreAway:${key}:${direction}`, "初期設定から遠ざかっています", state.hintsEnabled ? `現在の工程は「${step.label}」です。設定を初期値に戻してください。` : "初期設定から遠ざかる操作です。設定を元に戻してください。");
         return;
       }
     }
+    state.lastPenaltyKey = null;
     return;
   }
 
   if (!guide) return;
 
   if (!guide.keys.includes(key)) {
-    penalize("操作が目的とずれています", state.hintsEnabled ? `現在の工程は「${step.label}」です。${step.hint}` : "現在のチェック条件にはつながりにくい操作です。Markerの変化を確認してください。", 10);
+    applySettingPenalty(`${step.id}:wrongKey:${key}`, "操作が目的とずれています", state.hintsEnabled ? `現在の工程は「${step.label}」です。${step.hint}` : "現在のチェック条件にはつながりにくい操作です。Markerの変化を確認してください。");
     return;
   }
   if (guide.direction && direction !== guide.direction) {
-    penalize("操作方向が逆です", state.hintsEnabled ? `${controlLabel(key)} は ${guide.direction > 0 ? "上げる" : "下げる"} 方向で確認します。${step.hint}` : "目的のMarker変化から遠ざかる方向です。ECGとMarkerを見直してください。", 10);
+    applySettingPenalty(`${step.id}:wrongDir:${key}:${direction}`, "操作方向が逆です", state.hintsEnabled ? `${controlLabel(key)} は ${guide.direction > 0 ? "上げる" : "下げる"} 方向で確認します。${step.hint}` : "目的のMarker変化から遠ざかる方向です。ECGとMarkerを見直してください。");
     return;
   }
 
+  state.lastPenaltyKey = null;
   setJudge("info", "方向OK", state.hintsEnabled ? `${controlLabel(key)} の方向は合っています。Markerが目的の状態に変わるまで調整してください。` : "目的のMarker変化に近づいています。", 0, true);
   setFeedback("方向OK", state.hintsEnabled ? `${controlLabel(key)} の方向は合っています。Markerが目的の状態に変わるまで調整してください。` : "目的のMarker変化に近づいています。");
 }
 
+function applySettingPenalty(penaltyKey, title, body) {
+  if (state.lastPenaltyKey === penaltyKey) {
+    setJudge("wrong", title, body, 0, true);
+    setFeedback(title, body);
+    return;
+  }
+  state.lastPenaltyKey = penaltyKey;
+  penalize(title, body);
+}
+
+// Returns true if a setting change during an `unnecessary`-marked step would
+// break the condition the previous shaping step achieved. Same-direction
+// follow-through (= preserves the achieved condition) returns false → warn only.
+function unnecessaryMoveRegresses(stepId, key, beforeRhythm, afterRhythm, scenario) {
+  if (stepId === "record-p-wave") return afterRhythm.atrial !== "AS";
+  if (stepId === "record-r-wave") return afterRhythm.ventricular !== "VS";
+  if (stepId === "record-r-difficult") {
+    // Confirmed "no VS at long SAV". Penalize only if SAV is brought back below the confirm threshold.
+    if (key === "sensedAv" && Number(state.settings.sensedAv) < NO_VS_CONFIRM_SAV_MS) return true;
+    return false;
+  }
+  if (stepId === "start-a-threshold") return afterRhythm.atrial !== "AP" || !afterRhythm.aCapture;
+  if (stepId === "start-v-threshold") return afterRhythm.ventricular !== "VP" || !afterRhythm.vCapture;
+  // record-a-threshold / record-v-threshold: at LOC after find-loss; output exploration is OK.
+  return false;
+}
+
 function markSettingMilestones(key, beforeValue, nextValue, rhythm, scenario) {
-  const avKeys = ["sensedAv", "pacedAv"];
-  if (!avKeys.includes(key)) return;
-  if (nextValue > beforeValue && nextValue >= 280 && rhythm.ventricular === "VP" && !scenario.physiology.rWave) {
+  // Only the AV-delay key that's actually active (based on atrial rhythm) counts.
+  // AS atrium → sensedAv; AP atrium → pacedAv. Touching the inactive one must NOT
+  // mark the no-VS confirmation, otherwise the user can pass with the wrong key.
+  const activeAv = rhythm.atrial === "AS" ? "sensedAv" : rhythm.atrial === "AP" ? "pacedAv" : null;
+  if (key !== activeAv) return;
+  if (nextValue > beforeValue && nextValue >= NO_VS_CONFIRM_SAV_MS && rhythm.ventricular === "VP" && !scenario.physiology.rWave) {
     state.simulatorFlags.noVsConfirmed = true;
   }
 }
 
 function settingGuidanceForStep(stepId, scenario, beforeRhythm) {
-  if (stepId === "confirm-no-vs") return { keys: ["sensedAv"], direction: 1 };
+  if (stepId === "confirm-no-vs") {
+    return beforeRhythm?.atrial === "AP"
+      ? { keys: ["pacedAv"], direction: 1 }
+      : { keys: ["sensedAv"], direction: 1 };
+  }
   if (stepId === "create-vs-for-r") {
     if (scenario.mode === "VVI") return { keys: ["lowerRate"], direction: -1 };
     return beforeRhythm?.atrial === "AP"

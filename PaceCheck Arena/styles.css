@@ -252,6 +252,9 @@ button:focus-visible {
   gap: 18px;
   margin-top: 18px;
   align-items: start;
+  /* Give sticky panels (sim/programmer/measurement) enough room to stay pinned
+     while the user scrolls through the workbench area. */
+  min-height: calc(100vh + 600px);
 }
 
 .sim-panel,
@@ -270,12 +273,21 @@ button:focus-visible {
 }
 
 .programmer {
+  position: sticky;
+  top: 94px;
+  align-self: start;
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
   background: #fbfcfc;
+  padding: 12px 14px;
 }
 
 .measurement-panel {
   position: sticky;
   top: 94px;
+  align-self: start;
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
 }
 
 .programmer .panel-heading h2 {
@@ -438,21 +450,25 @@ button:focus-visible {
 
 .manual-controls {
   display: grid;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 0;
+  border-top: 0;
 }
 
 .control-row {
   display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 5px 8px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 3px 8px;
   align-items: center;
-  padding: 8px;
+  padding: 6px 9px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: #fbfcfc;
+}
+
+.control-row label {
+  white-space: nowrap;
 }
 
 .control-row.recommended-control {
@@ -461,25 +477,47 @@ button:focus-visible {
 }
 
 .control-row label {
-  gap: 2px;
+  gap: 0;
+  font-size: 12px;
 }
 
 .control-hint {
   grid-column: 1 / -1;
+  margin-top: 2px;
   color: var(--muted);
   font-size: 11px;
   font-weight: 800;
+  line-height: 1.3;
 }
 
 .control-row strong {
-  min-width: 64px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
   text-align: right;
   font-size: 13px;
+  line-height: 1.15;
+}
+
+.control-diff {
+  display: inline-block;
+  margin: 0;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 900;
+  font-style: normal;
+  line-height: 1.4;
 }
 
 .stepper {
   display: inline-flex;
-  flex-direction: column;
+  flex-direction: row;
   justify-self: end;
   overflow: hidden;
   border: 1px solid var(--line);
@@ -488,10 +526,10 @@ button:focus-visible {
 }
 
 .stepper button {
-  width: 56px;
-  min-height: 24px;
+  width: 38px;
+  min-height: 26px;
   border: 0;
-  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
   background: transparent;
   color: var(--ink);
   cursor: pointer;
@@ -502,7 +540,7 @@ button:focus-visible {
 }
 
 .stepper button:last-child {
-  border-bottom: 0;
+  border-right: 0;
 }
 
 .stepper button:hover,
@@ -526,6 +564,12 @@ button:focus-visible {
   background: transparent;
   cursor: ew-resize;
   touch-action: none;
+  margin: 0;
+}
+
+.control-row .stepper {
+  grid-column: 3;
+  flex-direction: row-reverse;
 }
 
 .control-row input[type="range"]::-webkit-slider-runnable-track {
@@ -537,13 +581,13 @@ button:focus-visible {
 
 .control-row input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 24px;
-  height: 24px;
-  margin-top: -8px;
+  width: 22px;
+  height: 22px;
+  margin-top: -7px;
   border: 3px solid #ffffff;
   border-radius: 999px;
   background: var(--primary);
-  box-shadow: 0 2px 9px rgba(15, 118, 110, 0.28);
+  box-shadow: 0 2px 8px rgba(15, 118, 110, 0.28);
 }
 
 .control-row input[type="range"]::-moz-range-track {
@@ -559,7 +603,7 @@ button:focus-visible {
   border: 3px solid #ffffff;
   border-radius: 999px;
   background: var(--primary);
-  box-shadow: 0 2px 9px rgba(15, 118, 110, 0.28);
+  box-shadow: 0 2px 8px rgba(15, 118, 110, 0.28);
 }
 
 .control-row input[type="range"]:focus-visible::-webkit-slider-thumb {
@@ -720,6 +764,12 @@ button:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.simulator-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .simulator-toolbar span {
@@ -1040,12 +1090,50 @@ button:focus-visible {
 
 .measurement-item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
   gap: 8px;
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: #ffffff;
+}
+
+.measurement-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+  align-self: start;
+}
+
+.measurement-item.status-active {
+  border-color: rgba(15, 118, 110, 0.42);
+}
+
+.measurement-item.status-active .measurement-status {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.measurement-item.status-done {
+  border-color: rgba(21, 128, 61, 0.32);
+  background: var(--ok-soft);
+}
+
+.measurement-item.status-done .measurement-status {
+  background: var(--ok);
+  color: #ffffff;
+}
+
+.measurement-item.status-out .measurement-status {
+  background: transparent;
+  border: 1px dashed var(--line);
 }
 
 .measurement-item.ready {
@@ -1055,6 +1143,10 @@ button:focus-visible {
 
 .measurement-item.disabled {
   opacity: 0.58;
+}
+
+.measurement-body {
+  min-width: 0;
 }
 
 .measurement-item span {
@@ -1447,12 +1539,12 @@ button:focus-visible {
   .measurement-panel,
   .canvas-wrap {
     position: static;
+    max-height: none;
+    overflow-y: visible;
   }
 }
 
 @media (max-width: 760px) {
-  .topbar,
-  .top-actions,
   .panel-heading,
   .hero-panel {
     align-items: stretch;
@@ -1461,12 +1553,42 @@ button:focus-visible {
   }
 
   .topbar {
-    position: static;
-    padding: 14px;
+    position: sticky;
+    top: 0;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 6px 10px;
+    gap: 6px;
+  }
+
+  .topbar > div:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .topbar h1 {
-    font-size: 24px;
+    font-size: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topbar .eyebrow {
+    display: none;
+  }
+
+  .top-actions {
+    flex: 0 0 auto;
+    flex-direction: row;
+    gap: 4px;
+  }
+
+  .top-actions .primary-button,
+  .top-actions .ghost-button {
+    min-height: 32px;
+    padding: 4px 8px;
+    font-size: 11px;
   }
 
   .app {
@@ -1546,11 +1668,30 @@ button:focus-visible {
   }
 
   .control-row {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
 
-  .stepper {
+  .control-row label {
+    white-space: nowrap;
+  }
+
+  .control-row strong {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .control-row input[type="range"] {
     grid-column: 1 / -1;
-    justify-self: start;
+  }
+
+  .control-row .stepper {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .control-hint {
+    grid-column: 1 / -1;
   }
 }
