@@ -360,7 +360,23 @@ let ventricularSafetyStartedAt = 0;
 
 document.addEventListener("DOMContentLoaded", init);
 
+function initThemeToggle() {
+  var btn = document.getElementById("themeToggle");
+  if (!btn) return;
+  function update() {
+    btn.textContent = document.documentElement.getAttribute("data-theme") === "dark" ? "☀ ライト" : "☾ ダーク";
+  }
+  btn.addEventListener("click", function () {
+    var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("pacecheck-theme", next);
+    update();
+  });
+  update();
+}
+
 function init() {
+  initThemeToggle();
   populateScenarioSelect();
   bindControls();
   bindKeyboardShortcuts();
@@ -848,11 +864,11 @@ function measurementGoalComplete(scenario) {
 function renderManualControls(scenario) {
   const rhythm = computeRhythm(scenario);
   const controls = [
-    { key: "lowerRate", label: "下限レート", unit: "ppm", min: 30, max: 120, step: 1, enabled: true },
-    { key: "sensedAv", label: "SAV", unit: "ms", min: 80, max: 400, step: 10, enabled: scenario.mode === "DDD" },
-    { key: "pacedAv", label: "PAV", unit: "ms", min: 80, max: 400, step: 10, enabled: scenario.mode === "DDD" },
-    { key: "aOutput", label: "A出力", unit: "V", min: 0.1, max: 5.0, step: 0.1, enabled: scenario.mode === "DDD" },
-    { key: "vOutput", label: "V出力", unit: "V", min: 0.1, max: 5.0, step: 0.1, enabled: true },
+    { key: "lowerRate", label: "下限レート", unit: "ppm", min: 30, max: 120, step: 1, enabled: true, shortcutUp: "Q", shortcutDown: "A" },
+    { key: "sensedAv", label: "SAV", unit: "ms", min: 80, max: 400, step: 10, enabled: scenario.mode === "DDD", shortcutUp: "W", shortcutDown: "S" },
+    { key: "pacedAv", label: "PAV", unit: "ms", min: 80, max: 400, step: 10, enabled: scenario.mode === "DDD", shortcutUp: "E", shortcutDown: "D" },
+    { key: "aOutput", label: "A出力", unit: "V", min: 0.1, max: 5.0, step: 0.1, enabled: scenario.mode === "DDD", shortcutUp: "R", shortcutDown: "F" },
+    { key: "vOutput", label: "V出力", unit: "V", min: 0.1, max: 5.0, step: 0.1, enabled: true, shortcutUp: "T", shortcutDown: "G" },
     { key: "aSense", label: "A感度", unit: "mV", min: 0.1, max: 5.0, step: 0.1, enabled: scenario.mode === "DDD" },
     { key: "vSense", label: "V感度", unit: "mV", min: 0.1, max: 5.0, step: 0.1, enabled: true }
   ];
@@ -875,8 +891,8 @@ function renderManualControls(scenario) {
           </label>
           <strong data-control-value="${control.key}">${escapeHtml(formatControlValue(value, control.unit))}</strong>
           <div class="stepper" aria-label="${escapeHtml(control.label)} step controls">
-            <button type="button" aria-label="Increase ${escapeHtml(control.label)}" title="Increase" data-step-control="${control.key}" data-step-direction="1" ${control.enabled ? "" : "disabled"}>&#9650;</button>
-            <button type="button" aria-label="Decrease ${escapeHtml(control.label)}" title="Decrease" data-step-control="${control.key}" data-step-direction="-1" ${control.enabled ? "" : "disabled"}>&#9660;</button>
+            <button type="button" aria-label="Increase ${escapeHtml(control.label)}" title="${control.shortcutUp ? `Increase (${control.shortcutUp})` : "Increase"}" data-step-control="${control.key}" data-step-direction="1" ${control.enabled ? "" : "disabled"}>${control.shortcutUp ? `<kbd class="shortcut-key">${escapeHtml(control.shortcutUp)}</kbd>` : ""}<span class="stepper-arrow">&#9650;</span></button>
+            <button type="button" aria-label="Decrease ${escapeHtml(control.label)}" title="${control.shortcutDown ? `Decrease (${control.shortcutDown})` : "Decrease"}" data-step-control="${control.key}" data-step-direction="-1" ${control.enabled ? "" : "disabled"}>${control.shortcutDown ? `<kbd class="shortcut-key">${escapeHtml(control.shortcutDown)}</kbd>` : ""}<span class="stepper-arrow">&#9660;</span></button>
           </div>
           <input id="control-${control.key}" data-control="${control.key}" type="range" min="${control.min}" max="${control.max}" step="${control.step}" value="${value}" ${control.enabled ? "" : "disabled"}>
           <small class="control-hint">${escapeHtml(hint)}</small>
@@ -1299,7 +1315,10 @@ function scaledDeltaValue(rawDelta, scenario, rawScoreAfter = state.score || 0) 
 }
 
 function scoringStep(scenario, stepId) {
-  return simulatorSteps(scenario).find((step) => step.id === stepId) || COMMON_STEPS[stepId] || null;
+  const profileStep = simulatorSteps(scenario).find((step) => step.id === stepId);
+  if (profileStep) return profileStep;
+  const common = COMMON_STEPS[stepId];
+  return common ? { id: stepId, ...common } : null;
 }
 
 function currentSimulatorStep(scenario) {
@@ -1491,10 +1510,32 @@ function judgeSettingChange(key, beforeValue, nextValue, beforeRhythm) {
 
   const step = currentSimulatorStep(scenario);
   if (!step || state.runComplete) return;
-  const guide = settingGuidanceForStep(step.id, scenario, beforeRhythm);
-  if (!guide) return;
   const direction = Math.sign(nextValue - beforeValue);
   if (direction === 0) return;
+
+  const guide = settingGuidanceForStep(step.id, scenario, beforeRhythm);
+
+  // Steps that require no setting change at all (record / start measurement steps)
+  if (guide && guide.unnecessary) {
+    penalize("不要な設定変更です", state.hintsEnabled ? `現在の工程は「${step.label}」です。${step.hint}` : "現在の工程では設定変更は不要です。測定操作を行ってください。", 3);
+    return;
+  }
+
+  // Restore-settings step: penalize moves AWAY from original, allow moves TOWARD original
+  if (guide && guide.restore) {
+    const target = Number(scenario.settings[key]);
+    if (Number.isFinite(target)) {
+      const beforeDist = Math.abs(beforeValue - target);
+      const afterDist = Math.abs(nextValue - target);
+      if (afterDist > beforeDist) {
+        penalize("初期設定から遠ざかっています", state.hintsEnabled ? `現在の工程は「${step.label}」です。設定を初期値に戻してください。` : "初期設定から遠ざかる操作です。設定を元に戻してください。", 3);
+        return;
+      }
+    }
+    return;
+  }
+
+  if (!guide) return;
 
   if (!guide.keys.includes(key)) {
     penalize("操作が目的とずれています", state.hintsEnabled ? `現在の工程は「${step.label}」です。${step.hint}` : "現在のチェック条件にはつながりにくい操作です。Markerの変化を確認してください。", 3);
@@ -1534,6 +1575,20 @@ function settingGuidanceForStep(stepId, scenario, beforeRhythm) {
   }
   if (stepId === "find-v-loss") return { keys: ["vOutput"], direction: -1 };
   if (stepId === "find-a-loss") return { keys: ["aOutput"], direction: -1 };
+  // Steps where setting changes are NOT needed — measurement / record / start
+  if (
+    stepId === "record-p-wave" ||
+    stepId === "record-r-wave" ||
+    stepId === "record-r-difficult" ||
+    stepId === "start-a-threshold" ||
+    stepId === "record-a-threshold" ||
+    stepId === "start-v-threshold" ||
+    stepId === "record-v-threshold"
+  ) {
+    return { unnecessary: true };
+  }
+  // Restore step — only changes that move TOWARD scenario.settings are valid
+  if (stepId === "restore-settings") return { restore: true };
   return null;
 }
 

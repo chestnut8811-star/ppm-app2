@@ -6,6 +6,7 @@
     <title>PaceCheck Arena</title>
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="./styles.css">
+    <script>(function(){var t=localStorage.getItem('pacecheck-theme');if(!t)t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t)})()</script>
   </head>
   <body>
     <header class="topbar">
@@ -14,6 +15,7 @@
         <h1>PaceCheck Arena</h1>
       </div>
       <div class="top-actions">
+        <button id="themeToggle" class="ghost-button" type="button"></button>
         <a class="ghost-button lab-return" href="../PaceCheckLab.html">Labへ戻る</a>
         <button id="resetRun" class="ghost-button" type="button">設定リセット</button>
         <button id="newRun" class="primary-button" type="button">ランダム症例</button>
@@ -57,9 +59,9 @@
           <div class="canvas-wrap">
             <div class="ecg-controls">
               <div class="segmented" role="group" aria-label="ECG speed">
-                <button class="speed-button" type="button" data-speed="pause">停止</button>
-                <button class="speed-button active" type="button" data-speed="slow">ゆっくり</button>
-                <button class="speed-button" type="button" data-speed="normal">標準</button>
+                <button class="speed-button" type="button" data-speed="pause" title="Pause (1)"><kbd class="shortcut-key">1</kbd>停止</button>
+                <button class="speed-button active" type="button" data-speed="slow" title="Slow (2)"><kbd class="shortcut-key">2</kbd>ゆっくり</button>
+                <button class="speed-button" type="button" data-speed="normal" title="Normal (3)"><kbd class="shortcut-key">3</kbd>標準</button>
               </div>
               <span id="speedReadout">観察優先</span>
             </div>
@@ -128,18 +130,6 @@
             <div><strong>AP</strong><span>心房ペーシング。A閾値評価の条件になりやすい。</span></div>
             <div><strong>VS</strong><span>心室自己波を感知。R波波高値を評価できる条件。</span></div>
             <div><strong>VP</strong><span>心室ペーシング。V閾値評価の条件になりやすい。</span></div>
-          </div>
-        </article>
-        <article>
-          <p class="eyebrow">Keyboard Shortcuts</p>
-          <h2>キーボードショートカット</h2>
-          <div class="legend-grid">
-            <div><strong>1 / 2 / 3</strong><span>ECG速度：停止 / ゆっくり / 標準</span></div>
-            <div><strong>Q / A</strong><span>下限レート：上げ / 下げ</span></div>
-            <div><strong>W / S</strong><span>SAV：上げ / 下げ（DDDのみ）</span></div>
-            <div><strong>E / D</strong><span>PAV：上げ / 下げ（DDDのみ）</span></div>
-            <div><strong>R / F</strong><span>A出力：上げ / 下げ（DDDのみ）</span></div>
-            <div><strong>T / G</strong><span>V出力：上げ / 下げ</span></div>
           </div>
         </article>
         <article>

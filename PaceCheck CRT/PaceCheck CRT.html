@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>PaceCheck CRT</title>
     <link rel="icon" href="data:,">
+    <script>(function(){var t=localStorage.getItem('pacecheck-theme');if(!t)t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t)})()</script>
     <style>
       :root {
         color-scheme: light dark;
@@ -23,21 +24,19 @@
         --right-rail-offset: 280px;
       }
 
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg: #0f1419;
-          --surface: #1a2228;
-          --surface-soft: #1e2a30;
-          --ink: #e0e8ec;
-          --muted: #8b99a3;
-          --line: #2a3840;
-          --primary: #14b8a6;
-          --primary-dark: #0d9488;
-          --accent: #d97706;
-          --danger: #ef4444;
-          --ok: #22c55e;
-          --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
-        }
+      :root[data-theme="dark"] {
+        --bg: #0f1419;
+        --surface: #1a2228;
+        --surface-soft: #1e2a30;
+        --ink: #e0e8ec;
+        --muted: #8b99a3;
+        --line: #2a3840;
+        --primary: #14b8a6;
+        --primary-dark: #0d9488;
+        --accent: #d97706;
+        --danger: #ef4444;
+        --ok: #22c55e;
+        --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
       }
 
       * {
@@ -514,46 +513,44 @@
         font-weight: 800;
       }
 
-      @media (prefers-color-scheme: dark) {
-        .topbar {
-          background: rgba(26, 34, 40, 0.96);
-        }
+      [data-theme="dark"] .topbar {
+        background: rgba(26, 34, 40, 0.96);
+      }
 
-        select,
-        .ghost-button,
-        .step-button,
-        .toggle {
-          background: var(--surface);
-        }
+      [data-theme="dark"] select,
+      [data-theme="dark"] .ghost-button,
+      [data-theme="dark"] .step-button,
+      [data-theme="dark"] .toggle {
+        background: var(--surface);
+      }
 
-        .metric,
-        .setting-cell,
-        .check-item,
-        .qrs-bar {
-          background: var(--surface-soft);
-        }
+      [data-theme="dark"] .metric,
+      [data-theme="dark"] .setting-cell,
+      [data-theme="dark"] .check-item,
+      [data-theme="dark"] .qrs-bar {
+        background: var(--surface-soft);
+      }
 
-        .pill.warn {
-          background: #2a2010;
-        }
+      [data-theme="dark"] .pill.warn {
+        background: #2a2010;
+      }
 
-        .pill.ok {
-          background: #152a1a;
-        }
+      [data-theme="dark"] .pill.ok {
+        background: #152a1a;
+      }
 
-        .check-item.ok {
-          background: #152a1a;
-          border-color: rgba(34, 197, 94, 0.35);
-        }
+      [data-theme="dark"] .check-item.ok {
+        background: #152a1a;
+        border-color: rgba(34, 197, 94, 0.35);
+      }
 
-        .check-item.warn {
-          background: #2a2010;
-          border-color: rgba(217, 119, 6, 0.35);
-        }
+      [data-theme="dark"] .check-item.warn {
+        background: #2a2010;
+        border-color: rgba(217, 119, 6, 0.35);
+      }
 
-        .lane-track {
-          background: linear-gradient(90deg, rgba(20, 184, 166, 0.1) 0 1px, transparent 1px 20%);
-        }
+      [data-theme="dark"] .lane-track {
+        background: linear-gradient(90deg, rgba(20, 184, 166, 0.1) 0 1px, transparent 1px 20%);
       }
 
       @media (max-width: 1100px) {
@@ -609,6 +606,7 @@
         <h1>PaceCheck CRT</h1>
       </div>
       <div class="top-actions">
+        <button id="themeToggle" class="ghost-button" type="button"></button>
         <a class="ghost-button" href="../PaceCheckLab.html">Labへ戻る</a>
         <button id="resetButton" class="ghost-button" type="button">初期設定</button>
       </div>
@@ -820,7 +818,23 @@
 
       document.addEventListener("DOMContentLoaded", init);
 
+      function initThemeToggle() {
+        var btn = document.getElementById("themeToggle");
+        if (!btn) return;
+        function update() {
+          btn.textContent = document.documentElement.getAttribute("data-theme") === "dark" ? "☀ ライト" : "☾ ダーク";
+        }
+        btn.addEventListener("click", function () {
+          var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+          document.documentElement.setAttribute("data-theme", next);
+          localStorage.setItem("pacecheck-theme", next);
+          update();
+        });
+        update();
+      }
+
       function init() {
+        initThemeToggle();
         const select = document.getElementById("scenarioSelect");
         select.innerHTML = scenarios.map((scenario) => `<option value="${scenario.id}">${escapeHtml(scenario.title)}</option>`).join("");
         select.addEventListener("change", () => loadScenario(select.value));

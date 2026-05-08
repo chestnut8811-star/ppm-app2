@@ -1052,7 +1052,23 @@ const state = loadState();
 
 document.addEventListener("DOMContentLoaded", init);
 
+function initThemeToggle() {
+  var btn = document.getElementById("themeToggle");
+  if (!btn) return;
+  function update() {
+    btn.textContent = document.documentElement.getAttribute("data-theme") === "dark" ? "☀ ライト" : "☾ ダーク";
+  }
+  btn.addEventListener("click", function () {
+    var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("pacecheck-theme", next);
+    update();
+  });
+  update();
+}
+
 function init() {
+  initThemeToggle();
   populateDiseaseOptions();
   populatePacingPatternOptions();
   populateScenarioOptions();

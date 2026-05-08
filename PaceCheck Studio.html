@@ -6,6 +6,7 @@
     <title>PaceCheck Studio</title>
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="./styles.css">
+    <script>(function(){var t=localStorage.getItem('pacecheck-theme');if(!t)t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t)})()</script>
   </head>
   <body>
     <header class="app-header">
@@ -14,6 +15,7 @@
         <h1>PaceCheck Studio</h1>
       </div>
       <div class="header-actions">
+        <button id="themeToggle" class="ghost-button" type="button"></button>
         <a class="ghost-button lab-return" href="./PaceCheckLab.html">Labへ戻る</a>
         <button id="saveButton" class="ghost-button" type="button" title="入力内容をブラウザに保存">保存</button>
         <button id="resetButton" class="ghost-button danger" type="button" title="入力内容を初期化">初期化</button>
