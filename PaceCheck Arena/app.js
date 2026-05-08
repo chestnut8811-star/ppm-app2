@@ -1327,7 +1327,9 @@ function simulatorMaxPoints(scenario) {
 function scoreSummary(scenario) {
   const value = scaledScoreValue(state.score || 0, scenario);
   const complete = Boolean(state.runComplete);
-  const passed = complete && value >= PASSING_SCORE;
+  const measurementsDone = measurementGoalComplete(scenario);
+  // Incomplete measurements force a fail regardless of point total.
+  const passed = complete && measurementsDone && value >= PASSING_SCORE;
   return {
     value,
     label: complete ? (passed ? "合格" : "不合格") : "採点中",
@@ -1471,9 +1473,9 @@ function endTestRun(scenario) {
     state.combo = (state.combo || 0) + 1;
   }
   const score = scoreSummary(scenario);
-  const resultTitle = score.value >= PASSING_SCORE ? "完了：合格" : "完了：不合格";
+  const resultTitle = `完了：${score.label}`;
   const noteText = notes.length ? notes.join(" / ") : "全項目を適切に終了しました。";
-  const resultBody = `${noteText} 最終得点は${score.value}/100点です。合格基準は${PASSING_SCORE}点です。`;
+  const resultBody = `${noteText} 最終得点は${score.value}/100点です。合格基準は${PASSING_SCORE}点です（未完了項目があると不合格）。`;
   setJudge("correct", resultTitle, resultBody, measurementsDone ? COMPLETION_BONUS : 0, false);
   setFeedback(resultTitle, resultBody);
   saveScoreHistory(scenario.id, scenario.title, score.value, state.mistakes || 0);
