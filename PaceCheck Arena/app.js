@@ -1272,6 +1272,24 @@ function performDirectCheck(checkId) {
     state.activeTest = null;
     completeSimulatorStep("record-a-threshold", "A閾値記録 正解", `A捕捉閾値 ${p.aThreshold} V を記録しました。出力を安全域へ戻してください。`);
   } else if (checkId === "vThreshold" && !state.activeTest && rhythm.ventricular === "VP" && rhythm.vCapture && p.vThreshold) {
+    // Safety: prevent starting V threshold while atrium is in LOC (arrest) from prior A threshold test
+    if (
+      scenario.mode === "DDD" &&
+      p.aThreshold &&
+      state.measurements.aThreshold &&
+      Number(state.settings.aOutput) < Number(scenario.settings.aOutput)
+    ) {
+      penalize(
+        "心房アレストのまま次のテストへ",
+        state.hintsEnabled
+          ? "A閾値測定後、A出力が下げたままで心房アレスト状態です。V閾値テストへ進む前にA出力を安全域へ戻してください。"
+          : "前のテストで下げた設定が戻っていません。安全のため設定を戻してから次のテストへ進んでください。",
+        10
+      );
+      saveState();
+      render();
+      return;
+    }
     state.activeTest = { chamber: "V", threshold: p.vThreshold };
     completeSimulatorStep("start-v-threshold", "V閾値開始 正解", "V出力を下げて、VP後の捕捉あり/脱落(LOC)の境界を確認してください。");
   } else if (checkId === "vThreshold" && state.activeTest?.chamber === "V" && isStepDone("find-v-loss") && p.vThreshold) {
@@ -1405,14 +1423,23 @@ function blindCorrectBody(stepId, body) {
 function finishSimulatorIfComplete(scenario, silent = false) {
   if (!measurementGoalComplete(scenario) || state.runComplete) return;
 
+  // Require all settings to be restored and no active test before completing
+  if (state.activeTest || !settingsRestored(scenario)) {
+    setFeedback(
+      "最終手順：設定復帰",
+      "全ての測定が完了しました。一時的に変更した設定を初期値へ戻すとテストが終了します。"
+    );
+    return;
+  }
+
   state.runComplete = true;
   state.score = (state.score || 0) + COMPLETION_BONUS;
   state.combo = (state.combo || 0) + 1;
   const score = scoreSummary(scenario);
   const resultTitle = score.value >= PASSING_SCORE ? "完了：合格" : "完了：不合格";
-  const resultBody = `4種類のチェックが完了しました。最終得点は${score.value}/100点です。合格基準は${PASSING_SCORE}点です。`;
+  const resultBody = `4種類のチェックが完了し、設定も初期値へ戻りました。最終得点は${score.value}/100点です。合格基準は${PASSING_SCORE}点です。`;
   setJudge("correct", resultTitle, resultBody, COMPLETION_BONUS, silent);
-  setFeedback(resultTitle, `${resultBody} 必要に応じて初期設定へ戻してください。`);
+  setFeedback(resultTitle, resultBody);
   saveScoreHistory(scenario.id, scenario.title, score.value, state.mistakes || 0);
 }
 
