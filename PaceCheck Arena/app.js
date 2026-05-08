@@ -563,6 +563,8 @@ function renderHeader(scenario, rhythm) {
   document.getElementById("caseTitle").textContent = scenario.title;
   document.getElementById("rhythmBadge").textContent = rhythm.marker;
   document.getElementById("rhythmBadge").className = safety ? "pill danger" : rhythm.hasSelfIssue ? "pill warn" : "pill ok";
+  const mobileRhythmLabel = document.getElementById("mobileRhythmLabel");
+  if (mobileRhythmLabel) mobileRhythmLabel.textContent = rhythm.marker;
 
   document.getElementById("caseBrief").innerHTML = [
     ["疾患", scenario.disease],
@@ -1545,12 +1547,21 @@ function setFeedback(title, body) {
 }
 
 function drawEcg(scenario, rhythm, phase = 0) {
-  const canvas = document.getElementById("ecgCanvas");
+  [
+    { id: "ecgCanvas", minWidth: 760, defaultHeight: 380, compact: false },
+    { id: "mobileEcgCanvas", minWidth: 520, defaultHeight: 190, compact: true }
+  ].forEach((target) => {
+    drawEcgCanvas(document.getElementById(target.id), scenario, rhythm, phase, target);
+  });
+}
+
+function drawEcgCanvas(canvas, scenario, rhythm, phase = 0, options = {}) {
   if (!canvas) return;
   const rect = canvas.getBoundingClientRect();
+  if (rect.width < 2 || rect.height < 2) return;
   const dpr = window.devicePixelRatio || 1;
-  const width = Math.max(760, Math.floor(rect.width || 1200));
-  const height = rect.height || 380;
+  const width = Math.max(options.minWidth || 760, Math.floor(rect.width || 1200));
+  const height = Math.floor(rect.height || options.defaultHeight || 380);
   canvas.width = width * dpr;
   canvas.height = height * dpr;
   const ctx = canvas.getContext("2d");
@@ -1558,38 +1569,94 @@ function drawEcg(scenario, rhythm, phase = 0) {
   ctx.clearRect(0, 0, width, height);
   drawGrid(ctx, width, height);
 
-  const baseline = 176;
+  const layout = ecgLayout(height, options.compact);
+  const baseline = layout.baseline;
   const rate = effectiveDisplayRate(scenario, rhythm);
   const beatWidth = Math.max(120, Math.min(330, 13500 / Math.max(40, rate)));
   const offset = phase * beatWidth;
-  drawContinuousEcg(ctx, width, baseline, beatWidth, offset, rhythm, scenario);
-  drawPacingSpikesAndMarkers(ctx, width, baseline, beatWidth, offset, rhythm);
+  drawContinuousEcg(ctx, width, baseline, beatWidth, offset, rhythm, scenario, layout);
+  drawPacingSpikesAndMarkers(ctx, width, baseline, beatWidth, offset, rhythm, layout);
 
   ctx.fillStyle = "rgba(241, 245, 249, 0.95)";
-  ctx.font = "800 15px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-  ctx.fillText(`${scenario.mode} / ${rhythm.marker}`, 18, 26);
+  ctx.font = layout.headerFont;
+  ctx.fillText(`${scenario.mode} / ${rhythm.marker}`, layout.textX, layout.titleY);
   ctx.fillStyle = rhythm.hasSelfIssue ? "#fbbf24" : "#67e8f9";
-  ctx.font = "800 13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-  ctx.fillText(`${sensingStatus(scenario, rhythm)} / ${captureStatus(rhythm)}`, 18, 48);
+  ctx.font = layout.subFont;
+  ctx.fillText(`${sensingStatus(scenario, rhythm)} / ${captureStatus(rhythm)}`, layout.textX, layout.statusY);
   if (state.activeTest) {
     ctx.fillStyle = "#a15c07";
-    ctx.font = "800 13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-    ctx.fillText(`${state.activeTest.chamber} threshold sweep: capture -> loss boundary`, 18, 70);
-    drawLossMarker(ctx, width - 170, baseline, state.activeTest.chamber);
+    ctx.font = layout.subFont;
+    ctx.fillText(`${state.activeTest.chamber} threshold sweep: capture -> loss boundary`, layout.textX, layout.testY);
+    drawLossMarker(ctx, width - layout.lossWidth - 32, baseline, state.activeTest.chamber, layout);
   }
   const safety = ventricularSafetyWarning(scenario, rhythm);
   if (safety) {
     const now = performance.now();
     if (!ventricularSafetyStartedAt) ventricularSafetyStartedAt = now;
     if (now - ventricularSafetyStartedAt >= ECG_SAFETY_OVERLAY_DELAY_MS) {
-      drawVentricularSafetyOverlay(ctx, width);
+      drawVentricularSafetyOverlay(ctx, width, layout);
     }
   } else {
     ventricularSafetyStartedAt = 0;
   }
-  ctx.fillStyle = "rgba(203, 213, 225, 0.76)";
-  ctx.font = "12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-  ctx.fillText("模式ECG + marker channel。実機表示とは異なります。", 18, height - 16);
+  if (layout.footer) {
+    ctx.fillStyle = "rgba(203, 213, 225, 0.76)";
+    ctx.font = layout.noteFont;
+    ctx.fillText("模式ECG + marker channel。実機表示とは異なります。", layout.textX, height - 16);
+  }
+}
+
+function ecgLayout(height, compact = false) {
+  if (compact) {
+    return {
+      compact: true,
+      baseline: Math.max(82, Math.min(height - 56, height * 0.48)),
+      amplitude: Math.max(38, Math.min(52, height * 0.28)),
+      markerOffset: Math.max(42, Math.min(52, height * 0.29)),
+      spikeTop: Math.max(28, height * 0.25),
+      spikeBottom: Math.max(22, height * 0.17),
+      lineWidth: 1.9,
+      textX: 12,
+      titleY: 21,
+      statusY: 39,
+      testY: 57,
+      headerFont: "800 12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+      subFont: "800 10px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+      noteFont: "10px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+      markerWidth: 38,
+      locMarkerWidth: 52,
+      markerHeight: 21,
+      markerFont: "800 10px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+      markerTextY: 14,
+      lossWidth: 106,
+      lossHeight: 96,
+      footer: false
+    };
+  }
+  return {
+    compact: false,
+    baseline: Math.max(152, Math.min(height - 126, height * 0.46)),
+    amplitude: 76,
+    markerOffset: 88,
+    spikeTop: 48,
+    spikeBottom: 44,
+    lineWidth: 2.2,
+    textX: 18,
+    titleY: 26,
+    statusY: 48,
+    testY: 70,
+    headerFont: "800 15px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+    subFont: "800 13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+    noteFont: "12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+    markerWidth: 44,
+    locMarkerWidth: 58,
+    markerHeight: 25,
+    markerFont: "800 12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+    markerTextY: 17,
+    lossWidth: 128,
+    lossHeight: 126,
+    footer: true
+  };
 }
 
 function drawGrid(ctx, width, height) {
@@ -1652,8 +1719,8 @@ function ecgSignal(phase, beatIndex, rhythm, scenario) {
   return signal;
 }
 
-function drawContinuousEcg(ctx, width, baseline, beatWidth, offset, rhythm, scenario) {
-  const amplitude = 76;
+function drawContinuousEcg(ctx, width, baseline, beatWidth, offset, rhythm, scenario, layout) {
+  const amplitude = layout.amplitude;
   ctx.save();
   const gradient = ctx.createLinearGradient(0, baseline - 100, 0, baseline + 90);
   gradient.addColorStop(0, "#f8fdff");
@@ -1661,8 +1728,8 @@ function drawContinuousEcg(ctx, width, baseline, beatWidth, offset, rhythm, scen
   gradient.addColorStop(1, "#67e8f9");
   ctx.strokeStyle = gradient;
   ctx.shadowColor = "#67e8f9";
-  ctx.shadowBlur = 7;
-  ctx.lineWidth = 2.2;
+  ctx.shadowBlur = layout.compact ? 5 : 7;
+  ctx.lineWidth = layout.lineWidth;
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
   ctx.beginPath();
@@ -1683,72 +1750,79 @@ function drawContinuousEcg(ctx, width, baseline, beatWidth, offset, rhythm, scen
   ctx.restore();
 }
 
-function drawPacingSpikesAndMarkers(ctx, width, baseline, beatWidth, offset, rhythm) {
+function drawPacingSpikesAndMarkers(ctx, width, baseline, beatWidth, offset, rhythm, layout) {
   for (let start = 22 - offset - beatWidth; start < width + beatWidth; start += beatWidth) {
     const atrialX = start + beatWidth * 0.18;
     const ventricularX = start + beatWidth * (rhythm.ventricular === "VP" ? 0.47 : 0.39);
 
-    if (rhythm.atrial === "AP") drawSpike(ctx, atrialX, baseline, "#2dd4bf");
-    if (rhythm.ventricular === "VP") drawSpike(ctx, ventricularX - 8, baseline, "#fbbf24");
+    if (rhythm.atrial === "AP") drawSpike(ctx, atrialX, baseline, "#2dd4bf", layout);
+    if (rhythm.ventricular === "VP") drawSpike(ctx, ventricularX - 8, baseline, "#fbbf24", layout);
 
-    if (rhythm.atrial === "AS") drawMarker(ctx, atrialX, baseline + 88, "AS", "#7dd3fc");
-    if (rhythm.atrial === "AP") drawMarker(ctx, atrialX, baseline + 88, rhythm.aCapture ? "AP" : "A LOC", rhythm.aCapture ? "#2dd4bf" : "#f87171");
-    if (rhythm.ventricular === "VS") drawMarker(ctx, ventricularX, baseline + 88, "VS", "#7dd3fc");
-    if (rhythm.ventricular === "VP") drawMarker(ctx, ventricularX, baseline + 88, rhythm.vCapture ? "VP" : "V LOC", rhythm.vCapture ? "#fbbf24" : "#f87171");
+    if (rhythm.atrial === "AS") drawMarker(ctx, atrialX, baseline + layout.markerOffset, "AS", "#7dd3fc", layout);
+    if (rhythm.atrial === "AP") drawMarker(ctx, atrialX, baseline + layout.markerOffset, rhythm.aCapture ? "AP" : "A LOC", rhythm.aCapture ? "#2dd4bf" : "#f87171", layout);
+    if (rhythm.ventricular === "VS") drawMarker(ctx, ventricularX, baseline + layout.markerOffset, "VS", "#7dd3fc", layout);
+    if (rhythm.ventricular === "VP") drawMarker(ctx, ventricularX, baseline + layout.markerOffset, rhythm.vCapture ? "VP" : "V LOC", rhythm.vCapture ? "#fbbf24" : "#f87171", layout);
   }
 }
 
-function drawSpike(ctx, x, baseline, color) {
+function drawSpike(ctx, x, baseline, color, layout) {
   ctx.save();
   ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = layout.compact ? 1.6 : 2;
   ctx.beginPath();
-  ctx.moveTo(x, baseline + 44);
-  ctx.lineTo(x, baseline - 48);
+  ctx.moveTo(x, baseline + layout.spikeBottom);
+  ctx.lineTo(x, baseline - layout.spikeTop);
   ctx.stroke();
   ctx.restore();
 }
 
-function drawMarker(ctx, x, y, text, color) {
+function drawMarker(ctx, x, y, text, color, layout) {
   ctx.save();
+  const markerWidth = text.length > 2 ? layout.locMarkerWidth : layout.markerWidth;
   ctx.fillStyle = color;
-  ctx.fillRect(x - 18, y, 44, 25);
+  ctx.fillRect(x - markerWidth / 2, y, markerWidth, layout.markerHeight);
   ctx.fillStyle = "#ffffff";
-  ctx.font = "800 12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-  ctx.fillText(text, x - 11, y + 17);
+  ctx.font = layout.markerFont;
+  ctx.textAlign = "center";
+  ctx.fillText(text, x, y + layout.markerTextY);
   ctx.restore();
 }
 
-function drawLossMarker(ctx, x, baseline, chamber) {
+function drawLossMarker(ctx, x, baseline, chamber, layout) {
   ctx.save();
   ctx.strokeStyle = "#b42318";
   ctx.lineWidth = 2;
   ctx.setLineDash([6, 4]);
-  ctx.strokeRect(x, baseline - 110, 128, 126);
+  ctx.strokeRect(x, baseline - layout.lossHeight + 16, layout.lossWidth, layout.lossHeight);
   ctx.setLineDash([]);
   ctx.fillStyle = "#b42318";
-  ctx.font = "800 12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-  ctx.fillText(`${chamber} LOC`, x + 12, baseline - 86);
+  ctx.font = layout.subFont;
+  ctx.fillText(`${chamber} LOC`, x + 12, baseline - layout.lossHeight + 38);
   ctx.fillStyle = "#667780";
-  ctx.fillText("loss of capture", x + 12, baseline - 66);
+  ctx.fillText("loss of capture", x + 12, baseline - layout.lossHeight + 58);
   ctx.restore();
 }
 
-function drawVentricularSafetyOverlay(ctx, width) {
+function drawVentricularSafetyOverlay(ctx, width, layout) {
   ctx.save();
-  const panelWidth = Math.min(390, width - 36);
-  const x = width - panelWidth - 18;
-  const y = 18;
+  const panelWidth = Math.min(layout.compact ? 300 : 390, width - (layout.compact ? 24 : 36));
+  const panelHeight = layout.compact ? 48 : 58;
+  const x = width - panelWidth - (layout.compact ? 12 : 18);
+  const y = layout.compact ? 10 : 18;
   ctx.fillStyle = "rgba(127, 29, 29, 0.88)";
-  ctx.fillRect(x, y, panelWidth, 58);
+  ctx.fillRect(x, y, panelWidth, panelHeight);
   ctx.strokeStyle = "rgba(254, 202, 202, 0.95)";
   ctx.lineWidth = 2;
-  ctx.strokeRect(x + 1, y + 1, panelWidth - 2, 56);
+  ctx.strokeRect(x + 1, y + 1, panelWidth - 2, panelHeight - 2);
   ctx.fillStyle = "#fff7ed";
-  ctx.font = "900 14px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-  ctx.fillText("WARNING: V LOC + NO INTRINSIC VS", x + 14, y + 23);
-  ctx.font = "800 13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-  ctx.fillText("V出力を安全域へ戻す", x + 14, y + 43);
+  ctx.font = layout.compact
+    ? "900 11px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+    : "900 14px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+  ctx.fillText("WARNING: V LOC + NO INTRINSIC VS", x + 12, y + (layout.compact ? 19 : 23));
+  ctx.font = layout.compact
+    ? "800 11px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+    : "800 13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+  ctx.fillText("V出力を安全域へ戻す", x + 12, y + (layout.compact ? 36 : 43));
   ctx.restore();
 }
 

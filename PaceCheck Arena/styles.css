@@ -124,6 +124,10 @@ button {
   padding: 22px;
 }
 
+.mobile-ecg-dock {
+  display: none;
+}
+
 .hero-panel,
 .sim-panel,
 .programmer,
@@ -1149,8 +1153,64 @@ button:focus-visible {
     flex-direction: column;
   }
 
+  .topbar {
+    position: static;
+    padding: 14px;
+  }
+
+  .topbar h1 {
+    font-size: 24px;
+  }
+
   .app {
     padding: 14px;
+  }
+
+  .mobile-ecg-dock {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: block;
+    margin: -14px -14px 14px;
+    padding: 8px 10px 10px;
+    border-bottom: 1px solid rgba(125, 211, 252, 0.26);
+    background: #071316;
+    box-shadow: 0 16px 30px rgba(7, 19, 22, 0.24);
+  }
+
+  .mobile-ecg-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+    color: #e0faff;
+  }
+
+  .mobile-ecg-head span {
+    color: #67e8f9;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .mobile-ecg-head strong {
+    min-width: 72px;
+    padding: 3px 8px;
+    border: 1px solid rgba(125, 211, 252, 0.26);
+    border-radius: 999px;
+    color: #f8fafc;
+    font-size: 12px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  #mobileEcgCanvas {
+    display: block;
+    width: 100%;
+    height: 172px;
+    border-radius: 6px;
   }
 
   .case-picker,
