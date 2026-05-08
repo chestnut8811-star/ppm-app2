@@ -394,7 +394,9 @@ function bindKeyboardShortcuts() {
       { key: "sensedAv", step: 10, min: 80, max: 400 },
       { key: "pacedAv", step: 10, min: 80, max: 400 },
       { key: "aOutput", step: 0.1, min: 0.1, max: 5.0 },
-      { key: "vOutput", step: 0.1, min: 0.1, max: 5.0 }
+      { key: "vOutput", step: 0.1, min: 0.1, max: 5.0 },
+      { key: "aSense", step: 0.1, min: 0.1, max: 5.0 },
+      { key: "vSense", step: 0.1, min: 0.1, max: 5.0 }
     ];
     const shortcuts = {
       "1": { label: "停止", speed: "pause" },
@@ -409,7 +411,11 @@ function bindKeyboardShortcuts() {
       "r": { control: "aOutput", dir: 1 },
       "f": { control: "aOutput", dir: -1 },
       "t": { control: "vOutput", dir: 1 },
-      "g": { control: "vOutput", dir: -1 }
+      "g": { control: "vOutput", dir: -1 },
+      "y": { control: "aSense", dir: 1 },
+      "h": { control: "aSense", dir: -1 },
+      "u": { control: "vSense", dir: 1 },
+      "j": { control: "vSense", dir: -1 }
     };
     const action = shortcuts[key.toLowerCase()];
     if (!action) return;
@@ -423,16 +429,18 @@ function bindKeyboardShortcuts() {
     if (action.control) {
       const ctrl = controls.find((c) => c.key === action.control);
       if (!ctrl) return;
-      if (action.control.startsWith("a") && action.control !== "aOutput" && scenario.mode !== "DDD") return;
-      if (action.control === "aOutput" && scenario.mode !== "DDD") return;
-      if (action.control === "sensedAv" && scenario.mode !== "DDD") return;
-      if (action.control === "pacedAv" && scenario.mode !== "DDD") return;
+      // DDD-only controls — silently ignore in non-DDD scenarios
+      const dddOnly = ["sensedAv", "pacedAv", "aOutput", "aSense"];
+      if (dddOnly.includes(action.control) && scenario.mode !== "DDD") return;
       const beforeRhythm = computeRhythm(scenario);
       const current = Number(state.settings[ctrl.key] ?? 0);
       const next = clampSetting(current + action.dir * ctrl.step, ctrl.min, ctrl.max, ctrl.step);
       state.settings[ctrl.key] = next;
       updateActiveTestForSetting(ctrl.key);
-      setFeedbackForSettingChange(ctrl.key, next, ctrl.key === "aOutput" || ctrl.key === "vOutput" ? "V" : ctrl.key === "lowerRate" ? "ppm" : "ms");
+      const unit = (ctrl.key === "aOutput" || ctrl.key === "vOutput") ? "V"
+        : (ctrl.key === "aSense" || ctrl.key === "vSense") ? "mV"
+        : ctrl.key === "lowerRate" ? "ppm" : "ms";
+      setFeedbackForSettingChange(ctrl.key, next, unit);
       judgeSettingChange(ctrl.key, current, next, beforeRhythm);
       saveState();
       render();
@@ -869,8 +877,8 @@ function renderManualControls(scenario) {
     { key: "pacedAv", label: "PAV", unit: "ms", min: 80, max: 400, step: 10, enabled: scenario.mode === "DDD", shortcutUp: "E", shortcutDown: "D" },
     { key: "aOutput", label: "A出力", unit: "V", min: 0.1, max: 5.0, step: 0.1, enabled: scenario.mode === "DDD", shortcutUp: "R", shortcutDown: "F" },
     { key: "vOutput", label: "V出力", unit: "V", min: 0.1, max: 5.0, step: 0.1, enabled: true, shortcutUp: "T", shortcutDown: "G" },
-    { key: "aSense", label: "A感度", unit: "mV", min: 0.1, max: 5.0, step: 0.1, enabled: scenario.mode === "DDD" },
-    { key: "vSense", label: "V感度", unit: "mV", min: 0.1, max: 5.0, step: 0.1, enabled: true }
+    { key: "aSense", label: "A感度", unit: "mV", min: 0.1, max: 5.0, step: 0.1, enabled: scenario.mode === "DDD", shortcutUp: "Y", shortcutDown: "H" },
+    { key: "vSense", label: "V感度", unit: "mV", min: 0.1, max: 5.0, step: 0.1, enabled: true, shortcutUp: "U", shortcutDown: "J" }
   ];
   const visibleControls = controls.filter((control) => control.enabled);
 
