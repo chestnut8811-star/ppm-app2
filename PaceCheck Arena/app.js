@@ -1360,7 +1360,9 @@ function scaledDeltaValue(rawDelta, scenario, rawScoreAfter = state.score || 0) 
   const after = scaledScoreValue(rawScoreAfter, scenario);
   const before = scaledScoreValue(rawScoreAfter - rawDelta, scenario);
   const scaled = after - before;
-  if (scaled === 0) return rawDelta > 0 ? 1 : -1;
+  // When the displayed score is capped (raw is at/above maxPoints),
+  // surface the raw delta so penalties remain visible to the user.
+  if (scaled === 0) return rawDelta;
   return scaled;
 }
 
