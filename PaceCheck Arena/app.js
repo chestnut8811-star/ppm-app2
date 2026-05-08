@@ -1271,7 +1271,7 @@ function performDirectCheck(checkId) {
       state.hintsEnabled
         ? "この症例は自己R波が観察可能です。VSを誘発してR波を記録してください。"
         : "判断が早すぎます。ECGとMarkerを見直してください。",
-      15
+      10
     );
   } else if (checkId === "events" && scenario.route.includes("readEvents") && p.events) {
     state.measurements.events = p.events;
@@ -1454,20 +1454,20 @@ function endTestRun(scenario) {
   // Incomplete measurements: apply one-time penalty and allow the user to resume the test.
   if (!measurementsDone) {
     if (!state.incompletePenaltyApplied) {
-      state.score = (state.score || 0) - 20;
+      state.score = (state.score || 0) - 10;
       state.mistakes = (state.mistakes || 0) + 1;
       state.incompletePenaltyApplied = true;
     }
     setJudge(
       "wrong",
       "未完了項目あり：終了不可",
-      "未完了の測定があります（-20点ペナルティ適用済み）。残りのチェックを完了してから終了してください。",
-      -20,
+      "未完了の測定があります（-10点ペナルティ適用済み）。残りのチェックを完了してから終了してください。",
+      -10,
       false
     );
     setFeedback(
       "未完了項目あり：再開してください",
-      "未完了の測定があるため、テストは終了されませんでした（-20点）。残りのチェックを完了してから「テスト終了」を押してください。"
+      "未完了の測定があるため、テストは終了されませんでした（-10点）。残りのチェックを完了してから「テスト終了」を押してください。"
     );
     return;
   }
@@ -1518,7 +1518,7 @@ function loadScoreHistory() {
   catch { return []; }
 }
 
-function penalize(title, body, amount = 5) {
+function penalize(title, body, amount = 10) {
   const strictAmount = Math.max(1, Math.round(amount * WRONG_PENALTY_MULTIPLIER));
   state.mistakes = (state.mistakes || 0) + 1;
   state.combo = 0;
@@ -1618,7 +1618,7 @@ function judgeSettingChange(key, beforeValue, nextValue, beforeRhythm) {
 
   // Steps that require no setting change at all (record / start measurement steps)
   if (guide && guide.unnecessary) {
-    penalize("不要な設定変更です", state.hintsEnabled ? `現在の工程は「${step.label}」です。${step.hint}` : "現在の工程では設定変更は不要です。測定操作を行ってください。", 3);
+    penalize("不要な設定変更です", state.hintsEnabled ? `現在の工程は「${step.label}」です。${step.hint}` : "現在の工程では設定変更は不要です。測定操作を行ってください。", 10);
     return;
   }
 
@@ -1629,7 +1629,7 @@ function judgeSettingChange(key, beforeValue, nextValue, beforeRhythm) {
       const beforeDist = Math.abs(beforeValue - target);
       const afterDist = Math.abs(nextValue - target);
       if (afterDist > beforeDist) {
-        penalize("初期設定から遠ざかっています", state.hintsEnabled ? `現在の工程は「${step.label}」です。設定を初期値に戻してください。` : "初期設定から遠ざかる操作です。設定を元に戻してください。", 3);
+        penalize("初期設定から遠ざかっています", state.hintsEnabled ? `現在の工程は「${step.label}」です。設定を初期値に戻してください。` : "初期設定から遠ざかる操作です。設定を元に戻してください。", 10);
         return;
       }
     }
@@ -1639,11 +1639,11 @@ function judgeSettingChange(key, beforeValue, nextValue, beforeRhythm) {
   if (!guide) return;
 
   if (!guide.keys.includes(key)) {
-    penalize("操作が目的とずれています", state.hintsEnabled ? `現在の工程は「${step.label}」です。${step.hint}` : "現在のチェック条件にはつながりにくい操作です。Markerの変化を確認してください。", 3);
+    penalize("操作が目的とずれています", state.hintsEnabled ? `現在の工程は「${step.label}」です。${step.hint}` : "現在のチェック条件にはつながりにくい操作です。Markerの変化を確認してください。", 10);
     return;
   }
   if (guide.direction && direction !== guide.direction) {
-    penalize("操作方向が逆です", state.hintsEnabled ? `${controlLabel(key)} は ${guide.direction > 0 ? "上げる" : "下げる"} 方向で確認します。${step.hint}` : "目的のMarker変化から遠ざかる方向です。ECGとMarkerを見直してください。", 5);
+    penalize("操作方向が逆です", state.hintsEnabled ? `${controlLabel(key)} は ${guide.direction > 0 ? "上げる" : "下げる"} 方向で確認します。${step.hint}` : "目的のMarker変化から遠ざかる方向です。ECGとMarkerを見直してください。", 10);
     return;
   }
 
