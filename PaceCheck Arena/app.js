@@ -183,8 +183,8 @@ const SCENARIOS = [
 ];
 
 const SCORE_MAX = 100;
-const PASSING_SCORE = 80;
-const STRICT_SCORE_EXPONENT = 1.35;
+const PASSING_SCORE = 90;
+const STRICT_SCORE_EXPONENT = 1.6;
 const WRONG_PENALTY_MULTIPLIER = 1.5;
 const ECG_SAFETY_OVERLAY_DELAY_MS = 1200;
 const COMPLETION_BONUS = 20;
@@ -462,7 +462,6 @@ function defaultState() {
     mistakes: 0,
     combo: 0,
     runComplete: false,
-    incompletePenaltyApplied: false,
     simulatorFlags: {},
     hintsEnabled: false,
     lastJudge: {
@@ -560,7 +559,6 @@ function resetRun(scenarioId) {
   state.mistakes = 0;
   state.combo = 0;
   state.runComplete = false;
-  state.incompletePenaltyApplied = false;
   state.simulatorFlags = {};
   state.hintsEnabled = state.hintsEnabled ?? false;
   state.lastJudge = {
@@ -1453,17 +1451,14 @@ function endTestRun(scenario) {
   const measurementsDone = measurementGoalComplete(scenario);
   const restored = settingsRestored(scenario);
 
-  // Incomplete measurements: apply one-time penalty and allow the user to resume the test.
+  // Incomplete measurements: apply penalty every time and allow the user to resume the test.
   if (!measurementsDone) {
-    if (!state.incompletePenaltyApplied) {
-      state.score = (state.score || 0) - 10;
-      state.mistakes = (state.mistakes || 0) + 1;
-      state.incompletePenaltyApplied = true;
-    }
+    state.score = (state.score || 0) - 10;
+    state.mistakes = (state.mistakes || 0) + 1;
     setJudge(
       "wrong",
       "未完了項目あり：終了不可",
-      "未完了の測定があります（-10点ペナルティ適用済み）。残りのチェックを完了してから終了してください。",
+      "未完了の測定があります（-10点）。残りのチェックを完了してから終了してください。",
       -10,
       false
     );
