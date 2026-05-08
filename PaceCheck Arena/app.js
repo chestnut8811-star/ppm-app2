@@ -187,26 +187,26 @@ const PASSING_SCORE = 90;
 const STRICT_SCORE_EXPONENT = 1.6;
 const WRONG_PENALTY_MULTIPLIER = 1.5;
 const ECG_SAFETY_OVERLAY_DELAY_MS = 1200;
-const COMPLETION_BONUS = 20;
+const COMPLETION_BONUS = 10;
 const SCORE_HISTORY_KEY = "pacecheck-arena-history";
 
 const COMMON_STEPS = {
-  "confirm-no-vs": { label: "AV延長でVSが出ないことを確認", hint: "AV delayを延長し、自己R波が出ないことを観察します。", points: 25 },
-  "create-vs-for-r": { label: "VSを出してR波測定条件を作る", hint: "VPからVSへ切り替え、R波が見える条件を作ります。", points: 25 },
-  "create-as-for-p": { label: "ASを出してP波測定条件を作る", hint: "APからASへ切り替え、P波が見える条件を作ります。", points: 25 },
-  "create-ap-for-a-threshold": { label: "APを出してA閾値条件を作る", hint: "ASからAPへ切り替え、A閾値テストの条件を作ります。", points: 20 },
-  "create-vp-for-v-threshold": { label: "VPを出してV閾値条件を作る", hint: "VSからVPへ切り替え、V閾値テストの条件を作ります。", points: 20 },
-  "start-a-threshold": { label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 15, check: "aThreshold" },
-  "find-a-loss": { label: "A出力を下げてLOCを確認", hint: "A出力を下げ、A LOCが出る境界を観察します。", points: 25 },
-  "record-a-threshold": { label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 25, check: "aThreshold" },
-  "start-v-threshold": { label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 15, check: "vThreshold" },
-  "find-v-loss": { label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 25 },
-  "record-v-threshold": { label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 25, check: "vThreshold" },
-  "record-p-wave": { label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 25, check: "pWave" },
-  "record-r-wave": { label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 25, check: "rWave" },
-  "record-r-difficult": { label: "V波高値を評価困難として記録", hint: "自己R波が出ないことを確認し、評価困難として記録します。", points: 25, check: "rDifficult" },
-  "record-events": { label: "イベント情報を確認", hint: "イベントカウンタと保存EGMを確認します。", points: 20, check: "events" },
-  "restore-settings": { label: "初期設定へ戻す", hint: "一時的に変更した設定を症例開始時の値へ戻します。", points: 10, check: "restore" }
+  "confirm-no-vs": { label: "AV延長でVSが出ないことを確認", hint: "AV delayを延長し、自己R波が出ないことを観察します。", points: 10 },
+  "create-vs-for-r": { label: "VSを出してR波測定条件を作る", hint: "VPからVSへ切り替え、R波が見える条件を作ります。", points: 10 },
+  "create-as-for-p": { label: "ASを出してP波測定条件を作る", hint: "APからASへ切り替え、P波が見える条件を作ります。", points: 10 },
+  "create-ap-for-a-threshold": { label: "APを出してA閾値条件を作る", hint: "ASからAPへ切り替え、A閾値テストの条件を作ります。", points: 8 },
+  "create-vp-for-v-threshold": { label: "VPを出してV閾値条件を作る", hint: "VSからVPへ切り替え、V閾値テストの条件を作ります。", points: 8 },
+  "start-a-threshold": { label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 5, check: "aThreshold" },
+  "find-a-loss": { label: "A出力を下げてLOCを確認", hint: "A出力を下げ、A LOCが出る境界を観察します。", points: 10 },
+  "record-a-threshold": { label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 10, check: "aThreshold" },
+  "start-v-threshold": { label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 5, check: "vThreshold" },
+  "find-v-loss": { label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 10 },
+  "record-v-threshold": { label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 10, check: "vThreshold" },
+  "record-p-wave": { label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 10, check: "pWave" },
+  "record-r-wave": { label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 10, check: "rWave" },
+  "record-r-difficult": { label: "V波高値を評価困難として記録", hint: "自己R波が出ないことを確認し、評価困難として記録します。", points: 10, check: "rDifficult" },
+  "record-events": { label: "イベント情報を確認", hint: "イベントカウンタと保存EGMを確認します。", points: 8, check: "events" },
+  "restore-settings": { label: "初期設定へ戻す", hint: "一時的に変更した設定を症例開始時の値へ戻します。", points: 5, check: "restore" }
 };
 
 const AUTO_STEP_IDS = [
@@ -221,134 +221,134 @@ const AUTO_STEP_IDS = [
 
 const SIMULATOR_PROFILES = {
   "cavb-asvp-rwave-no-vs": [
-    { id: "confirm-no-vs", label: "AV延長でVSが出ないことを確認", hint: "SAVを延長し、AS-VPのまま自己R波が出ないことを観察します。", points: 25 },
-    { id: "record-r-difficult", label: "V波高値を評価困難として記録", hint: "自己R波が出ないため、R波測定へ進まず評価困難を記録します。", points: 25, check: "rDifficult" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "一時的に変更した設定を症例開始時の値へ戻します。", points: 20, check: "restore" }
+    { id: "confirm-no-vs", label: "AV延長でVSが出ないことを確認", hint: "SAVを延長し、AS-VPのまま自己R波が出ないことを観察します。", points: 10 },
+    { id: "record-r-difficult", label: "V波高値を評価困難として記録", hint: "自己R波が出ないため、R波測定へ進まず評価困難を記録します。", points: 10, check: "rDifficult" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "一時的に変更した設定を症例開始時の値へ戻します。", points: 8, check: "restore" }
   ],
   "intermittent-avb-asvp-rwave": [
-    { id: "create-vs-for-r", label: "VSを出してR波測定条件を作る", hint: "SAVを延長し、AS-VPからAS-VSへ切り替えます。", points: 25 },
-    { id: "record-r-wave", label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 25, check: "rWave" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は一時設定を戻します。", points: 20, check: "restore" }
+    { id: "create-vs-for-r", label: "VSを出してR波測定条件を作る", hint: "SAVを延長し、AS-VPからAS-VSへ切り替えます。", points: 10 },
+    { id: "record-r-wave", label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 10, check: "rWave" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は一時設定を戻します。", points: 8, check: "restore" }
   ],
   "sss-apvs-pwave": [
-    { id: "create-as-for-p", label: "ASを出してP波測定条件を作る", hint: "下限レートを下げ、APからASへ切り替えます。", points: 25 },
-    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 25, check: "pWave" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レートを戻します。", points: 20, check: "restore" }
+    { id: "create-as-for-p", label: "ASを出してP波測定条件を作る", hint: "下限レートを下げ、APからASへ切り替えます。", points: 10 },
+    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 10, check: "pWave" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レートを戻します。", points: 8, check: "restore" }
   ],
   "ddd-asvs-v-threshold": [
-    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "SAVを短縮し、AS-VSからAS-VPへ切り替えます。", points: 20 },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 15, check: "vThreshold" },
-    { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 25 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 25, check: "vThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は出力とAV delayを戻します。", points: 20, check: "restore" }
+    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "SAVを短縮し、AS-VSからAS-VPへ切り替えます。", points: 8 },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 6, check: "vThreshold" },
+    { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 10 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 10, check: "vThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は出力とAV delayを戻します。", points: 8, check: "restore" }
   ],
   "sss-apvp-a-threshold": [
-    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 15, check: "aThreshold" },
-    { id: "find-a-loss", label: "A出力を下げてLOCを確認", hint: "A出力を下げ、A LOCが出る境界を観察します。", points: 25 },
-    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 25, check: "aThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は出力を戻します。", points: 20, check: "restore" }
+    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 6, check: "aThreshold" },
+    { id: "find-a-loss", label: "A出力を下げてLOCを確認", hint: "A出力を下げ、A LOCが出る境界を観察します。", points: 10 },
+    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 10, check: "aThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は出力を戻します。", points: 8, check: "restore" }
   ],
   "brady-af-vvi-rwave": [
-    { id: "create-vs-for-r", label: "VSを出してR波測定条件を作る", hint: "下限レートを自己心拍より下げ、VVI-VPからVVI-VSへ切り替えます。", points: 25 },
-    { id: "record-r-wave", label: "R波波高値を記録", hint: "VVI-VS表示中にVリード波高値を記録します。", points: 25, check: "rWave" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レートを戻します。", points: 20, check: "restore" }
+    { id: "create-vs-for-r", label: "VSを出してR波測定条件を作る", hint: "下限レートを自己心拍より下げ、VVI-VPからVVI-VSへ切り替えます。", points: 10 },
+    { id: "record-r-wave", label: "R波波高値を記録", hint: "VVI-VS表示中にVリード波高値を記録します。", points: 10, check: "rWave" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レートを戻します。", points: 8, check: "restore" }
   ],
   "tachy-brady-events": [
-    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 25, check: "pWave" },
-    { id: "record-events", label: "イベント情報を確認", hint: "洞不全症候群（徐脈頻脈型）ではMode Switchなどのイベントも確認します。", points: 20, check: "events" },
-    { id: "restore-settings", label: "初期設定を確認", hint: "一時変更が残っていないことを確認します。", points: 20, check: "restore" }
+    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 10, check: "pWave" },
+    { id: "record-events", label: "イベント情報を確認", hint: "洞不全症候群（徐脈頻脈型）ではMode Switchなどのイベントも確認します。", points: 8, check: "events" },
+    { id: "restore-settings", label: "初期設定を確認", hint: "一時変更が残っていないことを確認します。", points: 8, check: "restore" }
   ],
   "ddd-apvp-v-threshold-dependent": [
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "依存疑いのため、VP表示を確認してからV閾値テストを開始します。", points: 15, check: "vThreshold" },
-    { id: "find-v-loss", label: "V出力を慎重に下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 25 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 25, check: "vThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は出力安全域と復帰を確認します。", points: 20, check: "restore" }
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "依存疑いのため、VP表示を確認してからV閾値テストを開始します。", points: 6, check: "vThreshold" },
+    { id: "find-v-loss", label: "V出力を慎重に下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 10 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 10, check: "vThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は出力安全域と復帰を確認します。", points: 8, check: "restore" }
   ],
   "ddd-apvp-pwave-vthreshold": [
-    { id: "create-as-for-p", label: "ASを出してP波測定条件を作る", hint: "下限レートを下げ、APからASへ切り替えます。", points: 20 },
-    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 20, check: "pWave" },
-    { id: "record-r-difficult", label: "V波高値は無記録で終了", hint: "自己R波が出ない症例と判断し、無記録で終了します。", points: 20, check: "rDifficult" },
-    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "下限レートを戻すかAV delayを短縮し、VP優位に戻します。", points: 15 },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 10, check: "vThreshold" },
-    { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 20 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 20, check: "vThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レート・出力を戻します。", points: 15, check: "restore" }
+    { id: "create-as-for-p", label: "ASを出してP波測定条件を作る", hint: "下限レートを下げ、APからASへ切り替えます。", points: 8 },
+    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 8, check: "pWave" },
+    { id: "record-r-difficult", label: "V波高値は無記録で終了", hint: "自己R波が出ない症例と判断し、無記録で終了します。", points: 8, check: "rDifficult" },
+    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "下限レートを戻すかAV delayを短縮し、VP優位に戻します。", points: 6 },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 5, check: "vThreshold" },
+    { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 8 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 8, check: "vThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レート・出力を戻します。", points: 6, check: "restore" }
   ],
   "vvi-vs-rwave-vthreshold": [
-    { id: "record-r-wave", label: "R波波高値を記録", hint: "VVI-VS表示中にVリード波高値を記録します。", points: 25, check: "rWave" },
-    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "下限レートを上げ、VVI-VPへ切り替えます。", points: 20 },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 10, check: "vThreshold" },
-    { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 20 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 25, check: "vThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レート・出力を戻します。", points: 20, check: "restore" }
+    { id: "record-r-wave", label: "R波波高値を記録", hint: "VVI-VS表示中にVリード波高値を記録します。", points: 10, check: "rWave" },
+    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "下限レートを上げ、VVI-VPへ切り替えます。", points: 8 },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 5, check: "vThreshold" },
+    { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 8 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 10, check: "vThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レート・出力を戻します。", points: 8, check: "restore" }
   ],
   "afib-dependent-vvi-difficult": [
-    { id: "record-r-difficult", label: "V波高値は無記録で終了", hint: "完全依存で自己R波が出ない症例と判断し、無記録で終了します。", points: 30, check: "rDifficult" },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを慎重に開始します。", points: 10, check: "vThreshold" },
-    { id: "find-v-loss", label: "V出力を慎重に下げてLOCを確認", hint: "V出力を下げ、V LOCの境界を観察します。", points: 25 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 25, check: "vThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は出力安全域と復帰を厳守します。", points: 20, check: "restore" }
+    { id: "record-r-difficult", label: "V波高値は無記録で終了", hint: "完全依存で自己R波が出ない症例と判断し、無記録で終了します。", points: 12, check: "rDifficult" },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを慎重に開始します。", points: 5, check: "vThreshold" },
+    { id: "find-v-loss", label: "V出力を慎重に下げてLOCを確認", hint: "V出力を下げ、V LOCの境界を観察します。", points: 10 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 10, check: "vThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は出力安全域と復帰を厳守します。", points: 8, check: "restore" }
   ],
   "ddd-asvs-comprehensive": [
-    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 15, check: "pWave" },
-    { id: "record-r-wave", label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 15, check: "rWave" },
-    { id: "create-ap-for-a-threshold", label: "APを出してA閾値条件を作る", hint: "下限レートを上げ、ASからAPへ切り替えます。", points: 10 },
-    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 10, check: "aThreshold" },
-    { id: "find-a-loss", label: "A出力を下げてLOCを確認", hint: "A出力を下げ、A LOCの境界を観察します。", points: 15 },
-    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 15, check: "aThreshold" },
-    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "AV delayを短縮し、VSからVPへ切り替えます。", points: 10 },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 10, check: "vThreshold" },
-    { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCの境界を観察します。", points: 15 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 15, check: "vThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "総合チェック後は全設定を初期値へ戻します。", points: 20, check: "restore" }
+    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 6, check: "pWave" },
+    { id: "record-r-wave", label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 6, check: "rWave" },
+    { id: "create-ap-for-a-threshold", label: "APを出してA閾値条件を作る", hint: "下限レートを上げ、ASからAPへ切り替えます。", points: 5 },
+    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 5, check: "aThreshold" },
+    { id: "find-a-loss", label: "A出力を下げてLOCを確認", hint: "A出力を下げ、A LOCの境界を観察します。", points: 6 },
+    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 6, check: "aThreshold" },
+    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "AV delayを短縮し、VSからVPへ切り替えます。", points: 5 },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 5, check: "vThreshold" },
+    { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCの境界を観察します。", points: 6 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 6, check: "vThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "総合チェック後は全設定を初期値へ戻します。", points: 8, check: "restore" }
   ],
   "ddd-lead-impedance-alert": [
-    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 15, check: "pWave" },
-    { id: "create-vs-for-r", label: "VSを出してR波測定条件を作る", hint: "AV delayを延長してAS-VPからAS-VSへ切り替えます。", points: 15 },
-    { id: "record-r-wave", label: "R波波高値を記録（低下に注目）", hint: "VS表示中にVリード波高値を記録。前回値からのトレンドを意識する。", points: 20, check: "rWave" },
-    { id: "create-ap-for-a-threshold", label: "APを出してA閾値条件を作る", hint: "下限レートを上げ、AP誘発します。", points: 10 },
-    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 5, check: "aThreshold" },
-    { id: "find-a-loss", label: "A LOCを確認", hint: "A出力を下げ、捕捉/脱落の境界を確認します。", points: 10 },
-    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 15, check: "aThreshold" },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。閾値上昇に注意。", points: 5, check: "vThreshold" },
-    { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 15 },
-    { id: "record-v-threshold", label: "V閾値を記録（上昇に注目）", hint: "閾値の上昇傾向を記録。リード抵抗とイベントを併せて評価する。", points: 15, check: "vThreshold" },
-    { id: "record-events", label: "イベント情報を確認", hint: "高抵抗アラートと保存EGMを確認します。", points: 20, check: "events" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "総合チェック後は全設定を初期値へ戻します。", points: 15, check: "restore" }
+    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 6, check: "pWave" },
+    { id: "create-vs-for-r", label: "VSを出してR波測定条件を作る", hint: "AV delayを延長してAS-VPからAS-VSへ切り替えます。", points: 6 },
+    { id: "record-r-wave", label: "R波波高値を記録（低下に注目）", hint: "VS表示中にVリード波高値を記録。前回値からのトレンドを意識する。", points: 8, check: "rWave" },
+    { id: "create-ap-for-a-threshold", label: "APを出してA閾値条件を作る", hint: "下限レートを上げ、AP誘発します。", points: 5 },
+    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 3, check: "aThreshold" },
+    { id: "find-a-loss", label: "A LOCを確認", hint: "A出力を下げ、捕捉/脱落の境界を確認します。", points: 5 },
+    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 6, check: "aThreshold" },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。閾値上昇に注意。", points: 3, check: "vThreshold" },
+    { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 6 },
+    { id: "record-v-threshold", label: "V閾値を記録（上昇に注目）", hint: "閾値の上昇傾向を記録。リード抵抗とイベントを併せて評価する。", points: 6, check: "vThreshold" },
+    { id: "record-events", label: "イベント情報を確認", hint: "高抵抗アラートと保存EGMを確認します。", points: 8, check: "events" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "総合チェック後は全設定を初期値へ戻します。", points: 6, check: "restore" }
   ],
   "sinus-arrest-apvs-comprehensive": [
-    { id: "create-as-for-p", label: "ASを出してP波測定条件を作る", hint: "下限レートを下げ、AP-VSからAS-VSへ切り替えます。", points: 15 },
-    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 15, check: "pWave" },
-    { id: "record-r-wave", label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 15, check: "rWave" },
-    { id: "create-ap-for-a-threshold", label: "APを出してA閾値条件を作る", hint: "下限レートを上げ、ASからAPへ戻します。", points: 10 },
-    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 10, check: "aThreshold" },
-    { id: "find-a-loss", label: "A LOCを確認", hint: "A出力を下げ、捕捉/脱落の境界を確認します。", points: 15 },
-    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 15, check: "aThreshold" },
-    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "PAVを短縮し、AP-VSからAP-VPへ切り替えます。", points: 10 },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 10, check: "vThreshold" },
-    { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 15 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 15, check: "vThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "下限レート、AV delay、出力を初期値へ戻します。", points: 15, check: "restore" }
+    { id: "create-as-for-p", label: "ASを出してP波測定条件を作る", hint: "下限レートを下げ、AP-VSからAS-VSへ切り替えます。", points: 6 },
+    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 6, check: "pWave" },
+    { id: "record-r-wave", label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 6, check: "rWave" },
+    { id: "create-ap-for-a-threshold", label: "APを出してA閾値条件を作る", hint: "下限レートを上げ、ASからAPへ戻します。", points: 5 },
+    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 5, check: "aThreshold" },
+    { id: "find-a-loss", label: "A LOCを確認", hint: "A出力を下げ、捕捉/脱落の境界を確認します。", points: 6 },
+    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 6, check: "aThreshold" },
+    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "PAVを短縮し、AP-VSからAP-VPへ切り替えます。", points: 5 },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 5, check: "vThreshold" },
+    { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 6 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 6, check: "vThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "下限レート、AV delay、出力を初期値へ戻します。", points: 6, check: "restore" }
   ],
   "high-grade-avb-asvp-intermittent": [
-    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 10, check: "pWave" },
-    { id: "create-vs-for-r", label: "VSを出してR波測定条件を作る", hint: "SAVを延長し、AS-VPからAS-VSへ切り替えます。", points: 20 },
-    { id: "record-r-wave", label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 15, check: "rWave" },
-    { id: "create-ap-for-a-threshold", label: "APを出してA閾値条件を作る", hint: "下限レートを上げ、ASからAPへ切り替えます。", points: 10 },
-    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 10, check: "aThreshold" },
-    { id: "find-a-loss", label: "A LOCを確認", hint: "A出力を下げ、捕捉/脱落の境界を確認します。", points: 15 },
-    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 15, check: "aThreshold" },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 10, check: "vThreshold" },
-    { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 15 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 15, check: "vThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "AV delay、下限レート、出力を初期値へ戻します。", points: 15, check: "restore" }
+    { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 5, check: "pWave" },
+    { id: "create-vs-for-r", label: "VSを出してR波測定条件を作る", hint: "SAVを延長し、AS-VPからAS-VSへ切り替えます。", points: 8 },
+    { id: "record-r-wave", label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 6, check: "rWave" },
+    { id: "create-ap-for-a-threshold", label: "APを出してA閾値条件を作る", hint: "下限レートを上げ、ASからAPへ切り替えます。", points: 5 },
+    { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 5, check: "aThreshold" },
+    { id: "find-a-loss", label: "A LOCを確認", hint: "A出力を下げ、捕捉/脱落の境界を確認します。", points: 6 },
+    { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 6, check: "aThreshold" },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 5, check: "vThreshold" },
+    { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 6 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 6, check: "vThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "AV delay、下限レート、出力を初期値へ戻します。", points: 6, check: "restore" }
   ],
   "post-av-node-ablation-vvi-dependent": [
-    { id: "record-r-difficult", label: "V波高値は評価困難として記録", hint: "自己R波が出ない症例と判断し、評価困難として記録します。", points: 25, check: "rDifficult" },
-    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを慎重に開始します。", points: 15, check: "vThreshold" },
-    { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 25 },
-    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 25, check: "vThreshold" },
-    { id: "restore-settings", label: "初期設定へ戻す", hint: "V出力安全域と下限レートを初期値へ戻します。", points: 20, check: "restore" }
+    { id: "record-r-difficult", label: "V波高値は評価困難として記録", hint: "自己R波が出ない症例と判断し、評価困難として記録します。", points: 10, check: "rDifficult" },
+    { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを慎重に開始します。", points: 6, check: "vThreshold" },
+    { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 10 },
+    { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 10, check: "vThreshold" },
+    { id: "restore-settings", label: "初期設定へ戻す", hint: "V出力安全域と下限レートを初期値へ戻します。", points: 8, check: "restore" }
   ]
 };
 
