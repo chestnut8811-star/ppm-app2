@@ -462,6 +462,7 @@ function defaultState() {
     mistakes: 0,
     combo: 0,
     runComplete: false,
+    incompletePenaltyApplied: false,
     simulatorFlags: {},
     hintsEnabled: false,
     lastJudge: {
@@ -559,6 +560,7 @@ function resetRun(scenarioId) {
   state.mistakes = 0;
   state.combo = 0;
   state.runComplete = false;
+  state.incompletePenaltyApplied = false;
   state.simulatorFlags = {};
   state.hintsEnabled = state.hintsEnabled ?? false;
   state.lastJudge = {
@@ -1327,9 +1329,7 @@ function simulatorMaxPoints(scenario) {
 function scoreSummary(scenario) {
   const value = scaledScoreValue(state.score || 0, scenario);
   const complete = Boolean(state.runComplete);
-  const measurementsDone = measurementGoalComplete(scenario);
-  // Incomplete measurements force a fail regardless of point total.
-  const passed = complete && measurementsDone && value >= PASSING_SCORE;
+  const passed = complete && value >= PASSING_SCORE;
   return {
     value,
     label: complete ? (passed ? "合格" : "不合格") : "採点中",
@@ -1450,13 +1450,31 @@ function endTestRun(scenario) {
   if (state.runComplete) return;
   const measurementsDone = measurementGoalComplete(scenario);
   const restored = settingsRestored(scenario);
+
+  // Incomplete measurements: apply one-time penalty and allow the user to resume the test.
+  if (!measurementsDone) {
+    if (!state.incompletePenaltyApplied) {
+      state.score = (state.score || 0) - 20;
+      state.mistakes = (state.mistakes || 0) + 1;
+      state.incompletePenaltyApplied = true;
+    }
+    setJudge(
+      "wrong",
+      "未完了項目あり：終了不可",
+      "未完了の測定があります（-20点ペナルティ適用済み）。残りのチェックを完了してから終了してください。",
+      -20,
+      false
+    );
+    setFeedback(
+      "未完了項目あり：再開してください",
+      "未完了の測定があるため、テストは終了されませんでした（-20点）。残りのチェックを完了してから「テスト終了」を押してください。"
+    );
+    return;
+  }
+
+  // All measurements complete — finalize.
   let penalty = 0;
   const notes = [];
-
-  if (!measurementsDone) {
-    penalty += 20;
-    notes.push("未完了の測定があるまま終了しました（-20点）");
-  }
   if (!restored) {
     penalty += 10;
     notes.push("設定が初期値へ戻されていません（-10点）。実臨床では必ず設定を戻してください。");
@@ -1468,15 +1486,14 @@ function endTestRun(scenario) {
 
   state.runComplete = true;
   state.activeTest = null;
-  if (measurementsDone) {
-    state.score = (state.score || 0) + COMPLETION_BONUS;
-    state.combo = (state.combo || 0) + 1;
-  }
+  state.score = (state.score || 0) + COMPLETION_BONUS;
+  state.combo = (state.combo || 0) + 1;
+
   const score = scoreSummary(scenario);
   const resultTitle = `完了：${score.label}`;
   const noteText = notes.length ? notes.join(" / ") : "全項目を適切に終了しました。";
-  const resultBody = `${noteText} 最終得点は${score.value}/100点です。合格基準は${PASSING_SCORE}点です（未完了項目があると不合格）。`;
-  setJudge("correct", resultTitle, resultBody, measurementsDone ? COMPLETION_BONUS : 0, false);
+  const resultBody = `${noteText} 最終得点は${score.value}/100点です。合格基準は${PASSING_SCORE}点です。`;
+  setJudge("correct", resultTitle, resultBody, COMPLETION_BONUS, false);
   setFeedback(resultTitle, resultBody);
   saveScoreHistory(scenario.id, scenario.title, score.value, state.mistakes || 0);
 }
