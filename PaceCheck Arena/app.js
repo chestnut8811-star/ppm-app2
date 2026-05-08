@@ -668,9 +668,9 @@ function renderScoreHistory() {
             <tr>
               <td>${escapeHtml(entry.date)}</td>
               <td>${escapeHtml(entry.title.length > 30 ? entry.title.slice(0, 30) + "..." : entry.title)}</td>
-              <td><strong>${entry.score}</strong>/100</td>
+              <td><strong>${entry.score}</strong>${entry.maxPoints ? `/${entry.maxPoints}` : ""}</td>
               <td>${entry.mistakes}回</td>
-              <td>${entry.score >= PASSING_SCORE ? '<span class="pill-ok">合格</span>' : '<span class="pill-fail">不合格</span>'}</td>
+              <td>${(entry.passingThreshold ? entry.score >= entry.passingThreshold : entry.score >= PASSING_SCORE) ? '<span class="pill-ok">合格</span>' : '<span class="pill-fail">不合格</span>'}</td>
             </tr>
           `).join("")}
         </tbody>
@@ -766,13 +766,13 @@ function renderSimulatorPanel(scenario) {
     </div>
     <div class="score-strip">
       <div>
-        <span>得点（100点満点）</span>
-        <strong>${score.value}<small>/100点</small></strong>
+        <span>得点（${score.maxPoints}点満点）</span>
+        <strong>${score.value}<small>/${score.maxPoints}点</small></strong>
       </div>
       <div class="${score.className}">
         <span>判定</span>
         <strong>${escapeHtml(score.label)}</strong>
-        <small>${state.runComplete ? `合格基準 ${PASSING_SCORE}点` : `${PASSING_SCORE}点以上で合格`}</small>
+        <small>${state.runComplete ? `合格基準 ${score.passingThreshold}点` : `${score.passingThreshold}点以上で合格`}</small>
       </div>
       <div>
         <span>誤操作</span>
@@ -1325,11 +1325,18 @@ function simulatorMaxPoints(scenario) {
 }
 
 function scoreSummary(scenario) {
-  const value = scaledScoreValue(state.score || 0, scenario);
+  const maxPoints = Math.max(1, simulatorMaxPoints(scenario));
+  const raw = state.score || 0;
+  const value = Math.max(0, Math.min(maxPoints, raw));
   const complete = Boolean(state.runComplete);
-  const passed = complete && value >= PASSING_SCORE;
+  // Pass when raw points meet the per-scenario threshold (defined as a ratio of maxPoints).
+  const passingThreshold = Math.ceil(maxPoints * (PASSING_SCORE / SCORE_MAX));
+  const passed = complete && raw >= passingThreshold;
   return {
     value,
+    raw,
+    maxPoints,
+    passingThreshold,
     label: complete ? (passed ? "合格" : "不合格") : "採点中",
     className: complete ? (passed ? "score-pass" : "score-fail") : "score-pending"
   };
@@ -1486,19 +1493,21 @@ function endTestRun(scenario) {
   const score = scoreSummary(scenario);
   const resultTitle = `完了：${score.label}`;
   const noteText = notes.length ? notes.join(" / ") : "全項目を適切に終了しました。";
-  const resultBody = `${noteText} 最終得点は${score.value}/100点です。合格基準は${PASSING_SCORE}点です。`;
+  const resultBody = `${noteText} 最終得点は${score.value}/${score.maxPoints}点です。合格基準は${score.passingThreshold}点です。`;
   setJudge("correct", resultTitle, resultBody, bonus - penalty, false);
   setFeedback(resultTitle, resultBody);
-  saveScoreHistory(scenario.id, scenario.title, score.value, state.mistakes || 0);
+  saveScoreHistory(scenario.id, scenario.title, score.value, state.mistakes || 0, score.maxPoints, score.passingThreshold);
 }
 
-function saveScoreHistory(scenarioId, scenarioTitle, scoreValue, mistakes) {
+function saveScoreHistory(scenarioId, scenarioTitle, scoreValue, mistakes, maxPoints, passingThreshold) {
   try {
     const history = JSON.parse(localStorage.getItem(SCORE_HISTORY_KEY) || "[]");
     history.unshift({
       scenarioId,
       title: scenarioTitle,
       score: scoreValue,
+      maxPoints,
+      passingThreshold,
       mistakes,
       date: new Date().toISOString().slice(0, 16).replace("T", " ")
     });
