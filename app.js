@@ -1060,7 +1060,11 @@ function init() {
   bindStaticControls();
   setBoundValues();
   renderAll();
-  markSaved("準備完了");
+  if (localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY)) {
+    markSaved("復元済み");
+  } else {
+    markDirty();
+  }
 }
 
 function defaultState() {
@@ -2617,7 +2621,9 @@ function scenarioResultText(scenario) {
 
 function showTab(tabId) {
   document.querySelectorAll(".tab-button").forEach((button) => {
-    button.classList.toggle("active", button.dataset.tab === tabId);
+    const isActive = button.dataset.tab === tabId;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
   });
   document.querySelectorAll(".tab-panel").forEach((panel) => {
     panel.classList.toggle("active", panel.id === tabId);

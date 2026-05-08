@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
   --bg: #f4f7f8;
   --surface: #ffffff;
   --surface-soft: #eef5f3;
@@ -15,6 +15,26 @@
   --warn-soft: #fff7e8;
   --danger-soft: #fff0ed;
   --shadow: 0 18px 40px rgba(24, 39, 46, 0.09);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1419;
+    --surface: #1a2228;
+    --surface-soft: #1e2a30;
+    --ink: #e0e8ec;
+    --muted: #8b99a3;
+    --line: #2a3840;
+    --primary: #14b8a6;
+    --primary-dark: #0d9488;
+    --accent: #d97706;
+    --danger: #ef4444;
+    --ok: #22c55e;
+    --ok-soft: #152a1a;
+    --warn-soft: #2a2010;
+    --danger-soft: #2a1515;
+    --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  }
 }
 
 * {
@@ -1070,6 +1090,72 @@ button:focus-visible {
   background: #fbfcfc;
 }
 
+.history-panel {
+  margin-top: 18px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.history-panel:empty {
+  display: none;
+}
+
+.history-table-wrap {
+  margin-top: 14px;
+  overflow-x: auto;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.history-table th,
+.history-table td {
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.history-table th {
+  background: var(--surface-soft);
+  font-weight: 900;
+}
+
+.history-table td:nth-child(3) {
+  text-align: center;
+}
+
+.history-table td:nth-child(4) {
+  text-align: center;
+}
+
+.pill-ok {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ok-soft);
+  color: var(--ok);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.pill-fail {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .reference-panel {
   margin-top: 18px;
 }
@@ -1126,6 +1212,103 @@ button:focus-visible {
 .reference-panel a {
   color: var(--primary-dark);
   font-weight: 800;
+}
+
+@media (prefers-color-scheme: dark) {
+  .topbar {
+    background: rgba(26, 34, 40, 0.96);
+  }
+
+  select,
+  .ghost-button,
+  .segmented,
+  .stepper,
+  .action-button,
+  .hint-toggle,
+  .step-chip,
+  .measurement-item,
+  .judge-log li,
+  .measure-button-secondary,
+  .restore-button,
+  .pdca-step span {
+    background: var(--surface);
+  }
+
+  .programmer,
+  .brief-cell,
+  .control-row,
+  .pdca-step,
+  .feedback-box,
+  .action-log li,
+  .legend-grid div {
+    background: var(--surface-soft);
+  }
+
+  .step-chip.active,
+  .objective-box,
+  .control-row.recommended-control {
+    background: #102a26;
+    border-color: rgba(20, 184, 166, 0.3);
+  }
+
+  .score-strip .score-pass {
+    background: var(--ok-soft);
+  }
+
+  .score-strip .score-fail {
+    background: var(--danger-soft);
+  }
+
+  .step-chip.out {
+    background: #182028;
+  }
+
+  .step-chip.out span {
+    background: #2a3840;
+  }
+
+  .measure-button:disabled {
+    background: #2a3840;
+  }
+
+  .measure-button-secondary:disabled {
+    background: #1e2830;
+  }
+
+  .safety-alert p {
+    color: #fca5a5;
+  }
+
+  .judge-box.ok > span {
+    background: #1a3a22;
+  }
+
+  .judge-box.danger > span {
+    background: #3a1a18;
+  }
+
+  .control-row input[type="range"]::-webkit-slider-runnable-track {
+    border-color: rgba(20, 184, 166, 0.25);
+    background: linear-gradient(180deg, #1e3a34 0%, #1a302c 100%);
+  }
+
+  .control-row input[type="range"]::-webkit-slider-thumb {
+    border-color: var(--surface);
+  }
+
+  .control-row input[type="range"]::-moz-range-track {
+    border-color: rgba(20, 184, 166, 0.25);
+    background: linear-gradient(180deg, #1e3a34 0%, #1a302c 100%);
+  }
+
+  .control-row input[type="range"]::-moz-range-thumb {
+    border-color: var(--surface);
+  }
+
+  .control-row input[type="range"]:disabled::-webkit-slider-thumb,
+  .control-row input[type="range"]:disabled::-moz-range-thumb {
+    background: #4a5568;
+  }
 }
 
 @media (max-width: 1180px) {

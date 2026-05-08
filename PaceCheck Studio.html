@@ -114,17 +114,17 @@
         </aside>
 
         <section class="work-panel">
-          <nav class="tabs" aria-label="機能切替">
-            <button class="tab-button active" type="button" data-tab="learning">学習</button>
-            <button class="tab-button" type="button" data-tab="logic">ロジック</button>
-            <button class="tab-button" type="button" data-tab="simulator">PaceCheck Arena</button>
-            <button class="tab-button" type="button" data-tab="procedure">手順</button>
-            <button class="tab-button" type="button" data-tab="measurements">測定</button>
-            <button class="tab-button" type="button" data-tab="simulation">症例</button>
-            <button class="tab-button" type="button" data-tab="report">レポート</button>
+          <nav class="tabs" role="tablist" aria-label="機能切替">
+            <button class="tab-button active" type="button" role="tab" aria-selected="true" data-tab="learning">学習</button>
+            <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab="logic">ロジック</button>
+            <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab="simulator">PaceCheck Arena</button>
+            <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab="procedure">手順</button>
+            <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab="measurements">測定</button>
+            <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab="simulation">症例</button>
+            <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab="report">レポート</button>
           </nav>
 
-          <section id="learning" class="tab-panel active" aria-labelledby="learningTitle">
+          <section id="learning" class="tab-panel active" role="tabpanel" aria-labelledby="learningTitle">
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">Learning</p>
@@ -134,7 +134,7 @@
             <div id="learningContent" class="learning-grid"></div>
           </section>
 
-          <section id="logic" class="tab-panel" aria-labelledby="logicTitle">
+          <section id="logic" class="tab-panel" role="tabpanel" aria-labelledby="logicTitle">
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">Clinical Logic</p>
@@ -159,7 +159,7 @@
             <div id="logicContent" class="logic-list"></div>
           </section>
 
-          <section id="simulator" class="tab-panel" aria-labelledby="simulatorTitle">
+          <section id="simulator" class="tab-panel" role="tabpanel" aria-labelledby="simulatorTitle">
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">Programmer Simulator</p>
@@ -182,7 +182,7 @@
             </div>
           </section>
 
-          <section id="procedure" class="tab-panel" aria-labelledby="procedureTitle">
+          <section id="procedure" class="tab-panel" role="tabpanel" aria-labelledby="procedureTitle">
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">Procedure</p>
@@ -193,7 +193,7 @@
             <div id="procedureContent" class="step-list"></div>
           </section>
 
-          <section id="measurements" class="tab-panel" aria-labelledby="measurementsTitle">
+          <section id="measurements" class="tab-panel" role="tabpanel" aria-labelledby="measurementsTitle">
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">Measurements</p>
@@ -235,7 +235,7 @@
             <div id="measurementFields" class="measurement-grid"></div>
           </section>
 
-          <section id="simulation" class="tab-panel" aria-labelledby="simulationTitle">
+          <section id="simulation" class="tab-panel" role="tabpanel" aria-labelledby="simulationTitle">
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">Simulation</p>
@@ -251,7 +251,7 @@
             </div>
           </section>
 
-          <section id="report" class="tab-panel report-tab" aria-labelledby="reportTitle">
+          <section id="report" class="tab-panel report-tab" role="tabpanel" aria-labelledby="reportTitle">
             <div class="panel-heading screen-only">
               <div>
                 <p class="eyebrow">Report</p>

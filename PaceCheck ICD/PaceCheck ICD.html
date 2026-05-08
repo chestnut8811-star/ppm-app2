@@ -7,7 +7,7 @@
     <link rel="icon" href="data:,">
     <style>
       :root {
-        color-scheme: light;
+        color-scheme: light dark;
         --bg: #f4f7f8;
         --surface: #ffffff;
         --surface-soft: #eef5f3;
@@ -20,6 +20,23 @@
         --danger: #b42318;
         --ok: #15803d;
         --shadow: 0 18px 40px rgba(24, 39, 46, 0.09);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0f1419;
+          --surface: #1a2228;
+          --surface-soft: #1e2a30;
+          --ink: #e0e8ec;
+          --muted: #8b99a3;
+          --line: #2a3840;
+          --primary: #14b8a6;
+          --primary-dark: #0d9488;
+          --accent: #d97706;
+          --danger: #ef4444;
+          --ok: #22c55e;
+          --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+        }
       }
 
       * {
@@ -439,6 +456,67 @@
         font-weight: 800;
       }
 
+      @media (prefers-color-scheme: dark) {
+        .topbar {
+          background: rgba(26, 34, 40, 0.96);
+        }
+
+        select,
+        .ghost-button,
+        .step-button,
+        .toggle {
+          background: var(--surface);
+        }
+
+        .metric,
+        .setting-cell,
+        .decision-item,
+        .path-step {
+          background: var(--surface-soft);
+        }
+
+        .pill.warn {
+          background: #2a2010;
+        }
+
+        .pill.danger {
+          background: #2a1515;
+        }
+
+        .pill.ok {
+          background: #152a1a;
+        }
+
+        .path-step.active {
+          background: #102a26;
+          border-color: rgba(20, 184, 166, 0.35);
+        }
+
+        .path-step.danger {
+          background: #2a1515;
+          border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .decision-item.ok {
+          background: #152a1a;
+          border-color: rgba(34, 197, 94, 0.35);
+        }
+
+        .decision-item.warn {
+          background: #2a2010;
+          border-color: rgba(217, 119, 6, 0.35);
+        }
+
+        .decision-item.danger {
+          background: #2a1515;
+          border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .rate-track {
+          background: linear-gradient(90deg, #102a26 0 45%, #2a2010 45% 70%, #2a1515 70% 100%);
+        }
+      }
+
       @media (max-width: 1100px) {
         .hero,
         .dashboard,
@@ -464,6 +542,17 @@
         .app {
           padding: 14px;
         }
+      }
+
+      @media print {
+        @page { margin: 12mm; }
+        body { background: #ffffff; }
+        .topbar, .top-actions, .step-button, .toggle { display: none !important; }
+        .app, .hero, .dashboard, .card, .zone-panel, .control-panel, .logic-panel, .reference-panel {
+          box-shadow: none;
+          break-inside: avoid;
+        }
+        .dashboard { grid-template-columns: 1fr; }
       }
     </style>
   </head>
@@ -778,9 +867,9 @@
           <div class="setting-cell">
             <div class="setting-row">
               <strong>${escapeHtml(row.label)}</strong>
-              <button class="step-button" type="button" data-step="${row.key}" data-dir="-1">▼</button>
+              <button class="step-button" type="button" aria-label="${escapeHtml(row.label)} を下げる" data-step="${row.key}" data-dir="-1">▼</button>
               <span class="value-box">${escapeHtml(formatValue(settings[row.key], row.unit))}</span>
-              <button class="step-button" type="button" data-step="${row.key}" data-dir="1">▲</button>
+              <button class="step-button" type="button" aria-label="${escapeHtml(row.label)} を上げる" data-step="${row.key}" data-dir="1">▲</button>
             </div>
           </div>
         `).join("") + `

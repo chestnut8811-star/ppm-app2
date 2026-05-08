@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
   --bg: #f5f7f6;
   --surface: #ffffff;
   --surface-soft: #eef4f1;
@@ -15,6 +15,26 @@
   --ok-soft: #eef8f0;
   --warn-soft: #fff7e8;
   --shadow: 0 12px 30px rgba(20, 35, 40, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1419;
+    --surface: #1a2228;
+    --surface-soft: #1e2a30;
+    --ink: #e0e8ec;
+    --muted: #8b99a3;
+    --line: #2a3840;
+    --primary: #14b8a6;
+    --primary-dark: #0d9488;
+    --accent: #d97706;
+    --danger: #ef4444;
+    --danger-soft: #2a1515;
+    --ok: #22c55e;
+    --ok-soft: #152a1a;
+    --warn-soft: #2a2010;
+    --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  }
 }
 
 * {
@@ -1055,6 +1075,57 @@ button:focus-visible {
 
   .checkline {
     white-space: normal;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-header {
+    background: rgba(26, 34, 40, 0.96);
+  }
+
+  .ghost-button,
+  .tab-button.active,
+  .info-card,
+  .step-card,
+  .measurement-card,
+  .logic-card,
+  .scenario-card,
+  .standards-box,
+  .simulator-card,
+  .ecg-stage,
+  .simulator-feedback,
+  .programmer-panel,
+  .simulator-launch-panel,
+  .simulator-open-link,
+  .simulator-action,
+  .choice-button,
+  .report-sheet {
+    background: var(--surface);
+  }
+
+  .tabs,
+  .logic-matrix tbody th,
+  .ecg-stage {
+    background: var(--surface-soft);
+  }
+
+  .mode-badge {
+    background: #162536;
+    color: #6bafdb;
+  }
+
+  input,
+  select,
+  textarea {
+    background: var(--surface);
+    color: var(--ink);
+    border-color: var(--line);
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline-color: rgba(20, 184, 166, 0.3);
   }
 }
 

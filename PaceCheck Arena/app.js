@@ -188,6 +188,7 @@ const STRICT_SCORE_EXPONENT = 1.35;
 const WRONG_PENALTY_MULTIPLIER = 1.5;
 const ECG_SAFETY_OVERLAY_DELAY_MS = 1200;
 const COMPLETION_BONUS = 20;
+const SCORE_HISTORY_KEY = "pacecheck-arena-history";
 
 const COMMON_STEPS = {
   "confirm-no-vs": { label: "AV延長でVSが出ないことを確認", hint: "AV delayを延長し、自己R波が出ないことを観察します。", points: 25 },
@@ -362,8 +363,65 @@ document.addEventListener("DOMContentLoaded", init);
 function init() {
   populateScenarioSelect();
   bindControls();
+  bindKeyboardShortcuts();
   render();
   startEcgAnimation();
+}
+
+function bindKeyboardShortcuts() {
+  document.addEventListener("keydown", (event) => {
+    if (event.target.tagName === "INPUT" || event.target.tagName === "SELECT" || event.target.tagName === "TEXTAREA") return;
+    const key = event.key;
+    const scenario = currentScenario();
+    const controls = [
+      { key: "lowerRate", step: 1, min: 30, max: 120 },
+      { key: "sensedAv", step: 10, min: 80, max: 400 },
+      { key: "pacedAv", step: 10, min: 80, max: 400 },
+      { key: "aOutput", step: 0.1, min: 0.1, max: 5.0 },
+      { key: "vOutput", step: 0.1, min: 0.1, max: 5.0 }
+    ];
+    const shortcuts = {
+      "1": { label: "停止", speed: "pause" },
+      "2": { label: "ゆっくり", speed: "slow" },
+      "3": { label: "標準", speed: "normal" },
+      "q": { control: "lowerRate", dir: 1 },
+      "a": { control: "lowerRate", dir: -1 },
+      "w": { control: "sensedAv", dir: 1 },
+      "s": { control: "sensedAv", dir: -1 },
+      "e": { control: "pacedAv", dir: 1 },
+      "d": { control: "pacedAv", dir: -1 },
+      "r": { control: "aOutput", dir: 1 },
+      "f": { control: "aOutput", dir: -1 },
+      "t": { control: "vOutput", dir: 1 },
+      "g": { control: "vOutput", dir: -1 }
+    };
+    const action = shortcuts[key.toLowerCase()];
+    if (!action) return;
+    event.preventDefault();
+    if (action.speed) {
+      state.ecgSpeed = action.speed;
+      saveState();
+      updateSpeedButtons();
+      return;
+    }
+    if (action.control) {
+      const ctrl = controls.find((c) => c.key === action.control);
+      if (!ctrl) return;
+      if (action.control.startsWith("a") && action.control !== "aOutput" && scenario.mode !== "DDD") return;
+      if (action.control === "aOutput" && scenario.mode !== "DDD") return;
+      if (action.control === "sensedAv" && scenario.mode !== "DDD") return;
+      if (action.control === "pacedAv" && scenario.mode !== "DDD") return;
+      const beforeRhythm = computeRhythm(scenario);
+      const current = Number(state.settings[ctrl.key] ?? 0);
+      const next = clampSetting(current + action.dir * ctrl.step, ctrl.min, ctrl.max, ctrl.step);
+      state.settings[ctrl.key] = next;
+      updateActiveTestForSetting(ctrl.key);
+      setFeedbackForSettingChange(ctrl.key, next, ctrl.key === "aOutput" || ctrl.key === "vOutput" ? "V" : ctrl.key === "lowerRate" ? "ppm" : "ms");
+      judgeSettingChange(ctrl.key, current, next, beforeRhythm);
+      saveState();
+      render();
+    }
+  });
 }
 
 function defaultState() {
@@ -554,8 +612,46 @@ function render() {
   renderSimulatorPanel(scenario);
   renderMeasurements(scenario);
   renderFeedback();
+  renderScoreHistory();
   updateSpeedButtons();
   drawEcg(scenario, rhythm, ecgPhase);
+}
+
+function renderScoreHistory() {
+  const panel = document.getElementById("historyPanel");
+  if (!panel) return;
+  const history = loadScoreHistory();
+  if (history.length === 0) {
+    panel.innerHTML = "";
+    return;
+  }
+  const recent = history.slice(0, 10);
+  panel.innerHTML = `
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Score History</p>
+        <h2>練習履歴（直近10件）</h2>
+      </div>
+    </div>
+    <div class="history-table-wrap">
+      <table class="history-table">
+        <thead>
+          <tr><th>日時</th><th>症例</th><th>得点</th><th>誤操作</th><th>結果</th></tr>
+        </thead>
+        <tbody>
+          ${recent.map((entry) => `
+            <tr>
+              <td>${escapeHtml(entry.date)}</td>
+              <td>${escapeHtml(entry.title.length > 30 ? entry.title.slice(0, 30) + "..." : entry.title)}</td>
+              <td><strong>${entry.score}</strong>/100</td>
+              <td>${entry.mistakes}回</td>
+              <td>${entry.score >= PASSING_SCORE ? '<span class="pill-ok">合格</span>' : '<span class="pill-fail">不合格</span>'}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
 function renderHeader(scenario, rhythm) {
@@ -1279,6 +1375,27 @@ function finishSimulatorIfComplete(scenario, silent = false) {
   const resultBody = `4種類のチェックが完了しました。最終得点は${score.value}/100点です。合格基準は${PASSING_SCORE}点です。`;
   setJudge("correct", resultTitle, resultBody, COMPLETION_BONUS, silent);
   setFeedback(resultTitle, `${resultBody} 必要に応じて初期設定へ戻してください。`);
+  saveScoreHistory(scenario.id, scenario.title, score.value, state.mistakes || 0);
+}
+
+function saveScoreHistory(scenarioId, scenarioTitle, scoreValue, mistakes) {
+  try {
+    const history = JSON.parse(localStorage.getItem(SCORE_HISTORY_KEY) || "[]");
+    history.unshift({
+      scenarioId,
+      title: scenarioTitle,
+      score: scoreValue,
+      mistakes,
+      date: new Date().toISOString().slice(0, 16).replace("T", " ")
+    });
+    if (history.length > 50) history.length = 50;
+    localStorage.setItem(SCORE_HISTORY_KEY, JSON.stringify(history));
+  } catch { /* ignore storage errors */ }
+}
+
+function loadScoreHistory() {
+  try { return JSON.parse(localStorage.getItem(SCORE_HISTORY_KEY) || "[]"); }
+  catch { return []; }
 }
 
 function penalize(title, body, amount = 5) {
