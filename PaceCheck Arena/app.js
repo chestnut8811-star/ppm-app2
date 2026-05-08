@@ -1483,14 +1483,16 @@ function endTestRun(scenario) {
 
   state.runComplete = true;
   state.activeTest = null;
-  state.score = (state.score || 0) + COMPLETION_BONUS;
+  // Only award the completion bonus when finished cleanly (no end-time penalties).
+  const bonus = penalty > 0 ? 0 : COMPLETION_BONUS;
+  state.score = (state.score || 0) + bonus;
   state.combo = (state.combo || 0) + 1;
 
   const score = scoreSummary(scenario);
   const resultTitle = `完了：${score.label}`;
   const noteText = notes.length ? notes.join(" / ") : "全項目を適切に終了しました。";
   const resultBody = `${noteText} 最終得点は${score.value}/100点です。合格基準は${PASSING_SCORE}点です。`;
-  setJudge("correct", resultTitle, resultBody, COMPLETION_BONUS, false);
+  setJudge("correct", resultTitle, resultBody, bonus - penalty, false);
   setFeedback(resultTitle, resultBody);
   saveScoreHistory(scenario.id, scenario.title, score.value, state.mistakes || 0);
 }
