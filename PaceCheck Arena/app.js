@@ -1422,14 +1422,15 @@ function blindCorrectBody(stepId, body) {
 
 function finishSimulatorIfComplete(scenario, silent = false) {
   if (!measurementGoalComplete(scenario) || state.runComplete) return;
+  // Wait until any active threshold sweep is closed before finalizing
+  if (state.activeTest) return;
 
-  // Require all settings to be restored and no active test before completing
-  if (state.activeTest || !settingsRestored(scenario)) {
-    setFeedback(
-      "最終手順：設定復帰",
-      "全ての測定が完了しました。一時的に変更した設定を初期値へ戻すとテストが終了します。"
-    );
-    return;
+  // Penalty: ended without restoring settings (V output / A output etc. left altered)
+  let penaltyApplied = 0;
+  if (!settingsRestored(scenario)) {
+    penaltyApplied = 10;
+    state.score = (state.score || 0) - penaltyApplied;
+    state.mistakes = (state.mistakes || 0) + 1;
   }
 
   state.runComplete = true;
@@ -1437,7 +1438,10 @@ function finishSimulatorIfComplete(scenario, silent = false) {
   state.combo = (state.combo || 0) + 1;
   const score = scoreSummary(scenario);
   const resultTitle = score.value >= PASSING_SCORE ? "完了：合格" : "完了：不合格";
-  const resultBody = `4種類のチェックが完了し、設定も初期値へ戻りました。最終得点は${score.value}/100点です。合格基準は${PASSING_SCORE}点です。`;
+  const restoreNote = penaltyApplied
+    ? `ただし設定が初期値へ戻されていません（-${penaltyApplied}点）。実臨床では必ず設定を戻してください。`
+    : "設定も初期値へ戻りました。";
+  const resultBody = `4種類のチェックが完了しました。${restoreNote} 最終得点は${score.value}/100点です。合格基準は${PASSING_SCORE}点です。`;
   setJudge("correct", resultTitle, resultBody, COMPLETION_BONUS, silent);
   setFeedback(resultTitle, resultBody);
   saveScoreHistory(scenario.id, scenario.title, score.value, state.mistakes || 0);
