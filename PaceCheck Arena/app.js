@@ -961,47 +961,46 @@ function scenarioFocus(scenario) {
 }
 
 function measurementTargets(scenario) {
-  const p = scenario.physiology;
-  const focus = scenarioFocus(scenario);
-  // If the profile is missing or empty (defensive), fall back to physiology-based detection.
-  const useFocus = focus.size > 0;
-
-  const pWaveAvail = scenario.mode === "DDD" && p.pWave && (!useFocus || focus.has("pWave"));
-  const rWaveAvail = !useFocus || focus.has("rWave");
-  const aThresholdAvail = scenario.mode === "DDD" && p.aThreshold && (!useFocus || focus.has("aThreshold"));
-  const vThresholdAvail = p.vThreshold && (!useFocus || focus.has("vThreshold"));
+  const m = state.measurements;
+  const isDDD = scenario.mode === "DDD";
+  // DDD: 全 4 項目をユーザーに判断させる（記録 or 測定不可）
+  // VVI: 心房系（pWave / aThreshold）はモード上対象外
+  const pWaveAvail = isDDD;
+  const rWaveAvail = true;
+  const aThresholdAvail = isDDD;
+  const vThresholdAvail = true;
 
   return [
     {
       id: "pWave",
       label: "A波高値",
-      available: Boolean(pWaveAvail),
+      available: pWaveAvail,
       status: pWaveAvail
-        ? (state.measurements.pWave || state.measurements.pDifficult ? "done" : "todo")
+        ? (m.pWave || m.pDifficult ? "done" : "todo")
         : "out"
     },
     {
       id: "rWave",
       label: "V波高値",
-      available: Boolean(rWaveAvail),
+      available: rWaveAvail,
       status: rWaveAvail
-        ? (state.measurements.rWave || state.measurements.difficult ? "done" : "todo")
+        ? (m.rWave || m.difficult ? "done" : "todo")
         : "out"
     },
     {
       id: "aThreshold",
       label: "A閾値",
-      available: Boolean(aThresholdAvail),
+      available: aThresholdAvail,
       status: aThresholdAvail
-        ? (state.measurements.aThreshold || state.measurements.aDifficult ? "done" : "todo")
+        ? (m.aThreshold || m.aDifficult ? "done" : "todo")
         : "out"
     },
     {
       id: "vThreshold",
       label: "V閾値",
-      available: Boolean(vThresholdAvail),
+      available: vThresholdAvail,
       status: vThresholdAvail
-        ? (state.measurements.vThreshold || state.measurements.vDifficult ? "done" : "todo")
+        ? (m.vThreshold || m.vDifficult ? "done" : "todo")
         : "out"
     }
   ];
@@ -1324,29 +1323,23 @@ function directChecks(scenario, rhythm) {
   const p = scenario.physiology;
   const aActive = state.activeTest?.chamber === "A";
   const vActive = state.activeTest?.chamber === "V";
-  // Use scenario focus to gate which measurements are reachable for this scenario.
-  // Non-focus targets are shown as 対象外 (out) so the user only does the
-  // measurements relevant to the scenario's teaching goal.
-  const focus = scenarioFocus(scenario);
-  const useFocus = focus.size > 0;
-  const inFocus = (id) => !useFocus || focus.has(id);
-  // For each measurement that's in focus, allow the user to choose between
-  // recording the value or marking as 測定不可. The choice is judged at click time:
-  // 測定不可 is correct only when the corresponding physiology field is null.
+  const isDDD = scenario.mode === "DDD";
+  // DDD では全 4 項目をユーザーに判断させる（記録 or 測定不可）
+  // VVI は心房系（pWave / aThreshold）がモード上対象外
   const checks = [
     {
       id: "pWave",
       label: "A波高値",
       value: m.pWave ? `${m.pWave} mV` : (m.pDifficult ? "測定不可" : "未測定"),
-      available: inFocus("pWave") && scenario.mode === "DDD" && !(m.pWave || m.pDifficult),
-      ready: Boolean(p.pWave && scenario.mode === "DDD" && rhythm.atrial === "AS" && inFocus("pWave")),
-      hint: !inFocus("pWave")
-        ? "対象外（このシナリオでは測定不要）"
+      available: isDDD && !(m.pWave || m.pDifficult),
+      ready: Boolean(p.pWave && isDDD && rhythm.atrial === "AS"),
+      hint: !isDDD
+        ? "対象外（VVIモードでは心房系は測定しません）"
         : p.pWave
           ? (rhythm.atrial === "AS" ? "AS表示中。P波を記録できます。" : "Lower Rateを下げてASを出します。")
           : "P波が引き出せない症例と判断したら「測定不可」を選びます。",
       actionLabel: "記録",
-      extraActions: inFocus("pWave") && scenario.mode === "DDD" ? [
+      extraActions: isDDD ? [
         { id: "pDifficult", label: "測定不可", variant: "secondary" }
       ] : []
     },
@@ -1354,31 +1347,29 @@ function directChecks(scenario, rhythm) {
       id: "rWave",
       label: "V波高値",
       value: m.rWave ? `${m.rWave} mV` : (m.difficult || "未測定"),
-      available: inFocus("rWave") && !(m.rWave || m.difficult),
-      ready: Boolean(p.rWave && rhythm.ventricular === "VS" && inFocus("rWave")),
-      hint: !inFocus("rWave")
-        ? "対象外（このシナリオでは測定不要）"
-        : rhythm.ventricular === "VS"
-          ? "VS表示中。R波を記録できます。自己R波が出ない場合は測定不可を選択します。"
-          : "VP中。LRLを下げる/AV Delayを延ばしてVSを誘発するか、出ないと判断したら測定不可を選びます。",
+      available: !(m.rWave || m.difficult),
+      ready: Boolean(p.rWave && rhythm.ventricular === "VS"),
+      hint: rhythm.ventricular === "VS"
+        ? "VS表示中。R波を記録できます。自己R波が出ない場合は測定不可を選択します。"
+        : "VP中。LRLを下げる/AV Delayを延ばしてVSを誘発するか、出ないと判断したら測定不可を選びます。",
       actionLabel: "R波を記録",
-      extraActions: inFocus("rWave") ? [
+      extraActions: [
         { id: "rDifficult", label: "測定不可", variant: "secondary" }
-      ] : []
+      ]
     },
     {
       id: "aThreshold",
       label: "A閾値",
       value: m.aThreshold ? `${m.aThreshold} V` : (m.aDifficult ? "測定不可" : (aActive ? "スイープ中" : "未測定")),
-      available: inFocus("aThreshold") && scenario.mode === "DDD" && !(m.aThreshold || m.aDifficult),
-      ready: Boolean(p.aThreshold && scenario.mode === "DDD" && rhythm.atrial === "AP" && inFocus("aThreshold")),
-      hint: !inFocus("aThreshold")
-        ? "対象外（このシナリオでは測定不要）"
+      available: isDDD && !(m.aThreshold || m.aDifficult),
+      ready: Boolean(p.aThreshold && isDDD && rhythm.atrial === "AP"),
+      hint: !isDDD
+        ? "対象外（VVIモードでは心房系は測定しません）"
         : p.aThreshold
           ? thresholdHint("A", rhythm.atrial === "AP", state.settings.aOutput, p.aThreshold, aActive, "Lower Rateを上げてAPを出します。")
           : "A閾値測定が困難な症例（慢性AF等）と判断したら「測定不可」を選びます。",
       actionLabel: aActive ? "閾値記録" : "開始",
-      extraActions: inFocus("aThreshold") && scenario.mode === "DDD" ? [
+      extraActions: isDDD ? [
         { id: "aDifficult", label: "測定不可", variant: "secondary" }
       ] : []
     },
@@ -1386,17 +1377,15 @@ function directChecks(scenario, rhythm) {
       id: "vThreshold",
       label: "V閾値",
       value: m.vThreshold ? `${m.vThreshold} V` : (m.vDifficult ? "測定不可" : (vActive ? "スイープ中" : "未測定")),
-      available: inFocus("vThreshold") && !(m.vThreshold || m.vDifficult),
-      ready: Boolean(p.vThreshold && rhythm.ventricular === "VP" && inFocus("vThreshold")),
-      hint: !inFocus("vThreshold")
-        ? "対象外（このシナリオでは測定不要）"
-        : p.vThreshold
-          ? thresholdHint("V", rhythm.ventricular === "VP", state.settings.vOutput, p.vThreshold, vActive, "VS中。LRLを上げる、またはAV Delayを短くしてVPを出します。")
-          : "V閾値測定が困難な症例と判断したら「測定不可」を選びます。",
+      available: !(m.vThreshold || m.vDifficult),
+      ready: Boolean(p.vThreshold && rhythm.ventricular === "VP"),
+      hint: p.vThreshold
+        ? thresholdHint("V", rhythm.ventricular === "VP", state.settings.vOutput, p.vThreshold, vActive, "VS中。LRLを上げる、またはAV Delayを短くしてVPを出します。")
+        : "V閾値測定が困難な症例と判断したら「測定不可」を選びます。",
       actionLabel: vActive ? "閾値記録" : "開始",
-      extraActions: inFocus("vThreshold") ? [
+      extraActions: [
         { id: "vDifficult", label: "測定不可", variant: "secondary" }
-      ] : []
+      ]
     }
   ];
   if (scenario.route.includes("readEvents")) {
