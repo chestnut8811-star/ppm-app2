@@ -392,6 +392,39 @@ function playTones(notes, gainPeak = 0.12) {
   });
 }
 
+// Square/saw tone with exponential attack/release envelope (used by fanfare).
+function playToneEnv(ctx, freq, start, duration, type = "square", volume = 0.2) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(volume, start + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + duration + 0.02);
+}
+
+function playChordEnv(ctx, notes, start, duration, type = "square", volume = 0.12) {
+  notes.forEach((freq) => playToneEnv(ctx, freq, start, duration, type, volume));
+}
+
+function playNoiseHit(ctx, start, duration = 0.12, volume = 0.18) {
+  const bufferSize = Math.floor(ctx.sampleRate * duration);
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+  const noise = ctx.createBufferSource();
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(volume, start);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  noise.buffer = buffer;
+  noise.connect(gain).connect(ctx.destination);
+  noise.start(start);
+  noise.stop(start + duration);
+}
+
 function playStepSound() {
   // Quick two-note rise: A5 → E6
   playTones([
@@ -400,15 +433,45 @@ function playStepSound() {
   ]);
 }
 
+function playVictoryFanfare() {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+
+  // 派手な上昇アルペジオ
+  const run = [523.25, 659.25, 783.99, 1046.50, 1174.66, 1318.51, 1567.98, 2093.00];
+  run.forEach((note, i) => playToneEnv(ctx, note, now + i * 0.055, 0.09, "square", 0.13));
+
+  // 勝利感のある連続コード + 最後のド派手コード
+  const chords = [
+    { notes: [523.25, 659.25, 783.99],            time: 0.48, dur: 0.16 },
+    { notes: [587.33, 739.99, 880.00],            time: 0.65, dur: 0.16 },
+    { notes: [659.25, 783.99, 987.77],            time: 0.82, dur: 0.18 },
+    { notes: [783.99, 987.77, 1174.66],           time: 1.02, dur: 0.22 },
+    { notes: [1046.50, 1318.51, 1567.98, 2093.00], time: 1.34, dur: 0.85 },
+    { notes: [261.63, 523.25, 659.25, 783.99],    time: 1.34, dur: 0.85 }
+  ];
+  chords.forEach((c) => playChordEnv(ctx, c.notes, now + c.time, c.dur, "square", 0.11));
+
+  // 低音のドン！ドン！感
+  const bass = [
+    { note: 130.81, time: 0.00, dur: 0.20 },
+    { note: 196.00, time: 0.24, dur: 0.20 },
+    { note: 261.63, time: 0.48, dur: 0.22 },
+    { note: 293.66, time: 0.65, dur: 0.20 },
+    { note: 329.63, time: 0.82, dur: 0.22 },
+    { note: 392.00, time: 1.02, dur: 0.28 },
+    { note: 523.25, time: 1.34, dur: 0.85 }
+  ];
+  bass.forEach((b) => playToneEnv(ctx, b.note, now + b.time, b.dur, "sawtooth", 0.22));
+
+  // 打楽器風ノイズ
+  [0.00, 0.24, 0.48, 0.82, 1.34].forEach((t) => playNoiseHit(ctx, now + t, 0.08, 0.12));
+}
+
 function playFinalSound(passed) {
   if (passed) {
-    // C major arpeggio: C5 E5 G5 C6
-    playTones([
-      { freq: 523.25, t: 0, dur: 0.18 },
-      { freq: 659.25, t: 0.10, dur: 0.18 },
-      { freq: 783.99, t: 0.20, dur: 0.20 },
-      { freq: 1046.50, t: 0.30, dur: 0.40 }
-    ], 0.14);
+    playVictoryFanfare();
   } else {
     // Soft descending pair
     playTones([
