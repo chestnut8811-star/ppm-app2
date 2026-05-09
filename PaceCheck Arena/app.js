@@ -1338,7 +1338,7 @@ function directChecks(scenario, rhythm) {
         : p.pWave
           ? (rhythm.atrial === "AS" ? "AS表示中。P波を記録できます。" : "Lower Rateを下げてASを出します。")
           : "P波が引き出せない症例と判断したら「測定不可」を選びます。",
-      actionLabel: "記録",
+      actionLabel: "P波を記録",
       extraActions: isDDD ? [
         { id: "pDifficult", label: "測定不可", variant: "secondary" }
       ] : []
