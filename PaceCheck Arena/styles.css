@@ -1204,11 +1204,32 @@ button:focus-visible {
   padding: 7px 10px;
   font-weight: 900;
   white-space: nowrap;
+  box-shadow: 0 2px 0 rgba(15, 118, 110, 0.35), 0 4px 10px rgba(15, 118, 110, 0.18);
+  transition: transform 80ms ease, box-shadow 80ms ease, background 120ms ease;
+}
+
+.measure-button:hover:not(:disabled),
+.restore-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 0 rgba(15, 118, 110, 0.4), 0 6px 14px rgba(15, 118, 110, 0.22);
+}
+
+.measure-button:active:not(:disabled),
+.restore-button:active:not(:disabled),
+.end-test-button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 rgba(15, 118, 110, 0), 0 1px 3px rgba(15, 118, 110, 0.15);
+  filter: brightness(0.95);
 }
 
 .measure-button-secondary {
   background: #ffffff;
   color: var(--primary-dark);
+  box-shadow: 0 2px 0 rgba(15, 118, 110, 0.18), 0 3px 8px rgba(15, 118, 110, 0.10);
+}
+
+.measure-button-secondary:hover:not(:disabled) {
+  background: #f0f9f7;
 }
 
 .measure-button:disabled {
@@ -1216,10 +1237,12 @@ button:focus-visible {
   background: #e2e8f0;
   color: var(--muted);
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .measure-button-secondary:disabled {
   background: #f1f5f9;
+  box-shadow: none;
 }
 
 .restore-button {
@@ -1249,15 +1272,20 @@ button:focus-visible {
   color: #ffffff;
   font-weight: 900;
   white-space: nowrap;
+  box-shadow: 0 2px 0 rgba(15, 118, 110, 0.35), 0 4px 10px rgba(15, 118, 110, 0.18);
+  transition: transform 80ms ease, box-shadow 80ms ease, background 120ms ease;
 }
 
 .end-test-button:hover:not(:disabled) {
   background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 0 rgba(15, 118, 110, 0.4), 0 6px 14px rgba(15, 118, 110, 0.22);
 }
 
 .end-test-button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+  box-shadow: none;
 }
 
 [data-theme="dark"] .end-test-button:disabled {

@@ -436,6 +436,38 @@ function playStepSound() {
   ]);
 }
 
+// Subtle button-click feedback (used by 記録 / 開始 / 測定不可 / 設定復帰 / テスト終了)
+function playClickSound() {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  // Short noise burst (mechanical click)
+  const dur = 0.04;
+  const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * dur));
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+  const noise = ctx.createBufferSource();
+  const noiseGain = ctx.createGain();
+  noise.buffer = buffer;
+  noiseGain.gain.setValueAtTime(0.06, now);
+  noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+  noise.connect(noiseGain).connect(ctx.destination);
+  noise.start(now);
+  noise.stop(now + dur);
+  // Short pitched blip layered on top for a light "tick"
+  const osc = ctx.createOscillator();
+  const oscGain = ctx.createGain();
+  osc.type = "triangle";
+  osc.frequency.value = 1600;
+  oscGain.gain.setValueAtTime(0.0001, now);
+  oscGain.gain.exponentialRampToValueAtTime(0.05, now + 0.005);
+  oscGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+  osc.connect(oscGain).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.06);
+}
+
 function playVictoryFanfare() {
   const ctx = getAudioCtx();
   if (!ctx) return;
@@ -1314,7 +1346,10 @@ function renderMeasurements(scenario) {
   `;
 
   document.querySelectorAll("[data-check]").forEach((button) => {
-    button.addEventListener("click", () => performDirectCheck(button.dataset.check));
+    button.addEventListener("click", () => {
+      if (!button.disabled) playClickSound();
+      performDirectCheck(button.dataset.check);
+    });
   });
 }
 
