@@ -417,7 +417,7 @@
         <tr><th>状況</th><th>やりたいこと</th><th>操作の考え方</th></tr>
         <tr><td>DDD / AP-VS</td><td>A波高値を測る</td><td>下限レートを下げてAPからASへ。ASになったらA波高値を記録。</td></tr>
         <tr><td>DDD / AS-VP</td><td>V波高値を測る</td><td>SAVを延長し、AS-VPからAS-VSへ変わるか確認。VSが出ればR波を記録。</td></tr>
-        <tr><td>DDD / AP-VP</td><td>V波高値を測る</td><td>PAV延長または下限レート低下で自己伝導を確認。自己R波が出なければ評価困難。</td></tr>
+        <tr><td>DDD / AP-VP</td><td>V波高値を測る</td><td>PAV延長または下限レート低下で自己伝導を確認。自己R波が出なければ測定不可。</td></tr>
         <tr><td>DDD / AS-VS</td><td>V閾値を測る</td><td>SAVを短縮してVPを出す。V閾値開始 → V出力を下げてLOC確認 → 記録。</td></tr>
         <tr><td>VVI / VP</td><td>V波高値を測る</td><td>下限レートを自己心拍より下げ、VSが出るか確認。出ればR波を記録。</td></tr>
         <tr><td>VVI / VS</td><td>V閾値を測る</td><td>下限レートを上げてVPを出す。V出力を下げて捕捉/脱落境界を確認。</td></tr>
@@ -438,11 +438,11 @@
         <div>
           <h3>「VS が出ない」確認（CAVB系）</h3>
           <p>
-            自己R波が出ない症例（完全房室ブロック等）では、SAVを <strong>280ms以上</strong> に延長してもVSが出ないことを確認すると <span class="badge badge-ok">VS出ない確認</span> ステップが自動完了する。その後 <strong>無記録で終了</strong>（V波高値は評価困難）を選ぶ。
+            自己R波が出ない症例（完全房室ブロック等）では、SAVを <strong>280ms以上</strong> に延長してもVSが出ないことを確認すると <span class="badge badge-ok">VS出ない確認</span> ステップが自動完了する。その後 <strong>測定不可</strong>（V波高値は測定不可）を選ぶ。
           </p>
-          <h3>評価困難を選ぶ時</h3>
+          <h3>測定不可を選ぶ時</h3>
           <p>
-            AV delay延長や下限レート低下を行ってもVSが出ない症例では、無理にR波測定へ進まず <strong>無記録で終了</strong> を選ぶ。先に「VS出ない確認」を済ませると確実。
+            AV delay延長や下限レート低下を行ってもVSが出ない症例では、無理にR波測定へ進まず <strong>測定不可</strong> を選ぶ。先に「VS出ない確認」を済ませると確実。
           </p>
         </div>
       </div>

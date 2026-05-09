@@ -97,8 +97,8 @@ const SCENARIOS = [
     title: "洞不全症候群 + AVB / DDD / AP-VP: P波測定とV閾値",
     disease: "洞不全症候群 + AVB",
     mode: "DDD",
-    goal: "AP-VP主体。LR下げでAS誘発しP波測定、その後V閾値テストを行う。R波は引き出せないため無記録で終了。",
-    teaching: "AP主体ではP波が見えない。LRを下げてASを出してから測定する。V閾値はVPで測り、R波が出ない症例は無記録で終了する判断を学ぶ。",
+    goal: "AP-VP主体。LR下げでAS誘発しP波測定、その後V閾値テストを行う。R波は引き出せないため測定不可。",
+    teaching: "AP主体ではP波が見えない。LRを下げてASを出してから測定する。V閾値はVPで測り、R波が出ない症例は測定不可とする判断を学ぶ。",
     settings: { lowerRate: 75, sensedAv: 160, pacedAv: 200, aOutput: 2.5, vOutput: 2.5, aSense: 0.5, vSense: 2.0 },
     physiology: { sinusRate: 58, intrinsicVRate: 32, avDelayNeeded: null, pWave: 2.0, rWave: null, aThreshold: null, vThreshold: 0.9, aImp: 500, vImp: 580, events: "なし" },
     route: ["safety", "interrogate", "lowerRate", "measureP", "markDifficult", "thresholdV", "restore"]
@@ -119,8 +119,8 @@ const SCENARIOS = [
     title: "慢性AF + 依存 / VVI: V波高値評価困難",
     disease: "慢性AF + 高度AVB",
     mode: "VVI",
-    goal: "VP完全依存で自己R波が出ない症例。V波高値は無記録で終了し、V閾値は慎重に測定する。",
-    teaching: "慢性AFの完全依存例では自己R波を引き出せないことがある。LR下げで確認してから無記録で終了する判断を学ぶ。V閾値測定は復帰確認を厳守。",
+    goal: "VP完全依存で自己R波が出ない症例。V波高値は測定不可とし、V閾値は慎重に測定する。",
+    teaching: "慢性AFの完全依存例では自己R波を引き出せないことがある。LR下げで確認してから測定不可とする判断を学ぶ。V閾値測定は復帰確認を厳守。",
     settings: { lowerRate: 70, sensedAv: 0, pacedAv: 0, aOutput: 0, vOutput: 2.5, aSense: 0, vSense: 2.0 },
     physiology: { sinusRate: null, intrinsicVRate: 22, avDelayNeeded: null, pWave: null, rWave: null, aThreshold: null, vThreshold: 1.3, aImp: null, vImp: 640, events: "なし" },
     route: ["safety", "interrogate", "lowerRate", "markDifficult", "thresholdV", "restore"]
@@ -210,6 +210,9 @@ const COMMON_STEPS = {
   "record-p-wave": { label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 0, check: "pWave" },
   "record-r-wave": { label: "R波波高値を記録", hint: "VS表示中にVリード波高値を記録します。", points: 0, check: "rWave" },
   "record-r-difficult": { label: "V波高値を評価困難として記録", hint: "自己R波が出ないことを確認し、評価困難として記録します。", points: 0, check: "rDifficult" },
+  "record-p-difficult": { label: "A波高値を測定不可として記録", hint: "P波が引き出せない症例と判断し、測定不可として記録します。", points: 0, check: "pDifficult" },
+  "record-a-difficult": { label: "A閾値を測定不可として記録", hint: "A閾値測定が困難な症例と判断し、測定不可として記録します。", points: 0, check: "aDifficult" },
+  "record-v-difficult": { label: "V閾値を測定不可として記録", hint: "V閾値測定が困難な症例と判断し、測定不可として記録します。", points: 0, check: "vDifficult" },
   "record-events": { label: "イベント情報を確認", hint: "イベントカウンタと保存EGMを確認します。", points: 0, check: "events" },
   "restore-settings": { label: "初期設定へ戻す", hint: "一時的に変更した設定を症例開始時の値へ戻します。", points: 0, check: "restore" }
 };
@@ -272,7 +275,7 @@ const SIMULATOR_PROFILES = {
   "ddd-apvp-pwave-vthreshold": [
     { id: "create-as-for-p", label: "ASを出してP波測定条件を作る", hint: "下限レートを下げ、APからASへ切り替えます。", points: 12 },
     { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 12, check: "pWave" },
-    { id: "record-r-difficult", label: "V波高値は無記録で終了", hint: "自己R波が出ない症例と判断し、無記録で終了します。", points: 12, check: "rDifficult" },
+    { id: "record-r-difficult", label: "V波高値は測定不可", hint: "自己R波が出ない症例と判断し、測定不可とします。", points: 12, check: "rDifficult" },
     { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "下限レートを戻すかAV delayを短縮し、VP優位に戻します。", points: 10 },
     { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 8, check: "vThreshold" },
     { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 12 },
@@ -288,7 +291,7 @@ const SIMULATOR_PROFILES = {
     { id: "restore-settings", label: "初期設定へ戻す", hint: "測定後は下限レート・出力を戻します。", points: 16, check: "restore" }
   ],
   "afib-dependent-vvi-difficult": [
-    { id: "record-r-difficult", label: "V波高値は無記録で終了", hint: "完全依存で自己R波が出ない症例と判断し、無記録で終了します。", points: 22, check: "rDifficult" },
+    { id: "record-r-difficult", label: "V波高値は測定不可", hint: "完全依存で自己R波が出ない症例と判断し、測定不可とします。", points: 22, check: "rDifficult" },
     { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを慎重に開始します。", points: 10, check: "vThreshold" },
     { id: "find-v-loss", label: "V出力を慎重に下げてLOCを確認", hint: "V出力を下げ、V LOCの境界を観察します。", points: 20 },
     { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 20, check: "vThreshold" },
@@ -948,10 +951,10 @@ function scenarioFocus(scenario) {
   const focus = new Set();
   profile.forEach((step) => {
     const c = step.check;
-    if (c === "pWave") focus.add("pWave");
+    if (c === "pWave" || c === "pDifficult") focus.add("pWave");
     if (c === "rWave" || c === "rDifficult") focus.add("rWave");
-    if (c === "aThreshold") focus.add("aThreshold");
-    if (c === "vThreshold") focus.add("vThreshold");
+    if (c === "aThreshold" || c === "aDifficult") focus.add("aThreshold");
+    if (c === "vThreshold" || c === "vDifficult") focus.add("vThreshold");
     if (c === "events") focus.add("events");
   });
   return focus;
@@ -973,7 +976,9 @@ function measurementTargets(scenario) {
       id: "pWave",
       label: "A波高値",
       available: Boolean(pWaveAvail),
-      status: pWaveAvail ? (state.measurements.pWave ? "done" : "todo") : "out"
+      status: pWaveAvail
+        ? (state.measurements.pWave || state.measurements.pDifficult ? "done" : "todo")
+        : "out"
     },
     {
       id: "rWave",
@@ -987,13 +992,17 @@ function measurementTargets(scenario) {
       id: "aThreshold",
       label: "A閾値",
       available: Boolean(aThresholdAvail),
-      status: aThresholdAvail ? (state.measurements.aThreshold ? "done" : "todo") : "out"
+      status: aThresholdAvail
+        ? (state.measurements.aThreshold || state.measurements.aDifficult ? "done" : "todo")
+        : "out"
     },
     {
       id: "vThreshold",
       label: "V閾値",
       available: Boolean(vThresholdAvail),
-      status: vThresholdAvail ? (state.measurements.vThreshold ? "done" : "todo") : "out"
+      status: vThresholdAvail
+        ? (state.measurements.vThreshold || state.measurements.vDifficult ? "done" : "todo")
+        : "out"
     }
   ];
 }
@@ -1321,19 +1330,25 @@ function directChecks(scenario, rhythm) {
   const focus = scenarioFocus(scenario);
   const useFocus = focus.size > 0;
   const inFocus = (id) => !useFocus || focus.has(id);
+  // For each measurement that's in focus, allow the user to choose between
+  // recording the value or marking as 測定不可. The choice is judged at click time:
+  // 測定不可 is correct only when the corresponding physiology field is null.
   const checks = [
     {
       id: "pWave",
       label: "A波高値",
-      value: m.pWave ? `${m.pWave} mV` : "未測定",
-      available: Boolean(p.pWave && scenario.mode === "DDD" && inFocus("pWave")),
+      value: m.pWave ? `${m.pWave} mV` : (m.pDifficult ? "測定不可" : "未測定"),
+      available: inFocus("pWave") && scenario.mode === "DDD" && !(m.pWave || m.pDifficult),
       ready: Boolean(p.pWave && scenario.mode === "DDD" && rhythm.atrial === "AS" && inFocus("pWave")),
       hint: !inFocus("pWave")
         ? "対象外（このシナリオでは測定不要）"
         : p.pWave
           ? (rhythm.atrial === "AS" ? "AS表示中。P波を記録できます。" : "Lower Rateを下げてASを出します。")
-          : "Aリード評価なし",
-      actionLabel: "記録"
+          : "P波が引き出せない症例と判断したら「測定不可」を選びます。",
+      actionLabel: "記録",
+      extraActions: inFocus("pWave") && scenario.mode === "DDD" ? [
+        { id: "pDifficult", label: "測定不可", variant: "secondary" }
+      ] : []
     },
     {
       id: "rWave",
@@ -1344,38 +1359,44 @@ function directChecks(scenario, rhythm) {
       hint: !inFocus("rWave")
         ? "対象外（このシナリオでは測定不要）"
         : rhythm.ventricular === "VS"
-          ? "VS表示中。R波を記録できます。自己R波が出ない場合は無記録で終了を選択します。"
-          : "VP中。LRLを下げる/AV Delayを延ばしてVSを誘発するか、出ないと判断したら無記録で終了します。",
+          ? "VS表示中。R波を記録できます。自己R波が出ない場合は測定不可を選択します。"
+          : "VP中。LRLを下げる/AV Delayを延ばしてVSを誘発するか、出ないと判断したら測定不可を選びます。",
       actionLabel: "R波を記録",
       extraActions: inFocus("rWave") ? [
-        { id: "rDifficult", label: "無記録で終了", variant: "secondary" }
+        { id: "rDifficult", label: "測定不可", variant: "secondary" }
       ] : []
     },
     {
       id: "aThreshold",
       label: "A閾値",
-      value: m.aThreshold ? `${m.aThreshold} V` : (aActive ? "スイープ中" : "未測定"),
-      available: Boolean(p.aThreshold && scenario.mode === "DDD" && inFocus("aThreshold")),
+      value: m.aThreshold ? `${m.aThreshold} V` : (m.aDifficult ? "測定不可" : (aActive ? "スイープ中" : "未測定")),
+      available: inFocus("aThreshold") && scenario.mode === "DDD" && !(m.aThreshold || m.aDifficult),
       ready: Boolean(p.aThreshold && scenario.mode === "DDD" && rhythm.atrial === "AP" && inFocus("aThreshold")),
       hint: !inFocus("aThreshold")
         ? "対象外（このシナリオでは測定不要）"
         : p.aThreshold
           ? thresholdHint("A", rhythm.atrial === "AP", state.settings.aOutput, p.aThreshold, aActive, "Lower Rateを上げてAPを出します。")
-          : "A閾値評価なし",
-      actionLabel: aActive ? "閾値記録" : "開始"
+          : "A閾値測定が困難な症例（慢性AF等）と判断したら「測定不可」を選びます。",
+      actionLabel: aActive ? "閾値記録" : "開始",
+      extraActions: inFocus("aThreshold") && scenario.mode === "DDD" ? [
+        { id: "aDifficult", label: "測定不可", variant: "secondary" }
+      ] : []
     },
     {
       id: "vThreshold",
       label: "V閾値",
-      value: m.vThreshold ? `${m.vThreshold} V` : (vActive ? "スイープ中" : "未測定"),
-      available: Boolean(p.vThreshold && inFocus("vThreshold")),
+      value: m.vThreshold ? `${m.vThreshold} V` : (m.vDifficult ? "測定不可" : (vActive ? "スイープ中" : "未測定")),
+      available: inFocus("vThreshold") && !(m.vThreshold || m.vDifficult),
       ready: Boolean(p.vThreshold && rhythm.ventricular === "VP" && inFocus("vThreshold")),
       hint: !inFocus("vThreshold")
         ? "対象外（このシナリオでは測定不要）"
         : p.vThreshold
           ? thresholdHint("V", rhythm.ventricular === "VP", state.settings.vOutput, p.vThreshold, vActive, "VS中。LRLを上げる、またはAV Delayを短くしてVPを出します。")
-          : "V閾値評価なし",
-      actionLabel: vActive ? "閾値記録" : "開始"
+          : "V閾値測定が困難な症例と判断したら「測定不可」を選びます。",
+      actionLabel: vActive ? "閾値記録" : "開始",
+      extraActions: inFocus("vThreshold") ? [
+        { id: "vDifficult", label: "測定不可", variant: "secondary" }
+      ] : []
     }
   ];
   if (scenario.route.includes("readEvents")) {
@@ -1442,13 +1463,46 @@ function performDirectCheck(checkId) {
     state.measurements.difficult = "評価困難";
     const body = isStepDone("confirm-no-vs")
       ? "AV delay延長後も自己R波が出ないため、V波高値は評価困難として記録しました。"
-      : "自己R波が出ない症例と判断し、無記録で終了しました。AV delay延長で確認するとさらに確実です。";
-    completeSimulatorStep("record-r-difficult", "無記録で終了 正解", body);
+      : "自己R波が出ない症例と判断し、測定不可としました。AV delay延長で確認するとさらに確実です。";
+    completeSimulatorStep("record-r-difficult", "測定不可 正解", body);
   } else if (checkId === "rDifficult" && p.rWave) {
     penalize(
       "誤判定",
       state.hintsEnabled
         ? "この症例は自己R波が観察可能です。VSを誘発してR波を記録してください。"
+        : "判断が早すぎます。ECGとMarkerを見直してください。",
+      10
+    );
+  } else if (checkId === "pDifficult" && !p.pWave && scenario.mode === "DDD") {
+    state.measurements.pDifficult = "測定不可";
+    completeSimulatorStep("record-p-difficult", "測定不可 正解", "P波が引き出せない症例と判断し、A波高値は測定不可としました。");
+  } else if (checkId === "pDifficult" && p.pWave && scenario.mode === "DDD") {
+    penalize(
+      "誤判定",
+      state.hintsEnabled
+        ? "この症例は自己P波が観察可能です。Lower RateでASを出してP波を記録してください。"
+        : "判断が早すぎます。ECGとMarkerを見直してください。",
+      10
+    );
+  } else if (checkId === "aDifficult" && !p.aThreshold && scenario.mode === "DDD") {
+    state.measurements.aDifficult = "測定不可";
+    completeSimulatorStep("record-a-difficult", "測定不可 正解", "A閾値測定が困難な症例と判断し、測定不可としました。");
+  } else if (checkId === "aDifficult" && p.aThreshold && scenario.mode === "DDD") {
+    penalize(
+      "誤判定",
+      state.hintsEnabled
+        ? "この症例はA閾値測定が可能です。APを誘発してA閾値テストを開始してください。"
+        : "判断が早すぎます。ECGとMarkerを見直してください。",
+      10
+    );
+  } else if (checkId === "vDifficult" && !p.vThreshold) {
+    state.measurements.vDifficult = "測定不可";
+    completeSimulatorStep("record-v-difficult", "測定不可 正解", "V閾値測定が困難な症例と判断し、測定不可としました。");
+  } else if (checkId === "vDifficult" && p.vThreshold) {
+    penalize(
+      "誤判定",
+      state.hintsEnabled
+        ? "この症例はV閾値測定が可能です。VPを誘発してV閾値テストを開始してください。"
         : "判断が早すぎます。ECGとMarkerを見直してください。",
       10
     );
