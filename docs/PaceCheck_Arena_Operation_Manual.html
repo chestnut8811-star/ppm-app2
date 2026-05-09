@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <title>PaceCheck Arena 操作マニュアル</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 14mm 13mm 15mm;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: #14202d;
+        background: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "YuGothic", "Noto Sans JP", sans-serif;
+        font-size: 10pt;
+        line-height: 1.62;
+      }
+
+      .page {
+        padding: 0;
+        background: #ffffff;
+        page-break-after: always;
+        break-after: page;
+        position: relative;
+      }
+
+      .page:last-child {
+        page-break-after: auto;
+      }
+
+      .cover {
+        min-height: 268mm;
+        padding: 0 4mm;
+        color: #f5fbff;
+        background:
+          linear-gradient(135deg, rgba(11, 26, 39, 0.96), rgba(25, 65, 82, 0.94)),
+          radial-gradient(circle at 72% 20%, rgba(58, 207, 214, 0.18), transparent 34%);
+        border: 0;
+        overflow: hidden;
+      }
+
+      .cover-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 11mm;
+        align-items: center;
+        min-height: 244mm;
+      }
+
+      .eyebrow {
+        margin: 0 0 4mm;
+        color: #39c5d8;
+        font-size: 9pt;
+        font-weight: 800;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        line-height: 1.28;
+      }
+
+      h1 {
+        font-size: 30pt;
+        font-weight: 900;
+      }
+
+      h2 {
+        margin-bottom: 5mm;
+        padding-bottom: 2mm;
+        border-bottom: 2px solid #dce8ef;
+        color: #132333;
+        font-size: 18pt;
+        font-weight: 900;
+      }
+
+      h3 {
+        margin: 5mm 0 2mm;
+        color: #163247;
+        font-size: 12.5pt;
+        font-weight: 900;
+      }
+
+      p {
+        margin: 0 0 3mm;
+      }
+
+      ul,
+      ol {
+        margin: 0 0 4mm 5mm;
+        padding: 0;
+      }
+
+      li {
+        margin: 0 0 1.5mm;
+      }
+
+      table {
+        width: 100%;
+        margin: 3mm 0 5mm;
+        border-collapse: collapse;
+        font-size: 9.2pt;
+      }
+
+      th,
+      td {
+        padding: 2mm 2.2mm;
+        border: 1px solid #d6e2ea;
+        vertical-align: top;
+      }
+
+      th {
+        color: #102434;
+        background: #e8f2f6;
+        font-weight: 800;
+      }
+
+      .lead {
+        margin-top: 6mm;
+        color: #d9edf3;
+        font-size: 13pt;
+      }
+
+      .cover-card {
+        padding: 7mm;
+        border: 1px solid rgba(154, 231, 239, 0.38);
+        background: rgba(7, 18, 28, 0.48);
+      }
+
+      .cover-card strong {
+        display: block;
+        margin-bottom: 2mm;
+        color: #ffffff;
+        font-size: 12.5pt;
+      }
+
+      .cover-card span {
+        display: block;
+        color: #cfe5eb;
+      }
+
+      .meta {
+        position: absolute;
+        right: 8mm;
+        bottom: 8mm;
+        color: rgba(245, 251, 255, 0.74);
+        font-size: 8.8pt;
+        text-align: right;
+      }
+
+      .toc {
+        display: grid;
+        gap: 3mm;
+        margin-top: 8mm;
+      }
+
+      .toc div,
+      .note,
+      .warning,
+      .panel,
+      .flow-box {
+        border: 1px solid #d5e2ea;
+        background: #f8fbfc;
+      }
+
+      .toc div {
+        padding: 4mm;
+      }
+
+      .toc strong {
+        display: block;
+        margin-bottom: 1mm;
+        color: #14364a;
+        font-size: 11pt;
+      }
+
+      .layout-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4mm;
+      }
+
+      .panel {
+        min-height: 29mm;
+        padding: 3.8mm;
+      }
+
+      .panel strong {
+        display: block;
+        margin-bottom: 1mm;
+        color: #12344b;
+        font-size: 10.8pt;
+      }
+
+      .note,
+      .warning {
+        margin: 4mm 0;
+        padding: 3.5mm 4mm;
+      }
+
+      .note {
+        border-left: 4px solid #37aac1;
+      }
+
+      .warning {
+        border-color: #f0c0a8;
+        border-left: 4px solid #d85b39;
+        background: #fff6f2;
+      }
+
+      .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 3mm;
+        margin: 3mm 0 5mm;
+      }
+
+      .kpi {
+        padding: 3mm;
+        border: 1px solid #d4e3eb;
+        background: #eef7fa;
+      }
+
+      .kpi strong {
+        display: block;
+        color: #12364b;
+        font-size: 14pt;
+      }
+
+      .marker-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 3mm;
+        margin: 3mm 0 5mm;
+      }
+
+      .marker {
+        padding: 3mm;
+        color: #102638;
+        background: #edf5f8;
+        border: 1px solid #d5e2ea;
+        text-align: center;
+      }
+
+      .marker strong {
+        display: block;
+        color: #0f6276;
+        font-size: 15pt;
+      }
+
+      .flow {
+        display: grid;
+        gap: 2.4mm;
+        margin: 3mm 0 5mm;
+      }
+
+      .flow-box {
+        padding: 3mm 3.5mm;
+      }
+
+      .flow-box strong {
+        color: #14364c;
+      }
+
+      .small {
+        color: #526675;
+        font-size: 8.8pt;
+      }
+
+      .footer {
+        margin-top: 5mm;
+        color: #748898;
+        font-size: 8pt;
+        text-align: right;
+      }
+
+      .mono {
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 9.2pt;
+      }
+
+      .badge {
+        display: inline-block;
+        margin: 0 1mm;
+        padding: 0.2mm 1.6mm;
+        border-radius: 3mm;
+        background: #e8f2f6;
+        color: #0f6276;
+        font-size: 9pt;
+        font-weight: 800;
+      }
+
+      .badge-warn {
+        background: #fff0e8;
+        color: #b6451f;
+      }
+
+      .badge-ok {
+        background: #e6f5ec;
+        color: #0e7a3c;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="page cover">
+      <div class="cover-grid">
+        <div>
+          <p class="eyebrow">Programmer Operation Simulator</p>
+          <h1>PaceCheck Arena<br>操作マニュアル</h1>
+          <p class="lead">
+            ペースメーカーチェックの「設定変更 → 作動変化 → 波高値/閾値チェック」を実機感覚で練習する教育用シミュレーターです。
+          </p>
+        </div>
+        <div class="cover-card">
+          <strong>対象</strong>
+          <span>新人教育、症例トレーニング、VVI/DDD作動の理解</span>
+          <br>
+          <strong>到達目標</strong>
+          <span>ECGとMarkerを見ながら、A/V波高値とA/V閾値の測定条件を自分で作る</span>
+          <br>
+          <strong>採点基準</strong>
+          <span>100点満点 / 合格80点 / 全4項目クリア</span>
+        </div>
+      </div>
+      <div class="meta">
+        PaceCheck Lab<br>
+        Arena only manual<br>
+        Rev. 2026-05-09
+      </div>
+    </section>
+
+    <section class="page">
+      <p class="eyebrow">Quick Start</p>
+      <h2>1. 起動と画面構成</h2>
+
+      <h3>起動方法</h3>
+      <ol>
+        <li><span class="mono">PaceCheckLab.html</span> を開きます。</li>
+        <li>入口画面から <strong>PaceCheck Arena</strong> を選択します。</li>
+        <li>直接開く場合は <span class="mono">PaceCheck Arena/PaceCheck Arena.html</span> を開きます。</li>
+        <li>オンライン版: <span class="mono">https://chestnut8811-star.github.io/ppm-app2/PaceCheckLab.html</span></li>
+      </ol>
+
+      <div class="note">
+        このツールは教育用です。実臨床では施設手順、医師指示、各社プログラマーマニュアル、患者状態を優先してください。
+      </div>
+
+      <h3>画面の見方</h3>
+      <div class="layout-grid">
+        <div class="panel">
+          <strong>トレーニング症例</strong>
+          疾患、モード、作動状態、目標を選びます。症例を変えると初期設定と採点状態が切り替わります。
+        </div>
+        <div class="panel">
+          <strong>ECG + Marker</strong>
+          心電図、AS/AP/VS/VPマーカー、Mode、LRL、AV Delay、Sensing、Captureを観察します。
+        </div>
+        <div class="panel">
+          <strong>Programmer（設定操作）</strong>
+          下限レート、SAV/PAV、A/V出力、A/V感度を直接操作します。各行にスライダーと <span class="badge">▼</span> <span class="badge">▲</span> ステッパー、初期値からの差分表示（例 <span class="badge badge-warn">+20</span>）が出ます。
+        </div>
+        <div class="panel">
+          <strong>Measurements（波高値・閾値チェック）</strong>
+          A波高値、V波高値、A閾値、V閾値の4項目を記録します。各項目に番号バッジ（<span class="badge">1</span>〜<span class="badge">4</span> / <span class="badge badge-ok">✓</span> / <span class="badge">—</span>）が付き、進捗が視覚化されます。
+        </div>
+      </div>
+
+      <h3>上部ボタン</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>ボタン</th>
+            <th>用途</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>☀ ライト / ☾ ダーク</td>
+            <td>テーマ切り替え。設定はブラウザに保存されます。</td>
+          </tr>
+          <tr>
+            <td>Labへ戻る</td>
+            <td>PaceCheck Labの入口へ戻ります。</td>
+          </tr>
+          <tr>
+            <td>設定リセット</td>
+            <td>現在症例の初期状態に戻します。練習をやり直す時に使います。</td>
+          </tr>
+          <tr>
+            <td>ランダム症例</td>
+            <td>症例をランダムに選びます。実践練習に向いています。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>操作トグル（Measurementsパネル右上）</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>トグル</th>
+            <th>初期</th>
+            <th>役割</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ヒント ON / OFF</td>
+            <td>ON</td>
+            <td>次の操作・推奨方向の表示。OFFで採点付き実践モード。</td>
+          </tr>
+          <tr>
+            <td>🔊 / 🔈 効果音</td>
+            <td>ON</td>
+            <td>ステップクリア音、合格時のファンファーレ、不合格時の降下音。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="footer">PaceCheck Arena 操作マニュアル - 1</div>
+    </section>
+
+    <section class="page">
+      <p class="eyebrow">Core Logic</p>
+      <h2>2. 基本ロジック</h2>
+
+      <p>
+        Arenaでは、測りたい項目に合わせて作動状態を作ります。<strong>波高値は自己波、閾値はペーシング</strong>が出ている条件で評価します。
+      </p>
+
+      <div class="marker-grid">
+        <div class="marker"><strong>AS</strong>自己P波あり<br>A波高値の条件</div>
+        <div class="marker"><strong>AP</strong>A paceあり<br>A閾値の条件</div>
+        <div class="marker"><strong>VS</strong>自己R波あり<br>V波高値の条件</div>
+        <div class="marker"><strong>VP</strong>V paceあり<br>V閾値の条件</div>
+      </div>
+
+      <h3>4種類のチェック</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>項目</th>
+            <th>記録できる条件</th>
+            <th>条件を作る代表操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>A波高値</td>
+            <td>AS表示中。自己P波が出ている。</td>
+            <td>AP主体なら下限レートを下げ、自己P波を出す。</td>
+          </tr>
+          <tr>
+            <td>V波高値</td>
+            <td>VS表示中。自己R波が出ている。</td>
+            <td>DDDではSAV/PAVを延長。VVIでは下限レートを下げる。</td>
+          </tr>
+          <tr>
+            <td>A閾値</td>
+            <td>AP表示中。Aペーシング捕捉を観察できる。</td>
+            <td>AS主体なら下限レートを上げ、APを出す。</td>
+          </tr>
+          <tr>
+            <td>V閾値</td>
+            <td>VP表示中。Vペーシング捕捉を観察できる。</td>
+            <td>DDDではSAV/PAVを短縮。VVIでは下限レートを上げる。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>基本の進め方</h3>
+      <div class="flow">
+        <div class="flow-box"><strong>1. 症例を選ぶ</strong><br>疾患、モード、現在のMarker、目標を確認します。</div>
+        <div class="flow-box"><strong>2. ECGとMarkerを見る</strong><br>今がAS/AP/VS/VPのどれか、SensingとCaptureが成立しているかを見ます。</div>
+        <div class="flow-box"><strong>3. Programmerで条件を作る</strong><br>下限レート、SAV/PAV、出力を変更し、Marker変化を確認します。差分バッジ（+/−）で初期値からのズレが分かります。</div>
+        <div class="flow-box"><strong>4. Measurementsで記録する</strong><br>条件がそろった項目だけ記録します。閾値は <strong>開始 → 出力低下 → LOC確認 → 記録</strong> の順です。各項目の状態は番号バッジで確認できます。</div>
+        <div class="flow-box"><strong>5. 初期設定へ戻して「テスト終了」</strong><br>一時変更を初期値へ戻し、テスト終了ボタンを押します。設定が戻っていないとペナルティが入ります。</div>
+      </div>
+
+      <div class="note">
+        <strong>AV delay の使い分け</strong><br>
+        AS（自己P波あり）の時は <strong>SAV</strong>、AP（心房ペーシング）の時は <strong>PAV</strong> が作動に効きます。
+        AS中にPAVを動かしても作動は変わらず、誤操作扱いで減点されます。
+      </div>
+
+      <div class="footer">PaceCheck Arena 操作マニュアル - 2</div>
+    </section>
+
+    <section class="page">
+      <p class="eyebrow">Hands-on</p>
+      <h2>3. 代表操作パターン</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>状況</th>
+            <th>やりたいこと</th>
+            <th>操作の考え方</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>DDD / AP-VS</td>
+            <td>A波高値を測る</td>
+            <td>下限レートを下げてAPからASへ変える。ASになったらA波高値を記録。</td>
+          </tr>
+          <tr>
+            <td>DDD / AS-VP</td>
+            <td>V波高値を測る</td>
+            <td>SAVを延長し、AS-VPからAS-VSへ変わるか確認。VSが出ればR波を記録。</td>
+          </tr>
+          <tr>
+            <td>DDD / AP-VP</td>
+            <td>V波高値を測る</td>
+            <td>PAVを延長または下限レートを下げて自己伝導を確認。自己R波が出なければ評価困難。</td>
+          </tr>
+          <tr>
+            <td>DDD / AS-VS</td>
+            <td>V閾値を測る</td>
+            <td>SAVを短縮してVPを出す。V閾値を開始し、V出力を下げてLOCを確認して記録。</td>
+          </tr>
+          <tr>
+            <td>VVI / VP</td>
+            <td>V波高値を測る</td>
+            <td>下限レートを自己心拍より下げ、VSが出るか確認。出ればR波を記録。</td>
+          </tr>
+          <tr>
+            <td>VVI / VS</td>
+            <td>V閾値を測る</td>
+            <td>下限レートを上げてVPを出す。V出力を下げて捕捉/脱落境界を確認。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>閾値測定の操作</h3>
+      <ol>
+        <li>APまたはVPが出ていることを確認します。</li>
+        <li>A閾値またはV閾値の <strong>開始</strong> を押します。</li>
+        <li>A出力またはV出力を少しずつ下げます。</li>
+        <li>ECGとMarkerで <strong>捕捉あり</strong>、<strong>脱落(LOC)</strong> の境界を確認します。</li>
+        <li>境界確認後に <strong>閾値記録</strong> を押します。</li>
+        <li>出力を安全域へ戻し、必要なら <strong>初期設定へ戻す</strong> を押します。</li>
+      </ol>
+
+      <h3>「VS が出ない」を確認する手順（CAVB系）</h3>
+      <p>
+        AS主体で<strong>自己R波が出ない</strong>症例（完全房室ブロック等）では、SAVを <strong>280ms以上</strong> に延長し、それでもVSが出ないことを確認すると <span class="badge badge-ok">VS出ない確認</span> ステップが自動完了します。
+        その後 <strong>無記録で終了</strong>（V波高値は評価困難）を選びます。
+      </p>
+
+      <div class="warning">
+        <strong>V捕捉消失・自己VSなしの警告</strong><br>
+        V閾値測定中または通常測定中に、VP捕捉が外れて自己VS/逃拍が期待できない症例では警告が出ます。
+        教育用表示では、心室停止と脈圧消失を想定し、直ちにV出力を安全域へ戻す判断を学習します。
+      </div>
+
+      <h3>評価困難を選ぶ時</h3>
+      <p>
+        V波高値は自己R波が必要です。AV delay延長や下限レート低下を行ってもVSが出ない症例では、
+        無理にR波測定へ進まず <strong>無記録で終了</strong> を選びます。先に「VS出ない確認」を済ませると確実です。
+      </p>
+
+      <div class="footer">PaceCheck Arena 操作マニュアル - 3</div>
+    </section>
+
+    <section class="page">
+      <p class="eyebrow">Scoring</p>
+      <h2>4. 採点ルール</h2>
+
+      <div class="kpi-row">
+        <div class="kpi"><span>満点</span><strong>100点</strong></div>
+        <div class="kpi"><span>合格基準</span><strong>80点</strong></div>
+        <div class="kpi"><span>誤操作1回</span><strong>−10点</strong></div>
+      </div>
+
+      <h3>得点・減点の内訳</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>区分</th>
+            <th>イベント</th>
+            <th>点数</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="2">加点</td>
+            <td>各ステップ正解（条件作成・記録など）</td>
+            <td>合計 90点（症例ごとに配分）</td>
+          </tr>
+          <tr>
+            <td>テスト終了時の完了ボーナス</td>
+            <td>+10点</td>
+          </tr>
+          <tr>
+            <td rowspan="4">減点</td>
+            <td>条件未成立で記録、目的外の設定変更、操作方向ミス</td>
+            <td>−10点</td>
+          </tr>
+          <tr>
+            <td>進捗を後退させる操作（VSが出た後にSAV短縮など）</td>
+            <td>−10点</td>
+          </tr>
+          <tr>
+            <td>未復帰（初期設定に戻さず）でテスト終了</td>
+            <td>−10点</td>
+          </tr>
+          <tr>
+            <td>未完了状態でテスト終了（初回のみ）</td>
+            <td>−10点</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>減点の優しい仕様（debounce）</h3>
+      <ul>
+        <li><strong>同じ誤操作の連打は1回のみ減点</strong>。たとえばSAVを誤った方向に5回連続で動かしても <span class="badge badge-warn">−10点</span> 一度きりです。</li>
+        <li>正しい操作・別キーの操作・ステップ完了でリセットされ、次の誤操作は再度減点対象になります。</li>
+        <li>「未完了で終了」連打も初回のみ減点。</li>
+        <li>記録系ステップ中の<strong>同方向への追加調整</strong>（VS確認後にさらにSAV延長など）は警告のみ・減点なし。<strong>逆方向で進捗を壊した時のみ減点</strong>。</li>
+      </ul>
+
+      <h3>合否判定の考え方</h3>
+      <ul>
+        <li>満点は <strong>各ステップ加点 90点 + ボーナス 10点 = 100点</strong>。</li>
+        <li>誤操作 <strong>2回まで（80点）で合格</strong>、3回目以降は不合格になります。</li>
+        <li>未復帰でテスト終了するとボーナスとペナルティが相殺され、表示される delta（差分）と実際のスコア変化が一致します。</li>
+        <li>raw（生スコア）が0未満になる事もあります。表示はそのまま負の数で出ます。</li>
+      </ul>
+
+      <h3>効果音</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>イベント</th>
+            <th>音</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ステップクリア</td>
+            <td>軽快な2音アルペジオ（A5 → E6）</td>
+          </tr>
+          <tr>
+            <td>テスト終了 / 合格</td>
+            <td>「激しい勝利ファンファーレ」（上昇アルペジオ＋連続コード＋低音＋打楽器ノイズ）</td>
+          </tr>
+          <tr>
+            <td>テスト終了 / 不合格</td>
+            <td>柔らかい降下音（A4 → E4）</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="footer">PaceCheck Arena 操作マニュアル - 4</div>
+    </section>
+
+    <section class="page">
+      <p class="eyebrow">Practice</p>
+      <h2>5. 練習のコツ・よくあるミス</h2>
+
+      <h3>ヒント ON / OFF の使い分け</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>設定</th>
+            <th>使い方</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ヒント ON（初期）</td>
+            <td>次に見るべき項目や推奨操作が表示されます。初回学習や解説用に使います。</td>
+          </tr>
+          <tr>
+            <td>ヒント OFF</td>
+            <td>具体的な操作手順が伏せられます。採点付きの実践練習に使います。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>よくあるミス</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>ミス</th>
+            <th>確認ポイント</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>VP中にV波高値を記録する</td>
+            <td>V波高値はVS表示中に記録します。まず自己R波を出します。</td>
+          </tr>
+          <tr>
+            <td>VS中にV閾値を開始する</td>
+            <td>V閾値はVP表示中に開始します。VP条件を作ってから開始します。</td>
+          </tr>
+          <tr>
+            <td>AP中にA波高値を記録する</td>
+            <td>A波高値はAS表示中に記録します。下限レートを下げて自己P波を出します。</td>
+          </tr>
+          <tr>
+            <td>AS中にPAVを延ばす（無効操作）</td>
+            <td>AS時はSAVが作動に効きます。PAVは AP 時のみ意味があります。</td>
+          </tr>
+          <tr>
+            <td>LOC確認前に閾値記録する</td>
+            <td>出力を下げ、捕捉/脱落境界を見てから記録します。</td>
+          </tr>
+          <tr>
+            <td>測定後に設定を戻さない</td>
+            <td>テスト終了前に <strong>初期設定へ戻す</strong> を押し、Mode、LRL、AV delay、出力を確認します。</td>
+          </tr>
+          <tr>
+            <td>VS確認後にSAVを短くする</td>
+            <td>進捗が後退する操作は減点。記録ボタンに進みましょう。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>おすすめ練習順</h3>
+      <ol>
+        <li><strong>ヒント ON</strong> で1症例を完走（操作・採点の流れを把握）。</li>
+        <li>同じ症例を <strong>ヒント OFF</strong> で再挑戦（手順を自分で組み立てる）。</li>
+        <li><strong>ランダム症例</strong> で実践練習（履歴で得点推移を確認）。</li>
+        <li>合格できたら、<strong>誤操作0回</strong> 100点の完全クリアを目指す。</li>
+      </ol>
+
+      <div class="note">
+        迷った時は「<strong>波高値は自己波、閾値はペーシング</strong>」を起点にMarkerを見直してください。
+        AS/AP/VS/VPのどの状態にあるかを確認すれば、次の操作の方向が見えてきます。
+      </div>
+
+      <div class="note">
+        <strong>練習履歴</strong><br>
+        画面下部に直近10件の症例・得点・誤操作・合否が記録されます。同じ症例を繰り返して上達を確認できます。履歴は「履歴を消去」で全削除できます（ブラウザに保存されているため、別PCには引き継がれません）。
+      </div>
+
+      <p class="small">
+        本マニュアルはPaceCheck Arenaの操作補助資料です。臨床判断、プログラマー実機操作、患者管理の代替ではありません。
+      </p>
+
+      <div class="footer">PaceCheck Arena 操作マニュアル - 5</div>
+    </section>
+  </body>
+</html>
