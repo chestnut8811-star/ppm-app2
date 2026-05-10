@@ -2484,7 +2484,7 @@ function renderReport() {
   const simulatorPattern = computeSimulatorPattern(simulatorScenario);
 
   document.getElementById("reportContent").innerHTML = `
-      <h2>CIEDCheck Studio レポート</h2>
+      <h2>CIED Check Studio レポート</h2>
     <p class="print-note">教育・手順支援用。最終判断は施設手順、医師指示、各社プログラマーマニュアルに従う。</p>
 
     <div class="report-grid">
@@ -2525,7 +2525,7 @@ function renderReport() {
     </section>
 
     <section class="report-section">
-      <h3>CIEDCheck Arena</h3>
+      <h3>CIED Check Arena</h3>
       <table class="report-table">
         <tbody>
           <tr><th>症例</th><td>${escapeHtml(simulatorScenario.title)}</td></tr>
