@@ -1,4 +1,4 @@
-# PaceCheck Lab
+# CIEDCheck Lab
 
 植え込み型ペースメーカーのチェック業務を、新人教育、手順確認、操作練習の面から支援するローカルWebアプリ群です。
 インストール不要で、フォルダごと他のPCへコピーして使えます。
@@ -6,7 +6,7 @@
 ## 開き方
 
 1. フォルダごとPCへコピーする
-2. `PaceCheckLab.html` をブラウザで開く
+2. `CIEDCheckLab.html` をブラウザで開く
 3. 入口画面から使いたいツールを選ぶ
 
 Chrome / Edge / Safari などの通常ブラウザで動作します。インターネット接続は基本不要です。
@@ -16,16 +16,16 @@ Chrome / Edge / Safari などの通常ブラウザで動作します。インタ
 
 最新ビルドは以下から直接利用できます（インストール不要）。
 
-- 入口: <https://chestnut8811-star.github.io/ppm-app2/PaceCheckLab.html>
-- プログラマー操作シミュレーター（PaceCheck Arena）: <https://chestnut8811-star.github.io/ppm-app2/PaceCheck%20Arena/PaceCheck%20Arena.html>
+- 入口: <https://chestnut8811-star.github.io/ppm-app2/CIEDCheckLab.html>
+- プログラマー操作シミュレーター（CIEDCheck Arena）: <https://chestnut8811-star.github.io/ppm-app2/CIEDCheck%20Arena/CIEDCheck%20Arena.html>
 
 ## GitHub Pagesでのテスト公開
 
-このテスト版では `index.html` は置かず、入口を `PaceCheckLab.html` にしています。
+このテスト版では `index.html` は置かず、入口を `CIEDCheckLab.html` にしています。
 GitHub Pagesで公開した場合は、以下の形式で直接開いてください。
 
 ```text
-https://<GitHubユーザー名>.github.io/<リポジトリ名>/PaceCheckLab.html
+https://<GitHubユーザー名>.github.io/<リポジトリ名>/CIEDCheckLab.html
 ```
 
 GitHub Pagesの設定例:
@@ -34,25 +34,25 @@ GitHub Pagesの設定例:
 2. Repository Settings → Pages を開く
 3. Sourceを `Deploy from a branch` にする
 4. Branchを `gh-pages`、Folderを `/(root)` にする
-5. 表示されたURLの末尾に `/PaceCheckLab.html` を付けて開く
+5. 表示されたURLの末尾に `/CIEDCheckLab.html` を付けて開く
 
 公開リポジトリにする場合、患者情報・施設固有情報・個人情報は含めないでください。
 
 ```text
-PaceCheck Lab
-├─ PaceCheckLab.html
+CIEDCheck Lab
+├─ CIEDCheckLab.html
 │  ツール選択画面
 │
-├─ PaceCheck Studio.html
+├─ CIEDCheck Studio.html
 │  教育・記録・PDF出力ツール
 │
-├─ PaceCheck Arena
+├─ CIEDCheck Arena
 │  プログラマー操作シミュレーター
 │
-├─ PaceCheck CRT
+├─ CIEDCheck CRT
 │  CRT-P / CRT-D 教育・最適化シミュレーター
 │
-└─ PaceCheck ICD
+└─ CIEDCheck ICD
    ICD / CRT-D 検出・治療設定シミュレーター
 ```
 
@@ -72,7 +72,7 @@ PaceCheck Lab
 - 印刷・PDF保存用レポート
 - ブラウザ内保存
 
-## PaceCheck Arena 採点仕様
+## CIEDCheck Arena 採点仕様
 
 - **満点 100 点・合格基準 80 点**（全シナリオ共通）
 - ステップ完了で加点（合計 90 点）＋ 完了時にボーナス +10 点
@@ -95,9 +95,9 @@ PaceCheck Lab
 
 - フォルダ名を変更しても動作します。
 - フォルダ内のHTML / JS / CSSの相対配置は変更しないでください。
-- Windowsでも動作想定です。ZIP化して渡す場合は、展開後に `PaceCheckLab.html` を開いてください。
+- Windowsでも動作想定です。ZIP化して渡す場合は、展開後に `CIEDCheckLab.html` を開いてください。
 - ブラウザの保存データはPCごと・ブラウザごとに保存されます。
-- GitHub PagesでトップURLだけを開くと入口は表示されません。必ず `PaceCheckLab.html` まで含めたURLを共有してください。
+- GitHub PagesでトップURLだけを開くと入口は表示されません。必ず `CIEDCheckLab.html` まで含めたURLを共有してください。
 
 ## 注意
 
