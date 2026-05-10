@@ -1,4 +1,4 @@
-# CIED Check Lab
+# CIED check Lab
 
 植え込み型ペースメーカーのチェック業務を、新人教育、手順確認、操作練習の面から支援するローカルWebアプリ群です。
 インストール不要で、フォルダごと他のPCへコピーして使えます。
@@ -17,7 +17,7 @@ Chrome / Edge / Safari などの通常ブラウザで動作します。インタ
 最新ビルドは以下から直接利用できます（インストール不要）。
 
 - 入口: <https://chestnut8811-star.github.io/ppm-app2/PaceCheckLab.html>
-- プログラマー操作シミュレーター（CIED Check Arena）: <https://chestnut8811-star.github.io/ppm-app2/PaceCheck%20Arena/PaceCheck%20Arena.html>
+- プログラマー操作シミュレーター（CIED check Arena）: <https://chestnut8811-star.github.io/ppm-app2/PaceCheck%20Arena/PaceCheck%20Arena.html>
 
 ## GitHub Pagesでのテスト公開
 
@@ -39,20 +39,20 @@ GitHub Pagesの設定例:
 公開リポジトリにする場合、患者情報・施設固有情報・個人情報は含めないでください。
 
 ```text
-CIED Check Lab
+CIED check Lab
 ├─ PaceCheckLab.html
 │  ツール選択画面
 │
 ├─ PaceCheck Studio.html
 │  教育・記録・PDF出力ツール
 │
-├─ CIED Check Arena
+├─ CIED check Arena
 │  プログラマー操作シミュレーター
 │
-├─ CIED Check CRT
+├─ CIED check CRT
 │  CRT-P / CRT-D 教育・最適化シミュレーター
 │
-└─ CIED Check ICD
+└─ CIED check ICD
    ICD / CRT-D 検出・治療設定シミュレーター
 ```
 
@@ -72,7 +72,7 @@ CIED Check Lab
 - 印刷・PDF保存用レポート
 - ブラウザ内保存
 
-## CIED Check Arena 採点仕様
+## CIED check Arena 採点仕様
 
 - **満点 100 点・合格基準 80 点**（全シナリオ共通）
 - ステップ完了で加点（合計 90 点）＋ 完了時にボーナス +10 点
