@@ -436,6 +436,46 @@ function playStepSound() {
   ]);
 }
 
+// ECG monitor "beep" played on each ventricular event (R peak).
+// Different pitch for VS (auto) vs VP (paced) + a pacing click for VP.
+function playMonitorBeep(rhythm) {
+  if (state.heartSoundEnabled !== true) return;
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  const isVp = rhythm.ventricular === "VP";
+
+  // For VP: short noise click (mechanical pacing spike) before the beep
+  if (isVp) {
+    const dur = 0.012;
+    const bs = Math.max(1, Math.floor(ctx.sampleRate * dur));
+    const buf = ctx.createBuffer(1, bs, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bs; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / bs);
+    const noise = ctx.createBufferSource();
+    const ng = ctx.createGain();
+    noise.buffer = buf;
+    ng.gain.setValueAtTime(0.08, now);
+    ng.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    noise.connect(ng).connect(ctx.destination);
+    noise.start(now);
+    noise.stop(now + dur);
+  }
+
+  // Main beep: ~50ms sine
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "sine";
+  osc.frequency.value = isVp ? 740 : 880; // VP slightly lower / metallic
+  const beepStart = now + (isVp ? 0.012 : 0);
+  gain.gain.setValueAtTime(0.0001, beepStart);
+  gain.gain.exponentialRampToValueAtTime(0.18, beepStart + 0.006);
+  gain.gain.exponentialRampToValueAtTime(0.0001, beepStart + 0.08);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(beepStart);
+  osc.stop(beepStart + 0.1);
+}
+
 // Subtle button-click feedback (used by 記録 / 開始 / 測定不可 / 設定復帰 / テスト終了)
 function playClickSound() {
   const ctx = getAudioCtx();
@@ -623,6 +663,7 @@ function defaultState() {
     simulatorFlags: {},
     hintsEnabled: true,
     soundEnabled: true,
+    heartSoundEnabled: false,
     lastPenaltyKey: null,
     endAttemptPenalized: false,
     lastJudge: {
@@ -740,6 +781,12 @@ function resetRun(scenarioId) {
   render();
 }
 
+// Phase position where the R peak is rendered (matches drawPacingSpikesAndMarkers
+// ventricularX placement: VS 0.39, VP 0.47; we use VP value so a VP beat triggers
+// right at its visible spike).
+const R_PEAK_PHASE = 0.42;
+let beatPlayedThisCycle = false;
+
 function startEcgAnimation() {
   if (animationId) cancelAnimationFrame(animationId);
   const tick = (time) => {
@@ -751,7 +798,15 @@ function startEcgAnimation() {
     const rate = effectiveDisplayRate(scenario, rhythm);
     const speed = ecgSpeedMultiplier(rate);
     if (speed > 0 && rate > 0) {
+      const oldPhase = ecgPhase;
       ecgPhase = (ecgPhase + (delta / 1000) * (rate / 60) * speed) % 1;
+      // Detect cycle wrap → reset beat-played flag
+      if (ecgPhase < oldPhase) beatPlayedThisCycle = false;
+      // Trigger ECG beep when phase crosses R peak
+      if (!beatPlayedThisCycle && ecgPhase >= R_PEAK_PHASE) {
+        playMonitorBeep(rhythm);
+        beatPlayedThisCycle = true;
+      }
     }
     drawEcg(scenario, rhythm, ecgPhase);
     animationId = requestAnimationFrame(tick);
@@ -902,10 +957,14 @@ function renderSimulatorPanel(scenario) {
     : "ヒントOFF中です。ECG、Marker、測定カードの状態から次の操作を判断してください。";
 
   const sound = state.soundEnabled !== false;
+  const heart = state.heartSoundEnabled === true;
   document.getElementById("simulatorPanel").innerHTML = `
     <div class="simulator-toolbar">
       <span>操作判定</span>
       <div class="simulator-toolbar-actions">
+        <button class="hint-toggle ${heart ? "on" : ""}" type="button" data-heart-toggle aria-label="心電図音 ${heart ? "ON" : "OFF"}" title="心電図音 ${heart ? "ON" : "OFF"}">
+          ${heart ? "♥" : "♡"}
+        </button>
         <button class="hint-toggle ${sound ? "on" : ""}" type="button" data-sound-toggle aria-label="効果音 ${sound ? "ON" : "OFF"}" title="効果音 ${sound ? "ON" : "OFF"}">
           ${sound ? "🔊" : "🔈"}
         </button>
@@ -959,6 +1018,18 @@ function renderSimulatorPanel(scenario) {
       }
     </ol>
   `;
+
+  document.querySelector("[data-heart-toggle]")?.addEventListener("click", () => {
+    state.heartSoundEnabled = !(state.heartSoundEnabled === true);
+    if (state.heartSoundEnabled) {
+      // Preview: trigger one beep on enable
+      const sc = currentScenario();
+      const rhythm = computeRhythm(sc);
+      playMonitorBeep(rhythm);
+    }
+    saveState();
+    render();
+  });
 
   document.querySelector("[data-sound-toggle]")?.addEventListener("click", () => {
     state.soundEnabled = !(state.soundEnabled !== false);
