@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>簡易取扱説明書 — 心内心電図トレーニングシミュレーター</title>
+<style>
+  :root{
+    --bg:#0a0e15; --panel:#111824; --panel2:#16202d; --line:#243140;
+    --text:#dbe5f0; --muted:#8597a8; --accent:#46f08c; --warn:#ffd24a; --danger:#ff5d6c; --cyan:#5ad1ff;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;
+    line-height:1.7; font-size:15px;
+  }
+  .wrap{ max-width:880px; margin:0 auto; padding:28px 20px 80px; }
+  header.top{ border-bottom:2px solid var(--accent); padding-bottom:14px; margin-bottom:22px; }
+  header.top .kicker{ color:var(--accent); font-size:12px; letter-spacing:.18em; font-weight:700; }
+  h1{ font-size:25px; margin:4px 0 6px; }
+  header.top .sub{ color:var(--muted); font-size:14px; }
+  .caution{ color:var(--warn); font-weight:600; }
+
+  /* 免責バナー */
+  .disclaimer{ background:rgba(255,210,74,.08); border:1px solid rgba(255,210,74,.4); border-radius:10px;
+    padding:13px 16px; margin:20px 0; font-size:13.5px; color:#f0e4bf; }
+  .disclaimer b{ color:var(--warn); }
+
+  /* クイックスタート */
+  .quick{ background:linear-gradient(180deg,#13202e,#101824); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin:22px 0; }
+  .quick h2{ margin:0 0 10px; font-size:16px; color:var(--accent); }
+  .steps{ display:flex; gap:12px; flex-wrap:wrap; }
+  .step{ flex:1; min-width:180px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .step .n{ display:inline-block; width:24px; height:24px; line-height:24px; text-align:center; border-radius:50%;
+    background:var(--accent); color:#04240f; font-weight:700; margin-bottom:6px; }
+  .step b{ display:block; margin-bottom:2px; }
+  .step span{ color:var(--muted); font-size:13px; }
+
+  /* 目次 */
+  nav.toc{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 18px; margin:22px 0; }
+  nav.toc h2{ font-size:13px; color:var(--muted); margin:0 0 6px; letter-spacing:.05em; }
+  nav.toc ol{ margin:0; padding-left:20px; columns:2; column-gap:28px; font-size:14px; }
+  nav.toc a{ color:var(--cyan); text-decoration:none; }
+  nav.toc a:hover{ text-decoration:underline; }
+
+  section{ margin:30px 0; }
+  h2.sec{ font-size:19px; border-left:4px solid var(--accent); padding-left:10px; margin:0 0 12px; scroll-margin-top:16px; }
+  h3{ font-size:15px; color:var(--cyan); margin:18px 0 6px; }
+  p{ margin:8px 0; }
+  ul{ margin:8px 0; padding-left:22px; }
+  li{ margin:4px 0; }
+  .muted{ color:var(--muted); }
+
+  table{ width:100%; border-collapse:collapse; margin:12px 0; font-size:13.5px; }
+  th,td{ text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th{ color:var(--accent); font-weight:600; background:var(--panel); }
+  td.k{ color:var(--text); font-weight:600; white-space:nowrap; width:165px; }
+  tr:nth-child(even) td{ background:rgba(255,255,255,.015); }
+
+  .chip{ display:inline-block; background:var(--panel2); border:1px solid var(--line); border-radius:5px; padding:0 7px; font-size:12px; color:var(--cyan); }
+  code{ background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:1px 5px; font-size:13px; color:#bfe8d2; }
+
+  .note{ border-left:3px solid var(--cyan); background:rgba(90,209,255,.06); padding:8px 12px; border-radius:0 8px 8px 0; margin:12px 0; font-size:13.5px; }
+  .warnbox{ border-left:3px solid var(--danger); background:rgba(255,93,108,.07); padding:10px 13px; border-radius:0 8px 8px 0; margin:12px 0; font-size:13.5px; }
+  .warnbox b{ color:var(--danger); }
+
+  /* イベントラベルの色見本 */
+  .lab{ display:inline-block; min-width:22px; text-align:center; font-weight:700; border-radius:4px; padding:0 5px; margin-right:4px; }
+  .lab.A{ background:#3a2f08; color:#ffd24a; } .lab.H{ background:#06301d; color:#46f08c; }
+  .lab.V{ background:#3a1a0a; color:#ff9d5c; } .lab.P{ background:#22303d; color:#e3ecf5; }
+  .lab.PV{ background:#06283a; color:#5ad1ff; }
+
+  footer{ margin-top:50px; padding-top:16px; border-top:1px solid var(--line); color:var(--muted); font-size:12.5px; }
+
+  @media print{
+    body{ background:#fff; color:#111; } .wrap{ max-width:none; }
+    h2.sec{ border-left-color:#0a0; } th{ color:#070; background:#f0f0f0; }
+    nav.toc,.quick{ background:#fafafa; } .muted{ color:#555; }
+    a{ color:#06c; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="kicker">簡易取扱説明書 / USER MANUAL</div>
+    <h1>心内心電図トレーニングシミュレーター</h1>
+    <div class="sub"><span class="caution">教育用合成波形です。診療判断には使用しないでください。</span></div>
+  </header>
+
+  <div class="disclaimer">
+    <b>免責</b>:本ツールは教育・確認補助を目的とした合成波形シミュレーターです。実患者データではありません。診断・治療判断には使用せず、実臨床では医師の指示、院内ルール、使用機器の表示を優先してください。
+  </div>
+
+  <div class="quick">
+    <h2>はじめての3ステップ</h2>
+    <div class="steps">
+      <div class="step"><span class="n">1</span><b>開く</b><span>同じフォルダの <code>index.html</code> をブラウザで開く(オフラインで動作)。</span></div>
+      <div class="step"><span class="n">2</span><b>疾患を選ぶ</b><span>左上の「疾患選択」から見たい不整脈を選ぶ。波形が自動で切り替わる。</span></div>
+      <div class="step"><span class="n">3</span><b>読む</b><span>右パネルの「やさしい解説」と波形上のラベル(A/H/V)を見ながら時間関係を確認。</span></div>
+    </div>
+  </div>
+
+  <nav class="toc">
+    <h2>目次</h2>
+    <ol>
+      <li><a href="#about">これは何か</a></li>
+      <li><a href="#layout">画面の構成</a></li>
+      <li><a href="#controls">操作パネル(左)</a></li>
+      <li><a href="#wave">波形の見方(中央)</a></li>
+      <li><a href="#panel">解説パネル(右)</a></li>
+      <li><a href="#scenario">シナリオとゲーム</a></li>
+      <li><a href="#audio">音声(EGM聴診)</a></li>
+      <li><a href="#diseases">疾患一覧</a></li>
+      <li><a href="#safety">安全上の注意</a></li>
+    </ol>
+  </nav>
+
+  <section id="about">
+    <h2 class="sec">1. これは何か</h2>
+    <p>カテーテルアブレーション(EP検査)で用いる<b>体表心電図と心内心電図(EGM)</b>を、実患者データを使わずに<b>すべて合成波形で</b>リアルタイム表示する教育ツールです。臨床工学技士・アブレーション業務に入る新人スタッフ・EP検査の基礎を学ぶ方を対象に、<b>疾患ごとの「電位の時間関係」</b>(どの電極がどの順で・どれくらいの間隔で興奮するか)を学べます。</p>
+    <p class="muted">外部ライブラリやインターネット接続は不要です。<code>index.html</code> 1ファイルで完結します。</p>
+  </section>
+
+  <section id="layout">
+    <h2 class="sec">2. 画面の構成</h2>
+    <ul>
+      <li><b>上部ヘッダー</b>:タイトルと注意書き。</li>
+      <li><b>左サイドバー</b>:すべての操作(疾患選択・速度・ゲイン・各機能)。</li>
+      <li><b>中央の波形表示</b>:黒背景に上から各チャネルが流れる。左端にチャネル名、上端に時刻、右上に現在の設定(HUD)。</li>
+      <li><b>右パネル</b>:選択中の疾患の解説・自動計算した interval・チェック結果・やさしい解説・用語ガイド。</li>
+      <li><b>下部</b>:免責(常時表示)。</li>
+    </ul>
+  </section>
+
+  <section id="controls">
+    <h2 class="sec">3. 操作パネル(左サイドバー)</h2>
+    <table>
+      <tr><th>操作</th><th>説明</th></tr>
+      <tr><td class="k">疾患選択</td><td>7疾患を切替(<a href="#diseases">一覧</a>)。チャネル構成・波形・解説がすべて自動更新。</td></tr>
+      <tr><td class="k">表示速度 (Sweep)</td><td><span class="chip">25 / 50 / 100 mm/s</span>。速いほど横に拡大(波形が間延び)して、細かい時間差が見やすい。</td></tr>
+      <tr><td class="k">Gain — EGM</td><td>心内心電図の振幅倍率 <span class="chip">×0.5〜×4</span>。小さい電位を見たいとき上げる。</td></tr>
+      <tr><td class="k">Gain — 表面ECG</td><td>体表心電図の感度 <span class="chip">5 / 10 / 20 mm/mV</span>。</td></tr>
+      <tr><td class="k">ノイズ量</td><td><span class="chip">none〜high</span>。基線の揺れ・筋電図様の混入を加える(教育用・過度にしない)。</td></tr>
+      <tr><td class="k">スクロール方向</td><td>右→左(新しい波形が右)/ 左→右 を切替。</td></tr>
+      <tr><td class="k">Start / Pause</td><td>波形の流れを再生・一時停止。止めてじっくり観察できる。</td></tr>
+      <tr><td class="k">Reset</td><td>時刻を 0 に戻し、アブレーション等の演出も解除。</td></tr>
+      <tr><td class="k">Step (1拍)</td><td>1拍ぶんだけ前進(一時停止中の確認に便利)。</td></tr>
+      <tr><td class="k">計測カーソル</td><td>ON にして波形上を<b>2点クリック</b>すると、その間隔を <b>ms</b> で表示。AH・HV・VA などを自分で測れる。</td></tr>
+      <tr><td class="k">Ablation</td><td>ON で RF 通電の演出。一定時間後に<b>疾患別の成功像</b>(頻拍停止→洞調律復帰、PV電位消失 等)。ABLカテーテルの位置に赤い「RF」が出る。</td></tr>
+      <tr><td class="k">Pacing</td><td>ON で刺激 artifact(鋭い縦線=Stim)を周期的に付加。</td></tr>
+      <tr><td class="k">フィルタ感</td><td>表示の質感を切替(bipolar / unipolar / surface)。※線の太さを変える簡易表現。</td></tr>
+      <tr><td class="k">ラベル ON/OFF</td><td>波形上の <span class="lab A">A</span><span class="lab H">H</span><span class="lab V">V</span> などの表示を切替。</td></tr>
+      <tr><td class="k">PNG保存</td><td>今の画面を画像で保存(教育資料に貼り付け可)。</td></tr>
+      <tr><td class="k">シナリオ</td><td>観察 / 解説 / クイズ / 🎮ゲーム を切替(<a href="#scenario">詳細</a>)。</td></tr>
+      <tr><td class="k">音声</td><td>選んだ 1ch の電位を「音」で聴く(<a href="#audio">詳細</a>)。</td></tr>
+    </table>
+  </section>
+
+  <section id="wave">
+    <h2 class="sec">4. 波形の見方(中央)</h2>
+    <h3>チャネル(電極)</h3>
+    <p>左端に固定表示。上から「体表心電図(ECG II・V1)」→「心内カテーテル(HRA・His・CS・RVA・ABL 等)」の順に並びます。疾患により構成が変わります。</p>
+    <h3>イベントラベル</h3>
+    <p>重要な電位に小さなラベルが付きます(ラベル ON 時):</p>
+    <ul>
+      <li><span class="lab P">P</span> 体表のP波(心房の興奮) / <span class="lab A">A</span> 心房電位 / <span class="lab H">H</span> His束電位 / <span class="lab V">V</span> 心室電位 / <span class="lab PV">PV</span> 肺静脈電位</li>
+      <li>正常(洞調律)では His の行で <span class="lab A">A</span>→<span class="lab H">H</span>→<span class="lab V">V</span> の順に並びます。これが基本。</li>
+    </ul>
+    <h3>グリッドと時刻</h3>
+    <p>細かいマス目 + 太い秒線。上端の <code>-1s / -2s …</code> は「今(右端)」からどれだけ前か。波形とグリッドは常に一致します。</p>
+    <h3>右上の表示(HUD)</h3>
+    <p>現在の Sweep / EGM gain / 表面gain / ノイズ / FPS(描画の滑らかさ)を表示。</p>
+    <div class="note">時間差を細かく見たいときは <b>Pause</b> → 計測カーソルON → 2点クリックで ms 計測、が基本の流れです。</div>
+  </section>
+
+  <section id="panel">
+    <h2 class="sec">5. 解説パネル(右)</h2>
+    <ul>
+      <li><b>疾患名・概要</b>:選択中の疾患の説明。</li>
+      <li><b>やさしい解説</b><span class="muted">(緑枠・黄色フラグ)</span>:素人向けに「これは何?/心臓で起きていること/見るところ/治療の考え方」を平易に。<b>「AI下書き・臨床未監修」</b>と明示。</li>
+      <li><b>重要 interval(自動計算)</b>:CL / AH / HV / VA / AA / VV をミリ秒で自動表示。</li>
+      <li><b>不変条件チェック</b>:合成された波形から AH・HV・興奮順序などを<b>実測</b>し、標準範囲に入っているかを ✓/✗ で表示(教材としての自己点検)。</li>
+      <li><b>見るポイント / 典型順序 / 鑑別 / ターゲット / 危険 / 初学者の誤り</b>:標準的なEP生理に基づく解説文。</li>
+      <li><b>用語ガイド</b>:A波・CL・VA・HRA・CS など略語の意味を平易に。</li>
+    </ul>
+    <div class="note">interval の数値や解説文は、画面下端・右下にあるとおり<b>臨床監修待ちのドラフト</b>です。教材として確定する前に院内の責任者(指導医・主任技士)の確認を受けてください。</div>
+  </section>
+
+  <section id="scenario">
+    <h2 class="sec">6. シナリオとゲーム</h2>
+    <table>
+      <tr><th>モード</th><th>内容</th></tr>
+      <tr><td class="k">観察モード</td><td>波形と解説をそのまま見る通常モード。</td></tr>
+      <tr><td class="k">解説モード</td><td>ラベルを強制ONにして、重要電位を見えやすくする。</td></tr>
+      <tr><td class="k">クイズモード</td><td>疾患名・解説を隠し、「この心電図は何か?」を6択で出題。回答後に根拠を表示。</td></tr>
+      <tr><td class="k">🎮 ゲーム<br>(診断チャレンジ)</td><td>ランダムに頻拍を出題(疾患名は伏せられる)。<b>制限時間内に6択</b>で回答し、速さと連続正解でボーナス加点。全5問でランク判定(研修中〜達人)。<b>ハイスコアを保存</b>。難易度=易しい/普通/難しい。</td></tr>
+    </table>
+    <p class="muted">クイズ・ゲーム中も、interval の数値は手がかりとして見えます(不変条件チェックと解説は伏せられます)。</p>
+  </section>
+
+  <section id="audio">
+    <h2 class="sec">7. 音声(EGM 1ch 聴診)</h2>
+    <p>サイドバー下部の「音声」で <b>ON</b> にし、聴きたい<b>1チャネル</b>を選ぶと、その電位(A/H/V/PV など)が画面の「今」を通過するたびに高音のクリック音で鳴ります。EPラボで術者がマッピング電極の音を「聴いて」早期で鋭い局所電位かを判断するのと同じ使い方です。</p>
+    <ul>
+      <li>既定の聴診chはマッピング向き(ABL → His → RVA の優先)。音量はスライダーで調整。</li>
+      <li><b>全チャネル同時には鳴りません</b>(雑音化するため。実臨床でも1chを選んで聴きます)。</li>
+      <li>再生中のみ発音します。最初の「音声ON」操作で音が有効になります(ブラウザの仕様)。</li>
+    </ul>
+  </section>
+
+  <section id="diseases">
+    <h2 class="sec">8. 疾患一覧</h2>
+    <table>
+      <tr><th>疾患</th><th>ひとことで</th></tr>
+      <tr><td class="k">Sinus rhythm /<br>Baseline EPS</td><td>正常な洞調律。A→H→V の基本を確認する「お手本」。</td></tr>
+      <tr><td class="k">AVNRT slow-fast</td><td>房室結節近くで電気が小さく旋回。AとVが近接、VAが短い。</td></tr>
+      <tr><td class="k">Orthodromic AVRT</td><td>余分な「抜け道(副伝導路)」を逆走する頻拍。VAがAVNRTより長め。</td></tr>
+      <tr><td class="k">Typical atrial flutter</td><td>心房を大きく旋回。ノコギリ歯状の連続波。峡部(CTI)が的。</td></tr>
+      <tr><td class="k">Focal atrial tachycardia</td><td>心房の一点が高速発火。最早期(ABL distal)が治療の的。</td></tr>
+      <tr><td class="k">Atrial fibrillation / PVI</td><td>心房が不規則に細動。肺静脈の隔離(PVI)が柱。PV電位を見る。</td></tr>
+      <tr><td class="k">PVC / Idiopathic VT</td><td>心室から早期の余分な拍。起源の局所Vが体表QRSより先行。</td></tr>
+    </table>
+  </section>
+
+  <section id="safety">
+    <h2 class="sec">9. 安全上の注意</h2>
+    <div class="warnbox">
+      <b>これは教育用シミュレーターです。</b>
+      <ul>
+        <li>表示される波形・数値・解説は<b>すべて合成・概念モデル</b>であり、実患者の所見ではありません。</li>
+        <li>解説文・interval の値は<b>臨床監修待ちのドラフト</b>です。教材として使う前に院内の責任ある専門家(指導医・主任技士)の確認・確定を受けてください。</li>
+        <li>診断・治療の判断には使用しないでください。実臨床では<b>医師の指示・院内ルール・実際の使用機器の表示を最優先</b>してください。</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    本ツールは教育・確認補助を目的とした合成波形シミュレーターです。実患者データではありません。診断・治療判断には使用せず、実臨床では医師の指示、院内ルール、使用機器の表示を優先してください。<br>
+    <span class="muted">本書はツールの操作補助です。詳しい開発情報・疾患追加方法は README をご覧ください。</span>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CIED check Lab 簡易取扱説明書</title>
+    <script>(function(){var t=localStorage.getItem('pacecheck-theme');if(!t)t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t)})()</script>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f4f7f8;
+        --surface: #ffffff;
+        --surface-soft: #eef5f3;
+        --ink: #21313a;
+        --muted: #667780;
+        --line: #d7e2df;
+        --primary: #0f766e;
+        --primary-dark: #0b5f59;
+        --accent: #d97706;
+      }
+      :root[data-theme="dark"] {
+        --bg: #0f1419;
+        --surface: #1a2228;
+        --surface-soft: #1e2a30;
+        --ink: #e0e8ec;
+        --muted: #8b99a3;
+        --line: #2a3840;
+        --primary: #14b8a6;
+        --primary-dark: #2dd4bf;
+        --accent: #f59e0b;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+        line-height: 1.75;
+      }
+      .wrap { max-width: 880px; margin: 0 auto; padding: 28px 20px 60px; }
+      header.top {
+        display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+        border-bottom: 2px solid var(--line); padding-bottom: 16px; margin-bottom: 8px;
+      }
+      .eyebrow { color: var(--primary); font-weight: 900; font-size: 12px; letter-spacing: .06em; margin: 0; }
+      h1 { font-size: 26px; margin: 4px 0 0; }
+      .lead { color: var(--muted); margin: 8px 0 0; }
+      .theme-toggle {
+        flex: none; min-height: 34px; border: 1px solid var(--line); border-radius: 6px;
+        background: transparent; color: var(--muted); padding: 4px 12px; font-size: 13px; font-weight: 800; cursor: pointer;
+      }
+      .theme-toggle:hover { border-color: var(--primary); color: var(--primary-dark); }
+      section { margin-top: 28px; }
+      h2 { font-size: 19px; margin: 0 0 10px; padding-left: 10px; border-left: 4px solid var(--primary); }
+      h3 { font-size: 15px; margin: 16px 0 6px; color: var(--primary-dark); }
+      p { margin: 6px 0; }
+      ul, ol { margin: 6px 0; padding-left: 22px; }
+      li { margin: 3px 0; }
+      .card {
+        border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+        padding: 16px 18px; margin: 12px 0;
+      }
+      .tag {
+        display: inline-block; padding: 2px 10px; border-radius: 999px;
+        background: rgba(15,118,110,0.14); color: var(--primary-dark);
+        font-size: 12px; font-weight: 900; margin-right: 8px;
+      }
+      table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 14px; }
+      th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+      th { background: var(--surface-soft); font-weight: 900; }
+      a { color: var(--primary-dark); font-weight: 700; }
+      .pill-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+      .kbd { display:inline-block; border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:0 6px; font-weight:800; font-size:12px; background:var(--surface-soft); }
+      .notice {
+        margin: 14px 0; padding: 14px 16px; border: 1px solid rgba(217,119,6,0.5);
+        border-left: 5px solid var(--accent); border-radius: 8px; background: rgba(217,119,6,0.10);
+      }
+      .notice strong { color: var(--accent); }
+      .steps { counter-reset: step; list-style: none; padding-left: 0; }
+      .steps > li { position: relative; padding-left: 34px; margin: 8px 0; }
+      .steps > li::before {
+        counter-increment: step; content: counter(step);
+        position: absolute; left: 0; top: 1px; width: 24px; height: 24px;
+        display: grid; place-items: center; border-radius: 999px;
+        background: var(--primary); color: #fff; font-weight: 900; font-size: 13px;
+      }
+      .muted { color: var(--muted); }
+      footer { margin-top: 36px; border-top: 1px solid var(--line); padding-top: 14px; color: var(--muted); font-size: 13px; }
+      .toolnav { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 8px; margin-top: 10px; }
+      .toolnav a { display:block; border:1px solid var(--line); border-radius:8px; padding:10px 12px; background:var(--surface); text-decoration:none; }
+      .toolnav a:hover { border-color: var(--primary); background: var(--surface-soft); }
+      .toolnav a b { display:block; color: var(--primary-dark); }
+      .toolnav a span { display:block; color: var(--muted); font-size:12px; font-weight:700; }
+      @media print {
+        .theme-toggle, .toolnav { display: none !important; }
+        body { background: #fff; }
+        .card, table, .notice { break-inside: avoid; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <div>
+          <p class="eyebrow">Quick Guide</p>
+          <h1>CIED check Lab 簡易取扱説明書</h1>
+          <p class="lead">植え込み型心臓電気デバイス（CIED）のチェック業務を、教育・記録・操作練習の面から支援するブラウザ用ツール群の使い方をまとめた簡易ガイドです。</p>
+        </div>
+        <button id="themeToggle" class="theme-toggle" type="button">☾ ダーク</button>
+      </header>
+
+      <div class="notice">
+        <strong>⚠ ご注意：</strong>本ツールは個人で作成した教育・確認補助ツールであり、診療判断を代替するものではありません。実臨床では、患者状態・使用機器・院内運用・医師の指示等により対応が異なる場合があるため、必ず医師の指示および院内ルールを優先してください。
+      </div>
+
+      <section>
+        <h2>1. はじめに</h2>
+        <p>本ツール群は、インストール不要・ネット接続不要で動くブラウザアプリです。新人教育、手順の確認、プログラマー操作の練習に使えます。実機の代替・診断用途ではありません。</p>
+        <h3>動作環境・基本操作</h3>
+        <ul>
+          <li>Chrome / Edge / Safari などの一般的なブラウザで <b>HTMLファイルを開くだけ</b>。参考文献リンクを開くとき以外はオフラインで動作します。</li>
+          <li>右上の <span class="kbd">☀ ライト / ☾ ダーク</span> でテーマを切替えできます。</li>
+          <li>練習履歴・設定は <b>使用したブラウザ内</b>（localStorage）に保存されます。別PC・別ブラウザには引き継がれません。</li>
+          <li>入口は <a href="./PaceCheckLab.html">CIED check Lab</a>。ここから各ツールを開きます。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>2. ツール構成（目的 × 対象デバイス）</h2>
+        <p>入口の Lab は「<b>学ぶ</b>」と「<b>試す（操作シミュレーター）</b>」の2系統に分かれ、試す側は対象デバイス別に選びます。</p>
+        <table>
+          <tr><th>系統</th><th>ツール</th><th>役割</th></tr>
+          <tr><td>学ぶ・記録</td><td><span class="tag">学ぶ</span>CIED check Studio</td><td>教育コンテンツ、チェック手順、測定の考え方、症例、レポート（PDF出力）</td></tr>
+          <tr><td rowspan="3">試す（操作練習）</td><td><span class="tag">基本PM</span>CIED check Arena</td><td>プログラマー操作シミュレーター（波高値・閾値チェックの練習＋採点）</td></tr>
+          <tr><td><span class="tag">CRT</span>CIED check CRT</td><td>CRT-P / CRT-D の同期・最適化シミュレーター</td></tr>
+          <tr><td><span class="tag">ICD</span>CIED check ICD</td><td>ICD / CRT-D の検出ゾーン・治療設定シミュレーター</td></tr>
+        </table>
+        <div class="toolnav">
+          <a href="./PaceCheckLab.html"><b>Lab（入口）</b><span>ツール選択</span></a>
+          <a href="./PaceCheck%20Studio.html"><b>Studio</b><span>学ぶ・記録</span></a>
+          <a href="./PaceCheck%20Arena/PaceCheck%20Arena.html"><b>Arena</b><span>基本PM 操作練習</span></a>
+          <a href="./PaceCheck%20CRT/PaceCheck%20CRT.html"><b>CRT</b><span>CRT 最適化</span></a>
+          <a href="./PaceCheck%20ICD/PaceCheck%20ICD.html"><b>ICD</b><span>ICD 治療設定</span></a>
+        </div>
+      </section>
+
+      <section>
+        <h2>3. CIED check Studio（学ぶ・記録）</h2>
+        <p>上部タブで機能を切替えます。</p>
+        <div class="pill-row">
+          <span class="tag">学習</span><span class="tag">ロジック</span><span class="tag">CIED check Arena</span><span class="tag">手順</span><span class="tag">測定</span><span class="tag">症例</span><span class="tag">レポート</span>
+        </div>
+        <ul>
+          <li><b>学習 / ロジック</b>：ペースメーカーの基本とチェックの考え方を学べます。</li>
+          <li><b>手順 / 測定</b>：プログラマー操作手順、波高値・閾値の測定条件を確認できます。</li>
+          <li><b>症例</b>：症例ベースの確認。</li>
+          <li><b>CIED check Arena</b>タブ：操作練習ツール（Arena）を開きます。</li>
+          <li><b>レポート</b>：<span class="kbd">PDF出力</span>で印刷用レポートを作成できます（ブラウザの印刷→PDF保存）。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. CIED check Arena（基本PM 操作シミュレーター）</h2>
+        <p>症例ごとに Programmer（プログラマー）を操作し、波高値・閾値のチェックを練習・採点するツールです。<b>波高値は自己波、閾値はペーシング</b>が出ている条件で測定するのが基本です。</p>
+
+        <h3>画面の見方</h3>
+        <ul>
+          <li><b>ECG + Marker</b>：心電図とマーカー（下表）を表示。</li>
+          <li><b>Programmer</b>：下限レート・SAV/PAV・A/V出力・A/V感度・DDD/VVIモードを操作。各行に初期値からの差を表示。</li>
+          <li><b>Measurements</b>：4項目（A波高値・V波高値・A閾値・V閾値）を「記録」または「測定不可」で判断。先頭に <span class="kbd">デフォルト設定</span>（設定を症例開始時へ戻す）、末尾に <span class="kbd">テスト終了</span>。</li>
+        </ul>
+
+        <table>
+          <tr><th>マーカー</th><th>意味</th><th>測定対象</th></tr>
+          <tr><td>AS</td><td>自己P波を感知</td><td>A波高値</td></tr>
+          <tr><td>AP</td><td>心房ペーシング</td><td>A閾値</td></tr>
+          <tr><td>VS</td><td>自己R波を感知</td><td>V波高値</td></tr>
+          <tr><td>VP</td><td>心室ペーシング</td><td>V閾値</td></tr>
+        </table>
+
+        <h3>基本の流れ</h3>
+        <ol class="steps">
+          <li>上部の「トレーニング症例」を選ぶ。</li>
+          <li>Programmerで設定を変え、Markerを目的の状態（AS/AP/VS/VP）にする。</li>
+          <li>波高値は自己波（AS/VS）中に「記録」、閾値はペーシング（AP/VP）を出力低下させて捕捉/脱落（LOC）境界を確認し「記録」。出ない症例は「測定不可」を判断。</li>
+          <li>測定後は <b>デフォルト設定</b>で設定を戻す。</li>
+          <li><b>テスト終了</b>で採点。</li>
+        </ol>
+
+        <h3>採点ルール</h3>
+        <ul>
+          <li><b>100点満点 / 合格80点 / 全4項目クリア</b>。</li>
+          <li>無関係な動作（目的外の設定・モード変更）は <b>−10点</b>（同方向の連打は初回のみ）。</li>
+          <li>誤判定（出るのに測定不可など）も減点。正しい「測定不可」は加点。</li>
+          <li>VVIへ切替えてV波高値を確認した後は、<b>DDDへ戻すまで次の測定に進めません</b>（実臨床でも一時的なVVIのまま放置しないため）。</li>
+        </ul>
+
+        <h3>便利機能</h3>
+        <ul>
+          <li><span class="kbd">🔊 / 🔈</span> 音（心電図音・効果音）ON/OFF、<span class="kbd">ヒント ON/OFF</span>。</li>
+          <li>DDD / VVI モード切替。下限レートは最大200 ppmまで。</li>
+          <li>キーボード操作にも対応（各操作ボタンにショートカット表示）。</li>
+        </ul>
+        <p class="muted">より詳しい操作は <a href="./docs/PaceCheck_Arena_Operation_Manual.html">Arena 操作マニュアル（HTML）</a> を参照してください。</p>
+      </section>
+
+      <section>
+        <h2>5. CIED check CRT</h2>
+        <p>CRT-P / CRT-D の同期・最適化を学ぶシミュレーターです。症例を選び、AV/VV delay・LV offset・BiV capture・LV出力などを調整し、同期スコアと推定QRS幅の変化を確認します。</p>
+        <h3>テストモード</h3>
+        <ul>
+          <li><span class="kbd">テスト開始</span>→各項目を最適化→<span class="kbd">テスト終了</span>で採点（5項目・各18点＋全達成ボーナス10＝100点、合格80点）。</li>
+          <li>主な最適化項目：AV delay / VV delay / LV offset / BiV capture / LV出力。</li>
+          <li>MPP（マルチポイントペーシング）の有効性は不確実なため、本ツールでは <b>「検討」扱い</b>で採点には含めません。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>6. CIED check ICD</h2>
+        <p>ICD / CRT-D の検出ゾーンと治療設定を学ぶシミュレーターです。症例の入力レートとEGM文脈に対し、ゾーン・SVT判別・ATP・ショックの設定を判断します。</p>
+        <h3>テストモード</h3>
+        <ul>
+          <li><span class="kbd">テスト開始</span>→各項目を最適化→<span class="kbd">テスト終了</span>で採点（5項目・各18点＋全達成ボーナス10＝100点、合格80点）。</li>
+          <li>主な最適化項目：Monitor / VT / VF ゾーン、Detection（検出時間）、治療設定（SVT判別・ATP Burst/Ramp・ショック）。</li>
+          <li>不適切作動を避ける設計（高めの治療ゾーン・長めの検出・SVT判別・ATP先行）の考え方を練習できます。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>7. 用語ミニ辞典</h2>
+        <table>
+          <tr><th>用語</th><th>意味</th></tr>
+          <tr><td>波高値</td><td>自己波（P波・R波）の大きさ。感度設定との余裕を見る。自己波が出ている条件で測定。</td></tr>
+          <tr><td>閾値</td><td>ペーシングで心筋を捕捉できる最小出力。出力を下げて捕捉/脱落（LOC）の境界を確認。</td></tr>
+          <tr><td>LOC</td><td>Loss of Capture（捕捉消失）。出力を下げて脱落した状態。</td></tr>
+          <tr><td>測定不可</td><td>自己波が安全に引き出せない等で測定できないと判断した記録。根拠（確認手順）を踏んでから選ぶ。</td></tr>
+          <tr><td>SAV / PAV</td><td>Sensed / Paced AV delay。AS後／AP後の房室間隔。</td></tr>
+          <tr><td>BiV capture</td><td>両心室ペーシングの割合。CRT効果の指標。</td></tr>
+        </table>
+      </section>
+
+      <div class="notice">
+        <strong>⚠ ご注意（再掲）：</strong>本ツールは個人で作成した教育・確認補助ツールであり、診療判断を代替するものではありません。表示される値・手順・採点は学習用の簡略化モデルです。実臨床では各社プログラマーのマニュアル、施設手順、医師の指示、患者状態に必ず従ってください。
+      </div>
+
+      <footer>
+        CIED check Lab — 簡易取扱説明書 ｜ 教育用シミュレーター（実機・診断の代替ではありません）<br>
+        入口：<a href="./PaceCheckLab.html">PaceCheckLab.html</a>
+      </footer>
+    </div>
+
+    <script>
+      (function(){
+        var btn = document.getElementById('themeToggle');
+        function update(){ btn.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀ ライト' : '☾ ダーク'; }
+        btn.addEventListener('click', function(){
+          var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('pacecheck-theme', next);
+          update();
+        });
+        update();
+      })();
+    </script>
+  </body>
+</html>

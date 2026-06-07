@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CIED check Lab</title>
+    <script>(function(){var t=localStorage.getItem('pacecheck-theme');if(!t)t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t)})()</script>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f4f7f8;
+        --surface: #ffffff;
+        --ink: #21313a;
+        --muted: #667780;
+        --line: #d7e2df;
+        --primary: #0f766e;
+        --primary-dark: #0b5f59;
+      }
+
+      :root[data-theme="dark"] {
+        --bg: #0f1419;
+        --surface: #1a2228;
+        --ink: #e0e8ec;
+        --muted: #8b99a3;
+        --line: #2a3840;
+        --primary: #14b8a6;
+        --primary-dark: #0d9488;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      main {
+        position: relative;
+        width: min(760px, calc(100% - 32px));
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: 0 18px 40px rgba(24, 39, 46, 0.09);
+      }
+
+      .theme-toggle {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        min-height: 32px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--muted);
+        padding: 4px 10px;
+        font-size: 13px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .theme-toggle:hover {
+        border-color: var(--primary);
+        color: var(--primary-dark);
+      }
+
+      p {
+        color: var(--muted);
+      }
+
+      .links {
+        display: grid;
+        gap: 12px;
+        margin-top: 22px;
+      }
+
+      a {
+        display: block;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      a:hover {
+        border-color: var(--primary);
+        background: #eef5f3;
+      }
+
+      strong {
+        display: block;
+        color: var(--primary-dark);
+        font-size: 18px;
+      }
+
+      span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+      }
+
+      [data-theme="dark"] main {
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+      }
+
+      [data-theme="dark"] a:hover {
+        background: #1e2a30;
+      }
+
+      /* 2軸ナビ：モード（学ぶ/試す）グループ × 対象デバイスタグ */
+      .tool-group {
+        margin-top: 22px;
+      }
+      .group-label {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin: 0 0 8px;
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: .02em;
+        color: var(--primary-dark);
+      }
+      .group-label small {
+        font-weight: 700;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .links {
+        margin-top: 0;
+      }
+      .links.devices {
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      }
+      .card-tag {
+        display: inline-block;
+        margin: 0 0 6px;
+        padding: 2px 10px;
+        border-radius: 999px;
+        background: rgba(15, 118, 110, 0.13);
+        color: var(--primary-dark);
+        font-size: 12px;
+        font-weight: 900;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <button id="themeToggle" class="theme-toggle" type="button"></button>
+      <h1>CIED check Lab</h1>
+      <p>まず目的（学ぶ／試す）を選び、操作を試す場合は対象デバイスを選んでください。</p>
+      <a href="./PaceCheck_Lab_QuickGuide.html" style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:8px 14px;width:auto;border:1px solid var(--line);border-radius:8px;color:var(--primary-dark);font-size:14px;font-weight:800;text-decoration:none;">📖 はじめての方へ — 簡易取扱説明書（使い方ガイド）</a>
+
+      <div class="tool-group">
+        <p class="group-label">学ぶ・記録する <small>教育コンテンツとチェック記録</small></p>
+        <div class="links">
+          <a href="./PaceCheck%20Studio.html">
+            <span class="card-tag">学ぶ</span>
+            <strong>CIED check Studio</strong>
+            <span>教育・記録・PDF出力ツール</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <p class="group-label">試す（操作シミュレーター） <small>対象デバイスを選択</small></p>
+        <div class="links devices">
+          <a href="./PaceCheck%20Arena/PaceCheck%20Arena.html">
+            <span class="card-tag">基本PM</span>
+            <strong>CIED check Arena</strong>
+            <span>プログラマー操作シミュレーター</span>
+          </a>
+          <a href="./PaceCheck%20CRT/PaceCheck%20CRT.html">
+            <span class="card-tag">CRT</span>
+            <strong>CIED check CRT</strong>
+            <span>CRT-P / CRT-D 教育・最適化シミュレーター</span>
+          </a>
+          <a href="./PaceCheck%20ICD/PaceCheck%20ICD.html">
+            <span class="card-tag">ICD</span>
+            <strong>CIED check ICD</strong>
+            <span>ICD / CRT-D 検出・治療設定シミュレーター</span>
+          </a>
+        </div>
+      </div>
+      <p style="margin:18px 0 0;padding:12px 14px;border:1px solid rgba(217,119,6,0.5);border-left:4px solid #d97706;border-radius:8px;background:rgba(217,119,6,0.10);font-size:13px;line-height:1.75;">
+        <strong>⚠ ご注意：</strong>本ツールは個人で作成した教育・確認補助ツールであり、診療判断を代替するものではありません。実臨床では、患者状態・使用機器・院内運用・医師の指示等により対応が異なる場合があるため、必ず医師の指示および院内ルールを優先してください。
+      </p>
+    </main>
+    <script>
+      function updateThemeButton() {
+        var btn = document.getElementById('themeToggle');
+        if (btn) btn.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀ ライト' : '☾ ダーク';
+      }
+      document.getElementById('themeToggle').addEventListener('click', function() {
+        var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('pacecheck-theme', next);
+        updateThemeButton();
+      });
+      updateThemeButton();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IABP タイミング学習ツール</title>
+  <link rel="stylesheet" href="styles.css?v=5">
+</head>
+<body>
+  <header>
+    <h1>IABP タイミング学習ツール</h1>
+    <p class="subtitle">大動脈内バルーンパンピング (IABP) の拡張・収縮タイミングを学ぶ</p>
+    <p class="header-note">⚠ 教育用シミュレーション — 実臨床判断には必ず医師の指示・院内ルールを優先してください</p>
+  </header>
+
+  <div class="container">
+    <aside class="left-panel">
+      <section class="card">
+        <h3>トリガーモード</h3>
+        <div class="mode-buttons mode-grid">
+          <button class="mode-btn active" data-mode="ecg">
+            <span class="mode-title">ECG</span>
+            <span class="mode-desc">R波・T波終末</span>
+          </button>
+          <button class="mode-btn" data-mode="pressure">
+            <span class="mode-title">圧</span>
+            <span class="mode-desc">ノッチ検出</span>
+          </button>
+          <button class="mode-btn" data-mode="pacing">
+            <span class="mode-title">ペーシング</span>
+            <span class="mode-desc">スパイク検出</span>
+          </button>
+          <button class="mode-btn" data-mode="internal">
+            <span class="mode-title">インターナル</span>
+            <span class="mode-desc">固定レート</span>
+          </button>
+        </div>
+        <div class="control-group" id="internal-options" style="display: none;">
+          <label>患者心電図 (インターナル時)</label>
+          <div class="ratio-buttons">
+            <button class="internal-rhythm-btn active" data-rhythm="vf">VF (心室細動)</button>
+            <button class="internal-rhythm-btn" data-rhythm="asystole">心静止</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>動作設定</h3>
+
+        <div class="control-group">
+          <label id="hr-label">心拍数 (HR)</label>
+          <div class="slider-row">
+            <input type="range" id="hr-slider" min="40" max="140" value="60" step="1">
+            <span class="value-display"><span id="hr-value">60</span><span class="unit">bpm</span></span>
+          </div>
+          <div class="control-hint" id="hr-hint">心周期: <span id="cycle-display">1000</span> ms</div>
+        </div>
+
+        <div class="control-group">
+          <label>補助比 (Augmentation Ratio)</label>
+          <div class="ratio-buttons">
+            <button class="ratio-btn" data-ratio="1">1:1</button>
+            <button class="ratio-btn active" data-ratio="2">1:2</button>
+            <button class="ratio-btn" data-ratio="3">1:3</button>
+          </div>
+          <div class="control-hint">補助頻度。1:2 が学習標準 (非補助拍と比較可)</div>
+        </div>
+
+        <div class="control-group">
+          <button id="play-pause-btn" class="play-pause-btn playing">
+            <span class="icon">❚❚</span><span class="text">一時停止</span>
+          </button>
+        </div>
+
+        <div class="control-group">
+          <label>R波ビープ音</label>
+          <div class="slider-row">
+            <button id="sound-btn" class="play-pause-btn sound-on" style="flex: 1;">
+              <span class="icon">🔊</span><span class="text">音声 ON</span>
+            </button>
+          </div>
+          <div class="slider-row" style="margin-top: 6px;">
+            <input type="range" id="pitch-slider" min="800" max="5000" value="3200" step="100">
+            <span class="value-display"><span id="pitch-value">3200</span><span class="unit">Hz</span></span>
+          </div>
+          <div class="control-hint">高音ほど音程が高くなる。音は検出されたR波に同期。R波がない波形では鳴らない。</div>
+        </div>
+      </section>
+
+      <section class="card" id="timing-card">
+        <h3>タイミング調整</h3>
+
+        <div class="control-group">
+          <label id="inflation-label">バルーン拡張 (Inflation)</label>
+          <div class="slider-row">
+            <input type="range" id="inflation-slider" min="5" max="80" value="35" step="1">
+            <span class="value-display"><span id="inflation-value">35</span><span class="unit">%</span></span>
+          </div>
+          <div class="control-hint" id="inflation-hint">目標 35% (R波後 <span id="inflation-ms">350</span>ms ≒ T波終末 / ディクロティックノッチ)</div>
+        </div>
+
+        <div class="control-group">
+          <label id="deflation-label">バルーン収縮 (Deflation)</label>
+          <div class="slider-row">
+            <input type="range" id="deflation-slider" min="50" max="115" value="98" step="1">
+            <span class="value-display"><span id="deflation-value">98</span><span class="unit">%</span></span>
+          </div>
+          <div class="control-hint" id="deflation-hint">目標 98% (R波後 <span id="deflation-ms">980</span>ms 等容収縮期、R波近傍)</div>
+        </div>
+
+        <h4 class="preset-title">プリセット</h4>
+        <div class="preset-buttons">
+          <button data-preset="perfect">正常</button>
+          <button data-preset="early-inf">早期拡張</button>
+          <button data-preset="late-inf">遅延拡張</button>
+          <button data-preset="early-def">早期収縮</button>
+          <button data-preset="late-def">遅延収縮</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>表示オプション</h3>
+        <label class="checkbox-row">
+          <input type="checkbox" id="show-landmarks" checked>
+          <span>波形ランドマーク (A-E) を表示</span>
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" id="show-reference">
+          <span>基準ライン (理想位置) を表示</span>
+        </label>
+      </section>
+
+      <section class="card">
+        <h3>学習</h3>
+        <div class="hint-selector" id="test-hint-selector">
+          <span>テストヒント</span>
+          <button class="hint-btn active" data-hints="off">なし</button>
+          <button class="hint-btn" data-hints="on">あり</button>
+        </div>
+        <button id="test-start-btn" class="play-pause-btn">
+          <span class="icon">📚</span><span class="text">テストモード開始</span>
+        </button>
+        <button id="tune-start-btn" class="play-pause-btn tune-start-btn">
+          <span class="icon">🎚</span><span class="text">調整テスト開始</span>
+        </button>
+        <div class="control-hint" style="margin-top: 8px;">
+          5択判定、またはヒント無しで Inf/Def を合わせる実技形式。
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>ヘルプ</h3>
+        <a href="manual.html" class="play-pause-btn manual-link" style="text-decoration: none; display: flex;">
+          <span class="icon">📖</span><span class="text">取扱説明を開く</span>
+        </a>
+        <div class="control-hint" style="margin-top: 8px;">
+          使い方・各モード解説・FAQ など
+        </div>
+      </section>
+    </aside>
+
+    <main class="main-panel">
+      <section class="card waveform-card">
+        <div class="canvas-wrap">
+          <canvas id="waveform-canvas" width="960" height="510"></canvas>
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="dot ecg"></span>ECG</span>
+          <span class="legend-item"><span class="dot ap"></span>AP（カテ先端圧）</span>
+          <span class="legend-item"><span class="dot bp"></span>バルーン内圧</span>
+          <span class="legend-item"><span class="line inflation"></span>Inflation</span>
+          <span class="legend-item"><span class="line deflation"></span>Deflation</span>
+        </div>
+      </section>
+
+      <section class="card eval-card" id="eval-card">
+        <h3>タイミング評価</h3>
+        <div id="eval-inflation" class="eval-row"></div>
+        <div id="eval-deflation" class="eval-row"></div>
+
+        <h4>血行動態指標 (直近補助拍)</h4>
+        <div class="hemo-grid">
+          <div class="hemo-item"><span class="hemo-label">A: 非補助収縮期圧</span><span class="hemo-value"><span id="hemo-a">120</span> mmHg</span></div>
+          <div class="hemo-item"><span class="hemo-label">B: 非補助拡張末期圧</span><span class="hemo-value"><span id="hemo-b">78</span> mmHg</span></div>
+          <div class="hemo-item highlight"><span class="hemo-label">C: 補助拡張期ピーク</span><span class="hemo-value"><span id="hemo-c">145</span> mmHg</span></div>
+          <div class="hemo-item highlight"><span class="hemo-label">D: 補助収縮期圧</span><span class="hemo-value"><span id="hemo-d">115</span> mmHg</span></div>
+          <div class="hemo-item highlight"><span class="hemo-label">E: BAEDP</span><span class="hemo-value"><span id="hemo-e">62</span> mmHg</span></div>
+          <div class="hemo-item"><span class="hemo-label">C - A 差 (augmentation)</span><span class="hemo-value"><span id="hemo-ca">+25</span> mmHg</span></div>
+        </div>
+        <div class="hemo-criteria">
+          <div class="criteria-row" id="crit-c-vs-a"></div>
+          <div class="criteria-row" id="crit-d-vs-a"></div>
+          <div class="criteria-row" id="crit-e-vs-b"></div>
+        </div>
+      </section>
+
+      <section class="card test-card" id="test-card" style="display: none;">
+        <div class="test-header">
+          <h3>📚 タイミング判定テスト</h3>
+          <div class="test-stats">
+            <span class="stat-correct">正解 <span id="test-correct">0</span></span>
+            <span class="stat-sep">/</span>
+            <span class="stat-total"><span id="test-total">0</span> 問</span>
+            <span class="stat-score"><span id="test-score">0</span> 点</span>
+            <span class="stat-pct" id="test-pct"></span>
+          </div>
+        </div>
+        <div class="difficulty-selector">
+          <label>難易度:</label>
+          <button class="diff-btn active" data-diff="easy">易</button>
+          <button class="diff-btn" data-diff="medium">中</button>
+          <button class="diff-btn" data-diff="hard">難</button>
+          <button class="diff-btn" data-diff="extreme">鬼</button>
+        </div>
+        <p class="test-question">この波形のタイミング異常を判定してください:</p>
+        <div class="test-buttons">
+          <button data-answer="perfect" class="test-answer-btn span-2">◯ 正常タイミング</button>
+          <button data-answer="early-inf" class="test-answer-btn">早期拡張 (Early Inflation)</button>
+          <button data-answer="late-inf" class="test-answer-btn">遅延拡張 (Late Inflation)</button>
+          <button data-answer="early-def" class="test-answer-btn">早期収縮 (Early Deflation)</button>
+          <button data-answer="late-def" class="test-answer-btn">遅延収縮 (Late Deflation)</button>
+        </div>
+        <div id="test-feedback" class="test-feedback" style="display: none;"></div>
+        <div class="test-controls">
+          <button id="test-next-btn" class="play-pause-btn" style="display: none;">
+            <span class="icon">▶</span><span class="text">次の問題</span>
+          </button>
+          <button id="test-reset-btn" class="play-pause-btn">
+            <span class="icon">↻</span><span class="text">スコアリセット</span>
+          </button>
+          <button id="test-exit-btn" class="play-pause-btn">
+            <span class="icon">✕</span><span class="text">テスト終了</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="card tune-card" id="tune-card" style="display: none;">
+        <div class="test-header">
+          <h3>🎚 タイミング調整テスト</h3>
+          <div class="test-stats">
+            <span class="stat-correct">合格 <span id="tune-correct">0</span></span>
+            <span class="stat-sep">/</span>
+            <span class="stat-total"><span id="tune-total">0</span> 問</span>
+            <span class="stat-score"><span id="tune-score">0</span> 点</span>
+            <span class="stat-pct" id="tune-pct"></span>
+          </div>
+        </div>
+        <div class="tune-meta">
+          <span id="tune-rhythm">洞調律</span>
+          <span id="tune-display">ECG + AP</span>
+          <span id="tune-trigger">ECGトリガー</span>
+        </div>
+        <p class="test-question" id="tune-question">左のスライダーで Inflation / Deflation を合わせてください。</p>
+        <label class="trigger-choice">
+          <input type="checkbox" id="tune-rwave-trigger">
+          <span>R波トリガー収縮を使用</span>
+        </label>
+        <div id="tune-feedback" class="test-feedback" style="display: none;"></div>
+        <div class="test-controls">
+          <button id="tune-evaluate-btn" class="play-pause-btn">
+            <span class="icon">✓</span><span class="text">評価する</span>
+          </button>
+          <button id="tune-next-btn" class="play-pause-btn" style="display: none;">
+            <span class="icon">▶</span><span class="text">次の問題</span>
+          </button>
+          <button id="tune-exit-btn" class="play-pause-btn">
+            <span class="icon">✕</span><span class="text">終了</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="card info-card">
+        <h3 id="info-title">解説</h3>
+        <div id="info-content"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="disclaimer-banner" role="alert">
+    <strong>⚠ 重要 / Disclaimer</strong>
+    <p>本ツールは個人が作成した <strong>教育・学習補助目的のシミュレーション</strong>であり、診療判断・治療判断を代替するものではありません。</p>
+    <p>実臨床では、患者状態・使用機器・院内運用・主治医の指示等により対応が異なる場合があるため、
+    必ず <strong>担当医師の指示および施設の院内ルール・機器マニュアル</strong>を優先してください。
+    本ツールを用いた判断によるいかなる結果についても、開発者は責任を負いません。</p>
+  </div>
+
+  <footer>
+    <small>参考: Deranged Physiology, EMCrit IBCC, LITFL — IABP教育用シミュレーション。</small>
+  </footer>
+
+  <script src="script.js?v=24"></script>
+</body>
+</html>

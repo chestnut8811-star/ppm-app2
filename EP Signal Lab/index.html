@@ -1,0 +1,2499 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>心内心電図トレーニングシミュレーター</title>
+<style>
+  /* ============================================================
+     ダークテーマ / EPラボのポリグラフ風UI (SPEC §8)
+     ============================================================ */
+  :root{
+    --bg:#070a0f;            /* 画面背景(黒〜濃紺) */
+    --panel:#0e141d;         /* パネル背景 */
+    --panel2:#121a25;        /* やや明るいパネル */
+    --line:#1d2733;          /* 罫線 */
+    --text:#d7e2ee;          /* 主要テキスト */
+    --muted:#7f8ea0;         /* 補助テキスト */
+    --accent:#46f08c;        /* アクセント(緑) */
+    --warn:#ffd24a;          /* 注意(黄) */
+    --danger:#ff5d6c;        /* 警告(赤) */
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;
+    font-size:13px; line-height:1.5;
+    display:flex; flex-direction:column; height:100vh; overflow:hidden;
+  }
+
+  /* ---- ヘッダー (SPEC §4.1) ---- */
+  header.app-header{
+    flex:0 0 auto; padding:8px 14px; background:linear-gradient(180deg,#0c1320,#0a0f18);
+    border-bottom:1px solid var(--line); display:flex; align-items:baseline; gap:14px;
+  }
+  header.app-header h1{ font-size:15px; margin:0; letter-spacing:.02em; }
+  header.app-header .caution{ color:var(--warn); font-size:12px; }
+  header.app-header .phase{ margin-left:auto; color:var(--muted); font-size:11px; border:1px solid var(--line); padding:2px 8px; border-radius:999px; }
+  header.app-header .manual-link{ color:var(--accent); font-size:11px; border:1px solid var(--accent); padding:2px 11px; border-radius:999px; text-decoration:none; white-space:nowrap; }
+  header.app-header .manual-link:hover{ background:var(--accent); color:#04240f; }
+
+  /* ---- 本体レイアウト ---- */
+  .app{ flex:1 1 auto; display:flex; min-height:0; }
+
+  /* ---- 左サイドバー (SPEC §4.2) ---- */
+  .sidebar{
+    flex:0 0 248px; background:var(--panel); border-right:1px solid var(--line);
+    padding:12px; overflow-y:auto;
+  }
+  .sidebar .group{ margin-bottom:16px; }
+  .sidebar .group > .label{ color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
+  .sidebar select{
+    width:100%; background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:6px; padding:6px 8px; font-size:13px;
+  }
+  .seg{ display:flex; gap:4px; }
+  .seg button{ flex:1; }
+  button.btn{
+    background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:6px; padding:6px 8px; cursor:pointer; font-size:12px;
+  }
+  button.btn:hover{ border-color:#2a3a4c; }
+  button.btn.on{ background:var(--accent); color:#04240f; border-color:var(--accent); font-weight:600; }
+  button.btn.primary{ background:var(--accent); color:#04240f; border-color:var(--accent); font-weight:600; }
+  button.btn.primary.paused{ background:var(--panel2); color:var(--text); border-color:var(--line); font-weight:400; }
+  .row2{ display:flex; gap:6px; }
+  .row2 .btn{ flex:1; }
+  .hint{ color:var(--muted); font-size:11px; margin-top:6px; }
+  .pending{ opacity:.45; }
+  .pending .label::after{ content:" — Phase 2+"; color:var(--muted); }
+
+  /* ---- 波形ステージ (SPEC §4.3) ---- */
+  .stage-wrap{ position:relative; flex:1 1 auto; min-width:0; background:#000; }
+  canvas#scope{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+  /* 画面右上の状態表示 (SPEC §8) */
+  .hud{
+    position:absolute; top:8px; right:10px; z-index:5; pointer-events:none;
+    background:rgba(8,12,18,.72); border:1px solid var(--line); border-radius:8px;
+    padding:6px 10px; font-size:11px; color:var(--muted); backdrop-filter:blur(2px);
+    display:grid; grid-template-columns:auto auto; gap:1px 12px; min-width:150px;
+  }
+  .hud b{ color:var(--text); font-weight:600; }
+  .hud .fps b{ color:var(--accent); }
+
+  /* ---- 右パネル (SPEC §4.4): 疾患説明 / interval 自動計算 / 観察・鑑別ポイント ---- */
+  .rightpanel{
+    flex:0 0 312px; background:var(--panel); border-left:1px solid var(--line);
+    padding:12px 14px; overflow-y:auto;
+  }
+  .rightpanel h2{ font-size:14px; margin:0 0 2px; color:var(--text); }
+  .rightpanel .sub{ color:var(--muted); font-size:11px; margin-bottom:10px; }
+  .rightpanel .sec{ margin-bottom:12px; }
+  .rightpanel .sec > .label{ color:var(--accent); font-size:11px; letter-spacing:.04em; margin-bottom:3px; font-weight:600; }
+  .rightpanel .sec p{ margin:0; font-size:12px; color:#c4d0dd; }
+  /* interval テーブル(自動計算) */
+  table.intervals{ width:100%; border-collapse:collapse; font-size:12px; }
+  table.intervals td{ padding:3px 6px; border-bottom:1px solid var(--line); }
+  table.intervals td.k{ color:var(--muted); width:42px; }
+  table.intervals td.v{ color:var(--text); font-weight:600; text-align:right; font-variant-numeric:tabular-nums; }
+  table.intervals td.v small{ color:var(--muted); font-weight:400; }
+  /* §6 不変条件チェック(計測確認ハーネスの結果) */
+  .audit{ background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+  .audit .audit-head{ font-size:11px; color:var(--muted); margin-bottom:6px; letter-spacing:.04em; }
+  .audit .chk{ display:flex; align-items:center; gap:6px; font-size:11.5px; padding:2px 0; }
+  .audit .chk .mk{ width:14px; text-align:center; font-weight:700; }
+  .audit .chk.ok .mk{ color:var(--accent); }
+  .audit .chk.ng .mk{ color:var(--danger); }
+  .audit .chk .val{ margin-left:auto; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .audit .audit-foot{ font-size:10.5px; color:var(--muted); margin-top:6px; }
+  /* 臨床監修待ちの注記 (SPEC §9 冒頭バナー) */
+  .draft-note{ font-size:10.5px; color:var(--warn); border:1px dashed rgba(255,210,74,.35); border-radius:6px; padding:6px 8px; margin-top:6px; }
+  /* やさしい解説(AI下書き・未監修)— 視覚的に区別 */
+  .plain{ background:rgba(70,240,140,0.05); border:1px solid rgba(70,240,140,0.25); border-radius:8px; padding:9px 11px; margin-bottom:12px; }
+  .plain .flag{ display:inline-block; font-size:10px; color:#0a0f17; background:var(--warn); border-radius:4px; padding:1px 7px; margin-bottom:7px; font-weight:700; }
+  .plain .prow{ margin:6px 0; font-size:12px; color:#d6e2ee; line-height:1.55; }
+  .plain .prow b{ color:var(--accent); font-weight:600; display:block; font-size:11px; margin-bottom:1px; }
+  /* 用語ガイド */
+  dl.glossary{ font-size:11px; margin:0; }
+  dl.glossary dt{ color:var(--accent); font-weight:600; margin-top:6px; }
+  dl.glossary dd{ margin:1px 0 0; color:#b3c1d0; }
+  /* ゲーム(診断チャレンジ) */
+  .g-timerwrap{ height:7px; background:#1d2733; border-radius:4px; overflow:hidden; margin:7px 0; }
+  .g-timerbar{ height:100%; width:100%; background:var(--accent); }
+  #game-box .audit-head{ display:flex; justify-content:space-between; align-items:center; }
+  #game-box select{ width:auto; flex:1; }
+
+  /* ---- フッター免責 (CLAUDE.md / SPEC §11 / 改変禁止・固定表示) ---- */
+  footer.disclaimer{
+    flex:0 0 auto; background:#0a0f17; border-top:1px solid var(--line);
+    color:var(--muted); font-size:11px; padding:6px 14px; line-height:1.45;
+  }
+</style>
+</head>
+<body>
+  <!-- ========================= ヘッダー (SPEC §4.1) ========================= -->
+  <header class="app-header">
+    <h1>心内心電図トレーニングシミュレーター</h1>
+    <span class="caution">教育用合成波形です。診療判断には使用しないでください。</span>
+    <span class="phase">Phase 2–4 — 全7疾患</span>
+    <a class="manual-link" href="manual.html" target="_blank" rel="noopener">📖 使い方</a>
+  </header>
+
+  <div class="app">
+    <!-- ========================= 左サイドバー (SPEC §4.2) ========================= -->
+    <aside class="sidebar">
+      <!-- SPEC §4.2 の並び。Baseline EPS のみ有効。他疾患は Phase 3+ で順次有効化。 -->
+
+      <div class="group" id="grp-disease">
+        <div class="label">疾患選択 / Disease</div>
+        <select id="sel-disease">
+          <option value="baselineEPS" selected>Sinus rhythm / Baseline EPS</option>
+          <option value="avnrt" disabled>AVNRT slow-fast(Phase 3)</option>
+          <option value="avrt" disabled>Orthodromic AVRT(Phase 4)</option>
+          <option value="aflutter" disabled>Typical atrial flutter(Phase 4)</option>
+          <option value="focalAT" disabled>Focal atrial tachycardia(Phase 4)</option>
+          <option value="afib" disabled>Atrial fibrillation / PVI(Phase 4)</option>
+          <option value="pvc" disabled>PVC / Idiopathic VT(Phase 4)</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <div class="label">表示速度 / Sweep speed</div>
+        <select id="sel-sweep">
+          <option value="25">25 mm/s</option>
+          <option value="50">50 mm/s</option>
+          <option value="100">100 mm/s</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <div class="label">Gain — intracardiac EGM</div>
+        <select id="sel-egm-gain">
+          <option value="0.5">×0.5</option>
+          <option value="1" selected>×1</option>
+          <option value="2">×2</option>
+          <option value="4">×4</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <div class="label">Gain — surface ECG</div>
+        <select id="sel-surf-gain">
+          <option value="5">5 mm/mV</option>
+          <option value="10" selected>10 mm/mV</option>
+          <option value="20">20 mm/mV</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <div class="label">ノイズ量 / Noise</div>
+        <select id="sel-noise">
+          <option value="none" selected>none</option>
+          <option value="low">low</option>
+          <option value="medium">medium</option>
+          <option value="high">high</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <div class="label">スクロール方向</div>
+        <div class="seg">
+          <button class="btn on" id="dir-rtl">右→左</button>
+          <button class="btn" id="dir-ltr">左→右</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="label">再生</div>
+        <button class="btn primary" id="btn-play" style="width:100%; margin-bottom:6px;">Pause</button>
+        <div class="row2">
+          <button class="btn" id="btn-reset">Reset</button>
+          <button class="btn" id="btn-step">Step (1拍)</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="label">計測カーソル / Measurement</div>
+        <button class="btn" id="btn-cursor" style="width:100%;">カーソル OFF</button>
+        <div class="hint">ON にして波形を2点クリック → 間隔を ms 表示(AH/HV/VA 等を手動計測)。</div>
+      </div>
+
+      <div class="group">
+        <div class="label">アブレーション / Ablation</div>
+        <button class="btn" id="btn-abl" style="width:100%;">Ablation OFF</button>
+        <div class="hint" id="abl-hint">ON で RF 通電 → 疾患別に頻拍停止・PV電位消失 等。</div>
+      </div>
+
+      <div class="group">
+        <div class="label">Pacing</div>
+        <button class="btn" id="btn-pacing" style="width:100%;">Pacing OFF</button>
+        <div class="hint">刺激 artifact(Stim)を付加。</div>
+      </div>
+
+      <div class="group">
+        <div class="label">フィルタ感 / Filter</div>
+        <select id="sel-filter">
+          <option value="bipolar" selected>intracardiac bipolar</option>
+          <option value="unipolar">unipolar</option>
+          <option value="surface">surface ECG mode</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <div class="label">表示 / Display</div>
+        <div class="row2">
+          <button class="btn on" id="btn-labels">ラベル ON</button>
+          <button class="btn" id="btn-png">PNG保存</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="label">シナリオ / Scenario</div>
+        <select id="sel-scenario">
+          <option value="observe" selected>観察モード</option>
+          <option value="explain">解説モード(ラベルON)</option>
+          <option value="quiz">クイズモード(疾患名を隠す)</option>
+          <option value="game">🎮 ゲーム(診断チャレンジ)</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <div class="label">音声 / Audio(EGM 1ch 聴診)</div>
+        <button class="btn" id="btn-audio" style="width:100%; margin-bottom:6px;">音声 OFF</button>
+        <select id="sel-audio-ch" style="margin-bottom:6px;"></select>
+        <div class="row2" style="align-items:center; gap:8px;">
+          <span class="hint" style="margin:0;">音量</span>
+          <input type="range" id="aud-vol" min="0" max="1" step="0.05" value="0.5" style="flex:1;">
+        </div>
+        <div class="hint">選択 1ch の局所電位を音化(全ch同時は雑音化のため非対応)。再生中のみ発音。</div>
+      </div>
+    </aside>
+
+    <!-- ========================= 波形ステージ (SPEC §4.3) ========================= -->
+    <div class="stage-wrap" id="stage">
+      <canvas id="scope"></canvas>
+      <div class="hud">
+        <span>Sweep</span><span><b id="hud-sweep">25</b> mm/s</span>
+        <span>EGM gain</span><span>×<b id="hud-gain">1</b></span>
+        <span>Surf gain</span><span><b id="hud-surf">10</b> mm/mV</span>
+        <span>Noise</span><span><b id="hud-noise">none</b></span>
+        <span class="fps">FPS</span><span class="fps"><b id="hud-fps">–</b> (<span id="hud-ms">–</span> ms)</span>
+      </div>
+    </div>
+
+    <!-- ========================= 右パネル (SPEC §4.4) ========================= -->
+    <aside class="rightpanel">
+      <h2 id="rp-name">—</h2>
+      <div class="sub" id="rp-overview">—</div>
+
+      <!-- クイズ (SPEC §10.4) — クイズモードでのみ表示 -->
+      <div class="sec" id="quiz-box" style="display:none;">
+        <div class="audit">
+          <div class="audit-head">クイズ: この心電図は何か?(6択)</div>
+          <div id="quiz-choices" style="display:flex; flex-wrap:wrap; gap:5px; margin:7px 0;"></div>
+          <div id="quiz-result" style="font-size:11.5px; color:#c4d0dd;"></div>
+        </div>
+      </div>
+
+      <!-- ゲーム(診断チャレンジ)— ゲームモードでのみ表示 -->
+      <div class="sec" id="game-box" style="display:none;">
+        <div class="audit">
+          <div class="audit-head"><span>🎮 診断チャレンジ</span><span id="g-round"></span></div>
+          <div class="g-timerwrap"><div class="g-timerbar" id="g-timerbar"></div></div>
+          <div id="g-stats" style="font-size:11px; color:#9fb0c0; margin:4px 0;"></div>
+          <div id="g-question" style="font-size:12px; margin:6px 0; color:#d6e2ee;"></div>
+          <div id="g-choices" style="display:flex; flex-wrap:wrap; gap:5px; margin:6px 0;"></div>
+          <div id="g-feedback" style="font-size:11.5px;"></div>
+          <button class="btn" id="g-next" style="width:100%; margin-top:7px; display:none;">次へ ▶</button>
+          <div class="row2" id="g-start-row" style="margin-top:7px; align-items:center; gap:6px;">
+            <select id="g-diff">
+              <option value="easy">易しい(30秒)</option>
+              <option value="normal" selected>普通(20秒)</option>
+              <option value="hard">難しい(12秒・ノイズ)</option>
+            </select>
+            <button class="btn primary" id="g-start">スタート</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- やさしい解説(AI下書き・臨床未監修)— SPEC本文とは別レイヤー -->
+      <div class="sec plain" id="plain-box">
+        <span class="flag">やさしい解説 — AI下書き・臨床未監修</span>
+        <div class="prow"><b>これは何?</b><span id="pl-what">—</span></div>
+        <div class="prow"><b>心臓で起きていること</b><span id="pl-heart">—</span></div>
+        <div class="prow"><b>この画面で見るところ</b><span id="pl-screen">—</span></div>
+        <div class="prow"><b>治療の考え方</b><span id="pl-why">—</span></div>
+      </div>
+
+      <div class="sec">
+        <div class="label">重要 interval(自動計算)</div>
+        <table class="intervals">
+          <tr><td class="k">CL</td><td class="v" id="iv-cl">—</td>
+              <td class="k">AH</td><td class="v" id="iv-ah">—</td></tr>
+          <tr><td class="k">HV</td><td class="v" id="iv-hv">—</td>
+              <td class="k">VA</td><td class="v" id="iv-va">—</td></tr>
+          <tr><td class="k">AA</td><td class="v" id="iv-aa">—</td>
+              <td class="k">VV</td><td class="v" id="iv-vv">—</td></tr>
+        </table>
+      </div>
+
+      <div class="sec">
+        <div class="audit">
+          <div class="audit-head">§6 不変条件チェック(イベント列から実測)</div>
+          <div id="audit-list"></div>
+          <div class="audit-foot">合成された波形イベントから AH/HV/順序/CS興奮順を実測し、SPEC範囲と照合した結果です。</div>
+        </div>
+      </div>
+
+      <div class="sec"><div class="label">心内心電図で見るポイント</div><p id="rp-look">—</p></div>
+      <div class="sec"><div class="label">典型的な電位順序</div><p id="rp-seq">—</p></div>
+      <div class="sec"><div class="label">鑑別ポイント</div><p id="rp-ddx">—</p></div>
+      <div class="sec"><div class="label">アブレーションターゲット</div><p id="rp-target">—</p></div>
+      <div class="sec"><div class="label">危険ポイント</div><p id="rp-danger">—</p></div>
+      <div class="sec"><div class="label">初学者が間違えやすい点</div><p id="rp-pitfall">—</p></div>
+
+      <div class="sec">
+        <div class="label">用語ガイド(やさしい / AI下書き)</div>
+        <dl class="glossary" id="glossary"></dl>
+      </div>
+
+      <div class="draft-note">【臨床監修待ち】教育文は標準的なEP電気生理に基づくドラフトです。最終的な教材としての正確性は院内の accountable な専門家(臨床工学技士主任・指導医)が確認・確定してください。</div>
+    </aside>
+  </div>
+
+  <!-- ========================= フッター免責 (改変禁止・固定表示) ========================= -->
+  <footer class="disclaimer">
+    本ツールは教育・確認補助を目的とした合成波形シミュレーターです。実患者データではありません。診断・治療判断には使用せず、実臨床では医師の指示、院内ルール、使用機器の表示を優先してください。
+  </footer>
+
+<script>
+"use strict";
+/* ==================================================================================
+   心内心電図トレーニングシミュレーター — 単一ファイル実装 (CLAUDE.md 準拠)
+   ----------------------------------------------------------------------------------
+   ■ 本ファイルの状態: Phase 2 まで実装。
+       P1: 描画エンジン + グリッド + sweep/gain + rolling buffer/blit-scroll(性能確定済み)。
+       P2: Baseline EPS(洞調律)を全11chで。P→A→H→V、AH/HV、CS 近位→遠位、RVA の鋭い V。
+           右パネルに interval 自動計算、§6 不変条件を「イベント列から実測」する監査ハーネス(auditDisease)。
+       頻拍/状態遷移・カーソル計測・クイズ・アブレーション演出・PNG出力は Phase 3 以降。
+
+   ■ アーキテクチャ — 1ファイルでも3層を絶対に混ぜない (CLAUDE.md §3 / 最重要)
+       (1) activation model 層 : いつ・どの構造が興奮し、どの極性/振幅/幅で出るかを「データ」で返す。
+                                  Canvas も描画も一切知らない純粋ロジック。  → MODEL.*
+       (2) synthesis 層        : イベント列 → サンプルバッファ。Gaussian pulse の合成。 → SYNTH.*
+       (3) render 層           : リングバッファを Canvas へスクロール描画。グリッド/ラベル。 → RENDER.*
+       層をまたぐ呼び出しは (1)→(2)→(3) の一方向のみ。
+
+   ■ 性能 — rolling buffer + blit-scroll (CLAUDE.md §4 / MUST)
+       ・各チャネルはリングバッファ(Float32Array)を持ち、時間が進んだぶんの「新規サンプルだけ」合成。
+       ・通常再生は drawImage の整数pxシフトで既存波形を横へずらし、「先端の新しい帯だけ」描く。
+       ・可視範囲を毎フレーム全再合成する巨大 render 関数は作らない(auto mode の典型的失敗)。
+       ・設定変更/リサイズ時のみ可視範囲を「1回だけ」再描画する(repaintTrace)。これは per-frame パスとは別物。
+
+   ■ 疾患の追加手順 (CLAUDE.md §9 / 疾患追加が config だけで完結する設計)
+       新疾患の追加は次の2点だけで完結する。render 層・描画ループ・synthesis 層には触らない。
+         1) diseaseConfig に 1 エントリ追加。スキーマ:
+              { name, model:'関数名', timing:{...ms...}, measureRole:'AH/HVを測るchのrole',
+                channels:[ { label, role, group:'surface'|'egm', color, ...roleParams } ],
+                edu:{ overview, look, seq, ddx, target, danger, pitfall } }   ← edu は SPEC §9 を逐語で格納
+         2) 必要なら MODEL に「イベント生成関数」を1つ追加(例: MODEL.avnrt)。
+              シグネチャ: model(params, tStart, tEnd) → events[]
+              各 event: { center[s], amp, sigma[s], polarity:±1, kind:'P|QRS|T|A|H|V|PV|Stim'|'' }
+              (kind が truthy のものだけが ラベル表示 と 監査ハーネスの計測対象。'' は波形整形用の補助。)
+       synthesis/render はチャネル定義(振幅・極性・幅・遅延)を「データ」として読むだけで、疾患を知らない。
+       監査ハーネス auditDisease() は各疾患の生成イベントから interval を実測し §6 範囲と照合する。
+       新疾患では DISEASE_INVARIANTS にその疾患の不変条件を足すと、config 複製時の数値ミスが自動検出される。
+   ================================================================================== */
+
+
+/* ===========================================================================
+   0. 定数 (CLAUDE.md §7「詰めておく仕様の穴」を明示)
+   =========================================================================== */
+const SR = 1000;                 // 内部サンプリング 1000 Hz 相当 (CLAUDE.md §4 / SPEC §6)
+const PX_PER_MM_CSS = 5;         // px/mm。グリッドと波形の整合をこの定数で固定 (CLAUDE.md §7)
+const SWEEP_OPTIONS = [25, 50, 100]; // mm/s (CLAUDE.md §7)
+const GUTTER_CSS = 112;          // 左のチャネル名固定ガター幅 (CSS px)
+const RULER_CSS  = 22;           // 上部 time marker の高さ (CSS px)
+const BASE_AMP_CSS = 18;         // gain ×1 における正規化振幅(=1.0)の基準たわみ量 (CSS px)
+const DT_CLAMP = 0.05;           // rAF dt の上限(秒)。タブ復帰時の波形の飛びを防ぐ (CLAUDE.md §7)
+const RNG_SEED = 0x9e3779b9;     // ノイズ用シード。クイズ再現性 + 再描画のガタつき防止 (CLAUDE.md §7)
+const PALETTE = ['#46f08c','#ffd24a','#5ad1ff','#eef3f8','#ff8fae','#b69bff']; // 波形色 (SPEC §8)
+const NOISE_LEVEL = { none:0, low:0.020, medium:0.050, high:0.100 };           // 過度にしない (CLAUDE.md §7)
+
+
+/* ===========================================================================
+   シード付き決定論ノイズ (CLAUDE.md §7 / SPEC §6)
+   サンプル絶対 index の関数として決まる → 同じ idx は常に同じ値。
+   よって再描画してもガタつかず、Reset で完全再現できる。
+   信号本体は Gaussian のみ(sin波禁止 / CLAUDE.md §2)。ノイズもここでは sin を使わない。
+   =========================================================================== */
+function hash01(n){
+  n = (n ^ RNG_SEED) >>> 0;
+  n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d) >>> 0;
+  n = Math.imul(n ^ (n >>> 13), 0x297a2d39) >>> 0;
+  n = (n ^ (n >>> 16)) >>> 0;
+  return n / 4294967296;
+}
+// 低周波の baseline wander 様(値ノイズを平滑補間)
+function valueNoise(idx){
+  const k = idx / 40, i = Math.floor(k), f = k - i;
+  const a = hash01(i) * 2 - 1, b = hash01(i + 1) * 2 - 1;
+  const u = f * f * (3 - 2 * f);
+  return a + (b - a) * u;
+}
+// idx と level から決定論的ノイズ(正規化単位)を返す
+function noiseAt(idx, level){
+  const amp = NOISE_LEVEL[level] || 0;
+  if (amp === 0) return 0;
+  const white  = hash01(idx) * 2 - 1;     // 高周波スペックル(EGM の高周波感)
+  const wander = valueNoise(idx);         // 低周波 baseline wander
+  return amp * (0.78 * white + 0.22 * wander);
+}
+
+
+/* ===========================================================================
+   1. activation model 層 — 興奮イベント生成(純粋ロジック / Canvas を知らない)
+   ---------------------------------------------------------------------------
+   各モデルは model(params, tStart, tEnd) を実装し、[tStart, tEnd] と少し外側に
+   かかるイベントの配列を返す。各イベント:
+     { center:中心時刻[s], amp:振幅, sigma:幅[s], polarity:±1, kind:'P|QRS|T|A|H|V|PV|Stim'|'' }
+   kind が truthy のものだけが「ラベル表示」と「監査ハーネスの計測対象」。
+   '' は波形整形用の補助(EGM の逆相オーバーシュート等)。
+   この層は Canvas も gain も知らない。振幅は surface=mV / EGM=正規化、の自然単位で返し、
+   表示スケールは render 層が gain に応じて掛ける。
+   =========================================================================== */
+
+// --- イベント整形ヘルパ ---
+// なめらかな波(表面 P/QRS/T): 単一 Gaussian
+function gaussEv(ev, center, amp, polarity, sigma, kind){
+  ev.push({ center, amp, sigma, polarity, kind: kind || '' });
+}
+// 鋭い bipolar EGM(心内 A/H/V): 主スパイク + 小さな逆相オーバーシュート → 高周波で鋭い見た目。
+// 計測/ラベルの基準は主スパイク(kind 付き)。オーバーシュートは kind:'' で整形のみ。
+function egmEv(ev, center, amp, polarity, kind, sigma){
+  sigma = sigma || 0.0032;
+  ev.push({ center, amp, sigma, polarity, kind });
+  ev.push({ center: center + sigma * 1.7, amp: amp * 0.42, sigma: sigma * 1.05, polarity: -polarity, kind: '' });
+}
+
+/* Baseline EPS: 1拍ぶんの全構造ランドマーク時刻[s](全チャネル共通の「単一の真実」)。
+   timing T は ms。ここで定める時間関係そのものが §6 の不変条件 → auditDisease() で検算する。 */
+function epsBeat(n, T){
+  const cl   = T.cl / 1000;
+  const t0   = n * cl;                       // 洞結節発火 ≒ 心房興奮の起点
+  const hraA = t0;                           // HRA(高位右房・最早期心房)A波
+  const hisA = t0 + T.hraToHisA / 1000;      // His ch 上の心房波(中隔下方)
+  const h    = hisA + T.ah / 1000;           // His束電位 H(AH = hisA→H)
+  const v    = h + T.hv / 1000;              // 心室興奮 ≒ QRS onset(HV = H→V)
+  return { t0, hraA, hisA, h, v };
+}
+// CS の興奮時刻: frac 0=proximal(9-10) … 1=distal(1-2)。近位→遠位の時間差(§6)。
+function csTimeFor(L, T, frac){
+  return L.hraA + (T.csProxDelay + frac * (T.csDistDelay - T.csProxDelay)) / 1000;
+}
+
+const MODEL = {
+  /* Baseline EPS(洞調律)。役割(role)ごとに、その電極が「見る」イベントだけを emit する。
+     時間関係(hisA→H→V、HRA→His→CS、CS 近位→遠位)は epsBeat/csTimeFor が一元管理。 */
+  baselineEPS(params, tStart, tEnd){
+    const T = params.timing;
+    const cl = T.cl / 1000;
+    const pad = 0.45;                          // 表面 T波が窓の端で切れないよう広めに
+    const nFrom = Math.floor((tStart - pad) / cl);
+    const nTo   = Math.ceil ((tEnd   + pad) / cl);
+    const ev = [];
+    for (let n = nFrom; n <= nTo; n++){
+      const L = epsBeat(n, T);
+      switch (params.role){
+        case 'surfaceII':   // 下壁誘導: P 上向き / qRs(narrow)/ T 上向き。振幅 mV。
+          gaussEv(ev, L.t0 + 0.035, 0.13, +1, 0.020, 'P');
+          gaussEv(ev, L.v + 0.004, 0.07, -1, 0.006, 'QRS');   // q
+          gaussEv(ev, L.v + 0.026, 0.62, +1, 0.011, 'QRS');   // R
+          gaussEv(ev, L.v + 0.050, 0.12, -1, 0.008, 'QRS');   // s
+          gaussEv(ev, L.v + 0.300, 0.22, +1, 0.045, 'T');
+          break;
+        case 'surfaceV1':   // V1: P 二相 / rS / T 小。振幅 mV。
+          gaussEv(ev, L.t0 + 0.028, 0.055, +1, 0.016, 'P');
+          gaussEv(ev, L.t0 + 0.055, 0.050, -1, 0.016, '');
+          gaussEv(ev, L.v + 0.008, 0.14, +1, 0.008, 'QRS');   // r
+          gaussEv(ev, L.v + 0.038, 0.58, -1, 0.012, 'QRS');   // S
+          gaussEv(ev, L.v + 0.300, 0.12, +1, 0.045, 'T');
+          break;
+        case 'HRA':         // 高位右房: 鋭い A、心室 far-field はごく小。
+          egmEv(ev, L.hraA, 1.00, +1, 'A', 0.0032);
+          egmEv(ev, L.v + 0.010, 0.16, -1, 'V', 0.006);
+          break;
+        case 'HisD':        // His 遠位: A 小・H 明瞭・V 大(AH/HV はこの role で計測)。
+          egmEv(ev, L.hisA, 0.50, +1, 'A', 0.0032);
+          egmEv(ev, L.h,    0.34, +1, 'H', 0.0021);
+          egmEv(ev, L.v,    0.95, -1, 'V', 0.0035);
+          break;
+        case 'HisP':        // His 近位: A 大・H・V 小。
+          egmEv(ev, L.hisA, 0.95, +1, 'A', 0.0034);
+          egmEv(ev, L.h,    0.28, +1, 'H', 0.0021);
+          egmEv(ev, L.v,    0.45, -1, 'V', 0.0038);
+          break;
+        case 'CS':          // 冠静脈洞: A(近位→遠位の時間差)+ 心室 far-field。
+          egmEv(ev, csTimeFor(L, T, params.csFrac), 0.85, +1, 'A', 0.0032);
+          egmEv(ev, L.v + 0.008, 0.30, -1, 'V', 0.006);
+          break;
+        case 'RVA':         // 右室心尖: 大きく鋭い V、心房 far-field はごく小。
+          egmEv(ev, L.v + 0.006, 1.25, +1, 'V', 0.0034);
+          egmEv(ev, L.hraA + 0.018, 0.10, +1, 'A', 0.006);
+          break;
+      }
+    }
+    return ev;
+  }
+};
+/* @@DISEASE_MODELS@@ */
+/* ===== AVNRT slow-fast: 1拍ぶんの全構造ランドマーク時刻[s](単一の真実)=====
+   通常型(slow-fast)房室結節リエントリー。順行=slow pathway → His → 心室、
+   逆行=fast pathway → 心房(中隔最早期、心室とほぼ同時)。
+   anchor は His電位 h。timing T は ms。ここで定める時間関係が §6 の不変条件:
+     His-before-V(h<v)/ VA短(逆行A=aSeptal は v の直後)/ A と V 近接 / CL 300-380。
+   注: slow-fast では順行 AH(slow pathway)は長い = この拍の逆行A から「次の拍の H」までの
+       前向き間隔(cl-(hv+va) ≒ 263ms)。右パネル AH はこの前向き値で表示する想定。 */
+function avnrtBeat(n, T){
+  const cl = T.cl / 1000;
+  const t0 = n * cl;                       // 1拍の起点(His電位の時刻)
+  const h  = t0;                           // His束電位 H
+  const v  = h + T.hv / 1000;              // 心室興奮 ≒ QRS onset(HV = H→V、narrow)
+  const aSeptal = v + T.va / 1000;         // 逆行性 中隔最早期 A(VA = V→A、短い・V とほぼ同時)
+  return { t0, h, v, aSeptal };
+}
+/* CS の逆行性心房興奮時刻。frac 0=proximal(9-10, CS os=中隔側→最早期) … 1=distal(1-2, 側壁→やや遅い)。
+   spread は小さく「septal earliest 〜 ほぼ同時」(§6)。基準は中隔最早期 aSeptal。 */
+function avnrtCsTime(L, T, frac){
+  return L.aSeptal + (T.csSeptalDelay + frac * (T.csLatDelay - T.csSeptalDelay)) / 1000;
+}
+MODEL.avnrt = function(params, tStart, tEnd){
+    const T = params.timing;
+    const cl = T.cl / 1000;
+    const pad = 0.45;                          // 表面 T波が窓端で切れないよう広めに(baselineEPS と同じ)
+    const nFrom = Math.floor((tStart - pad) / cl);
+    const nTo   = Math.ceil ((tEnd   + pad) / cl);
+    const ev = [];
+    for (let n = nFrom; n <= nTo; n++){
+      const L = avnrtBeat(n, T);
+      const hraA = L.aSeptal + T.hraDelay / 1000;   // 高位右房は中隔より遅い逆行A(concentric)
+      const ablA = L.aSeptal + T.ablADelay / 1000;  // ABL は slow pathway 領域(下中隔)= 早期 A
+      switch (params.role){
+        case 'surfaceII':   // 下壁誘導: narrow qRs(洞調律と同形)/ 洞性P波なし / 逆行Pは QRS終末に pseudo-s として埋没 / T。
+          gaussEv(ev, L.v + 0.004, 0.07, -1, 0.006, 'QRS');   // q
+          gaussEv(ev, L.v + 0.026, 0.62, +1, 0.011, 'QRS');   // R(narrow)
+          gaussEv(ev, L.v + 0.050, 0.12, -1, 0.008, 'QRS');   // s
+          gaussEv(ev, hraA + 0.004, 0.06, -1, 0.009, '');     // pseudo-s(逆行P・QRS終末に埋没。kind:''=形だけ)
+          gaussEv(ev, L.v + 0.190, 0.16, +1, 0.040, 'T');     // 頻拍のため QT 短縮側に配置
+          break;
+        case 'surfaceV1':   // V1: narrow rS / 逆行Pは pseudo-r' として QRS終末に出る(典型所見)/ T 小。
+          gaussEv(ev, L.v + 0.008, 0.14, +1, 0.008, 'QRS');   // r
+          gaussEv(ev, L.v + 0.038, 0.58, -1, 0.012, 'QRS');   // S
+          gaussEv(ev, hraA + 0.002, 0.085, +1, 0.009, '');    // pseudo-r'(逆行P。kind:''=形だけ)
+          gaussEv(ev, L.v + 0.190, 0.09, +1, 0.040, 'T');
+          break;
+        case 'HRA':         // 高位右房: 逆行A(中隔より遅い)+ 心室 far-field はごく小。
+          egmEv(ev, hraA, 0.95, +1, 'A', 0.0032);
+          egmEv(ev, L.v + 0.010, 0.16, -1, 'V', 0.006);
+          break;
+        case 'HisD':        // His 遠位: H 明瞭 → V 大 → 逆行A(中隔最早期, V とほぼ同時)。HV/VA はこの role で計測。
+          egmEv(ev, L.h,       0.34, +1, 'H', 0.0021);
+          egmEv(ev, L.v,       0.95, -1, 'V', 0.0035);
+          egmEv(ev, L.aSeptal, 0.55, +1, 'A', 0.0032);
+          break;
+        case 'HisP':        // His 近位: 逆行A 大(中隔最早期)・H/V 小。
+          egmEv(ev, L.h,       0.26, +1, 'H', 0.0021);
+          egmEv(ev, L.v,       0.45, -1, 'V', 0.0038);
+          egmEv(ev, L.aSeptal, 0.95, +1, 'A', 0.0034);
+          break;
+        case 'CS':          // 冠静脈洞: 逆行A(prox=中隔最早期→distal はやや遅い, spread 小)+ 心室 far-field。
+          egmEv(ev, avnrtCsTime(L, T, params.csFrac), 0.85, +1, 'A', 0.0032);
+          egmEv(ev, L.v + 0.008, 0.30, -1, 'V', 0.006);
+          break;
+        case 'RVA':         // 右室心尖: 大きく鋭い V、逆行A far-field はごく小。
+          egmEv(ev, L.v + 0.006, 1.25, +1, 'V', 0.0034);
+          egmEv(ev, hraA + 0.014, 0.10, +1, 'A', 0.006);
+          break;
+        case 'ABLd':        // ABL 遠位(slow pathway 領域・下中隔): 局所 A 明瞭(早期)+ V far-field。
+          egmEv(ev, ablA,        0.60, +1, 'A', 0.0030);
+          egmEv(ev, L.v + 0.010, 0.42, -1, 'V', 0.006);
+          break;
+        case 'ABLp':        // ABL 近位: A はやや小・やや遅い + V far-field。
+          egmEv(ev, ablA + 0.006, 0.40, +1, 'A', 0.0032);
+          egmEv(ev, L.v + 0.012, 0.30, -1, 'V', 0.006);
+          break;
+      }
+    }
+    return ev;
+  }
+
+/* ============================================================================
+   Orthodromic AVRT — 1拍(=1リエントリーサイクル)のランドマーク時刻[s]を一元管理。
+   ここで定める時間関係そのものが §6 の不変条件 → 監査ハーネスで検算する。
+
+   リエントリーの向き(順行 AV node→His→心室、逆行 副伝導路→心房):
+     心房(中隔/His部) →[AH: 順行AV node]→ H →[HV: His-Purkinje]→ V(QRS)
+       →[VA: 副伝導路を逆行]→ 次の心房
+   ループ閉包: CL = vaSeptal + ah + hv  (= 125 + 160 + 45 = 330)。
+
+   サイクルの基準時刻は「中隔/His部の逆行性A波」= n*cl に置く(その電極で A→H→V の順に
+   並ぶため、interval を順序どおりに測れる)。この心房興奮は「直前のサイクルの V (vPrev)」が
+   副伝導路を逆行して作ったもの。同一波面の各部位の A 時刻は vPrev からの VA で表す:
+     最早期 = 副伝導路付着部(左側自由壁AP → ABL / CS distal)、最遅 = HRA(高位右房)。
+   左側副伝導路モード(eccentric): CS は distal(frac=1)が earliest、proximal(frac=0)が latest
+   → baseline(近位→遠位=concentric)の「逆」になる。これが教育上の核心。
+   ============================================================================ */
+function avrtBeat(n, T){
+  const cl      = T.cl / 1000;
+  const aHisSep = n * cl;                  // 中隔/His部の逆行性A波 = サイクル基準
+  const h       = aHisSep + T.ah / 1000;   // His束電位 H(順行AV node伝導 AH)
+  const v       = h + T.hv / 1000;         // 心室興奮 ≒ QRS onset(順行 His-Purkinje HV)
+  const vPrev   = v - cl;                  // この心房興奮を作った「直前サイクルの V」(VA計測の起点)
+  // 同一逆行波面の各部位の A 時刻(vPrev + 部位別 VA)。中隔=aHisSep と一致(= vPrev + vaSeptal)。
+  const aAbl    = vPrev + T.vaAbl / 1000;  // 副伝導路付着部=真の最早期 A(左側自由壁)
+  const aHRA    = vPrev + T.vaHRA / 1000;  // 高位右房=最遅 A
+  return { cl, aHisSep, h, v, vPrev, aAbl, aHRA };
+}
+/* CS 各双極の逆行性A波 時刻(絶対)。LEFT-SIDED AP(eccentric):
+   frac=1(distal/1-2)=earliest(vaCsDist)、frac=0(proximal/9-10)=latest(vaCsProx)。
+   ※ baseline の csTimeFor は近位→遠位だが、ここは「逆向き(遠位→近位)」になる。 */
+function csTimeAVRT(vPrev, T, frac){
+  return vPrev + (T.vaCsDist + (1 - frac) * (T.vaCsProx - T.vaCsDist)) / 1000;
+}
+MODEL.avrt = function(params, tStart, tEnd){
+  const T = params.timing;
+  const cl = T.cl / 1000;
+  const pad = 0.45;                         // 表面 T波が窓端で切れないよう広めに
+  const nFrom = Math.floor((tStart - pad) / cl);
+  const nTo   = Math.ceil ((tEnd   + pad) / cl);
+  const ev = [];
+  for (let n = nFrom; n <= nTo; n++){
+    const L = avrtBeat(n, T);
+    switch (params.role){
+      case 'surfaceII':   // 下壁誘導: 逆行性P波は陰性で QRS の後(short RP' 頻拍)。narrow QRS。
+        gaussEv(ev, L.aHisSep, 0.09, -1, 0.017, 'P');       // 逆行P(II で陰性)
+        gaussEv(ev, L.v + 0.004, 0.07, -1, 0.006, 'QRS');   // q
+        gaussEv(ev, L.v + 0.026, 0.62, +1, 0.011, 'QRS');   // R(narrow)
+        gaussEv(ev, L.v + 0.050, 0.12, -1, 0.008, 'QRS');   // s
+        gaussEv(ev, L.v + 0.260, 0.20, +1, 0.042, 'T');
+        break;
+      case 'surfaceV1':   // V1: 逆行性Pは小さく上向き気味 / rS / T 小。narrow QRS。
+        gaussEv(ev, L.aHisSep, 0.05, +1, 0.016, 'P');       // 逆行P(V1)
+        gaussEv(ev, L.v + 0.008, 0.14, +1, 0.008, 'QRS');   // r
+        gaussEv(ev, L.v + 0.038, 0.58, -1, 0.012, 'QRS');   // S
+        gaussEv(ev, L.v + 0.260, 0.11, +1, 0.042, 'T');
+        break;
+      case 'HRA':         // 高位右房: 逆行性Aは最遅(左側AP)。心室 far-field はごく小。
+        egmEv(ev, L.aHRA, 0.90, +1, 'A', 0.0032);
+        egmEv(ev, L.v + 0.010, 0.16, -1, 'V', 0.006);
+        break;
+      case 'His':         // His(単一): 中隔A → H → V の順。AH/HV はこの role で計測(measureRole)。
+        egmEv(ev, L.aHisSep, 0.55, +1, 'A', 0.0032);
+        egmEv(ev, L.h,       0.32, +1, 'H', 0.0021);
+        egmEv(ev, L.v,       1.00, -1, 'V', 0.0035);
+        break;
+      case 'CS':          // 冠静脈洞: 逆行性A(eccentric: distal earliest)+ 心室 far-field。
+        egmEv(ev, csTimeAVRT(L.vPrev, T, params.csFrac), 0.85, +1, 'A', 0.0032);
+        egmEv(ev, L.v + 0.008, 0.30, -1, 'V', 0.006);
+        break;
+      case 'RVA':         // 右室心尖: 大きく鋭い V、心房 far-field はごく小。
+        egmEv(ev, L.v + 0.006, 1.25, +1, 'V', 0.0034);
+        egmEv(ev, L.aHisSep + 0.006, 0.10, +1, 'A', 0.006);
+        break;
+      case 'ABL':         // 副伝導路付着部(僧帽弁輪/左側): 真の最早期 A + V。間に小さなAP電位(整形のみ kind:'')。
+        egmEv(ev, L.aAbl, 0.95, +1, 'A', 0.0030);                  // earliest A(副伝導路心房側)
+        ev.push({ center: (L.vPrev + L.aAbl) / 2, amp: 0.18, sigma: 0.0026, polarity: +1, kind: '' }); // AP potential(整形)
+        egmEv(ev, L.v + 0.004, 0.65, -1, 'V', 0.0034);             // 局所 V(副伝導路心室側)
+        break;
+    }
+  }
+  return ev;
+}
+
+/* ===== Typical atrial flutter (CCW, CTI-dependent) — 1心房サイクルのランドマーク(単一の真実) =====
+   反時計回り型 = 心房興奮が中隔を上行 → roof → 側壁を下行 → CTI を側壁→中隔に横断、を連続旋回する。
+   各構造の興奮位相を ACL 内のオフセット[ms]で1箇所に集約し、全 role はこれを参照する(baselineEPS の epsBeat 相当)。
+   §6 不変条件(ACL 220-260 / 2:1 / CS continuous prox→distal / CTI dependent)はここで一元的に決まる。 */
+function aflBeat(n, T){
+  const acl = T.acl / 1000;                  // 心房サイクル長[s](= ACL)
+  const c0  = n * acl;                        // このサイクルの基準時刻
+  return {
+    c0, acl,
+    hisA: c0 + T.hisOff    / 1000,            // His(中隔)の心房興奮
+    csP : c0 + T.csProxOff / 1000,            // CS 近位(中隔側)= 反時計回りで最早期側
+    csD : c0 + T.csDistOff / 1000,            // CS 遠位(側壁側)= proximal より遅い → continuous prox→distal
+    hra : c0 + T.hraOff    / 1000,            // 高位右房(側壁)
+    ctiD: c0 + T.ctiDistOff/ 1000,            // CTI 遠位(峡部の側壁側)
+    ctiP: c0 + T.ctiProxOff/ 1000             // CTI 近位(峡部の中隔側)= 遠位の後 → 次サイクルの中隔興奮へ連続
+  };
+}
+// CS の興奮時刻: frac 0=proximal(9-10) … 1=distal(1-2)。反時計回りで prox→distal の連続伝播(§6)。
+function aflCsTime(L, T, frac){
+  return L.c0 + (T.csProxOff + frac * (T.csDistOff - T.csProxOff)) / 1000;
+}
+// 2:1 房室伝導: サイクル n が伝導して QRS になるか(偶数サイクルのみ伝導 → A:V = 2:1)。負の n も安全。
+function aflConducts(n){ return (((n % 2) + 2) % 2) === 0; }
+MODEL.aflutter = function(params, tStart, tEnd){
+  // Typical atrial flutter(反時計回り・CTI-dependent)。役割(role)ごとに、その電極が「見る」イベントだけを emit。
+  // 時間関係(連続旋回 / CS prox→distal / CTI 通過 / 2:1 伝導)は aflBeat / aflCsTime / aflConducts が一元管理。
+  const T = params.timing;
+  const acl = T.acl / 1000;
+  const pad = 0.45;                            // 表面 T波・連続 f波が窓端で切れないよう広めに
+  const nFrom = Math.floor((tStart - pad) / acl);
+  const nTo   = Math.ceil ((tEnd   + pad) / acl);
+  const ev = [];
+  for (let n = nFrom; n <= nTo; n++){
+    const L = aflBeat(n, T);
+    const conducts = aflConducts(n);
+    const h = L.hisA + T.ah / 1000;            // 伝導拍の His束電位(AH = His-A → H)
+    const v = h      + T.hv / 1000;            // 伝導拍の心室興奮 ≒ QRS onset(HV = H → V)
+    switch (params.role){
+
+      case 'surfaceII': {
+        // 反時計回り型 = 下壁誘導で陰性優位の連続 sawtooth(f波)。等電位線を作らないよう
+        // 緩徐な陰性本体 + サイクル境界の鋭い戻りを置き、隣接サイクルと重ねて picket fence にする。
+        // F波は P波ではないため kind:''(整形のみ・表面ではラベルしない。心房ラベルは心内 A に付与)。
+        gaussEv(ev, L.c0 + 0.55 * acl, 0.17, -1, 0.030, '');   // 緩徐な陰性下降(sawtooth 本体)
+        gaussEv(ev, L.c0 + 0.95 * acl, 0.06, +1, 0.013, '');   // サイクル境界の鋭い戻り(歯)
+        if (conducts){                                          // 2:1 で伝導した拍のみ narrow QRS + T
+          gaussEv(ev, v + 0.004, 0.06, -1, 0.006, 'QRS');      // q
+          gaussEv(ev, v + 0.026, 0.60, +1, 0.011, 'QRS');      // R(narrow QRS = 正常 His-Purkinje 伝導)
+          gaussEv(ev, v + 0.050, 0.11, -1, 0.008, 'QRS');      // s
+          gaussEv(ev, v + 0.300, 0.16, +1, 0.045, 'T');
+        }
+        break;
+      }
+
+      case 'surfaceV1': {
+        // V1 では flutter 波がやや陽性・discrete に見える。kind:''(整形のみ)。
+        gaussEv(ev, L.c0 + 0.52 * acl, 0.09, +1, 0.026, '');
+        gaussEv(ev, L.c0 + 0.92 * acl, 0.05, -1, 0.013, '');
+        if (conducts){                                          // narrow QRS: rS + 小T
+          gaussEv(ev, v + 0.008, 0.13, +1, 0.008, 'QRS');      // r
+          gaussEv(ev, v + 0.038, 0.55, -1, 0.012, 'QRS');      // S
+          gaussEv(ev, v + 0.300, 0.10, +1, 0.045, 'T');
+        }
+        break;
+      }
+
+      case 'HRA':   // 高位右房(側壁): 鋭い A を毎サイクル(flutter 波が march する)。V far-field は伝導拍のみ小。
+        egmEv(ev, L.hra, 0.95, +1, 'A', 0.0032);
+        if (conducts) egmEv(ev, v + 0.012, 0.18, -1, 'V', 0.006);
+        break;
+
+      case 'His':   // His(中隔): A を毎サイクル / 伝導拍のみ H(V 直前)と V。AH/HV はこの role で計測。
+        egmEv(ev, L.hisA, 0.55, +1, 'A', 0.0032);
+        if (conducts){
+          egmEv(ev, h, 0.32, +1, 'H', 0.0021);                 // His束電位 = 伝導拍の V 直前
+          egmEv(ev, v, 0.72, -1, 'V', 0.0035);
+        }
+        break;
+
+      case 'CS':    // 冠静脈洞: A を毎サイクル。反時計回りで proximal→distal の連続伝播(§6)。V far-field は伝導拍のみ小。
+        egmEv(ev, aflCsTime(L, T, params.csFrac), 0.85, +1, 'A', 0.0032);
+        if (conducts) egmEv(ev, v + 0.010, 0.22, -1, 'V', 0.006);
+        break;
+
+      case 'CTId':  // CTI 遠位(峡部の側壁側): 回路が峡部を通過する位相で A(CTI dependent の可視化)。
+        egmEv(ev, L.ctiD, 0.80, +1, 'A', 0.0032);
+        if (conducts) egmEv(ev, v + 0.012, 0.16, -1, 'V', 0.006);
+        break;
+
+      case 'CTIp':  // CTI 近位(峡部の中隔側): 遠位より遅く、次サイクルの中隔興奮へ連続(continuous loop の閉じ)。
+        egmEv(ev, L.ctiP, 0.80, +1, 'A', 0.0032);
+        if (conducts) egmEv(ev, v + 0.012, 0.16, -1, 'V', 0.006);
+        break;
+
+      case 'ABL':   // ABL(峡部上に留置): 峡部の局所 A を毎サイクル。V far-field は伝導拍のみ小。
+        egmEv(ev, L.c0 + T.ablOff / 1000, 0.78, +1, 'A', 0.0032);
+        if (conducts) egmEv(ev, v + 0.012, 0.16, -1, 'V', 0.006);
+        break;
+    }
+  }
+  return ev;
+}
+
+/* Focal AT: 1拍ぶんの全構造ランドマーク時刻[s](全チャネル共通の「単一の真実」)。
+   時間原点 t0 = 焦点(ABL distal)の興奮 = earliest atrial activation。
+   そこから各構造へ「遅れ」を足して centrifugal な広がりを表現する。
+   ここで定める時間関係そのものが §6 の不変条件 → 監査ハーネスで検算する。
+   timing T は ms。 */
+function focalATBeat(n, T){
+  const cl   = T.cl / 1000;
+  const t0   = n * cl;                       // 焦点発火 = 最早期心房興奮の起点
+  const ablD = t0;                           // ABL distal A — 最早期(焦点そのもの)
+  const ablP = t0 + T.ablDtoP / 1000;        // ABL proximal A — 焦点のすぐ傍(distal の直後)
+  const pOn  = t0 + T.aToP / 1000;           // 表面 P波の立ち上がり基準(局所A が P に先行)
+  const hraA = t0 + T.ablToHRA / 1000;       // HRA A — 焦点より遅れて到達
+  const hisA = t0 + T.ablToHisA / 1000;      // His ch 上の A — 焦点より遅れて到達
+  const h    = hisA + T.ah / 1000;           // His束電位 H(AH = hisA→H, 1:1 順行伝導)
+  const v    = h + T.hv / 1000;              // 心室興奮 ≒ QRS onset(HV = H→V)
+  return { t0, ablD, ablP, pOn, hraA, hisA, h, v };
+}
+// Focal AT の CS 興奮時刻: 焦点を基準にした centrifugal な到達。
+// frac 0 = CS proximal(9-10, 中隔/CS入口側で焦点に近い) … 1 = CS distal(1-2)。
+// すべて ABL(焦点)より遅く、近位側から順に到達する(中隔寄り焦点からの放散)。
+function focalATcsTime(L, T, frac){
+  return L.ablD + (T.csProxDelay + frac * (T.csDistDelay - T.csProxDelay)) / 1000;
+}
+/* Focal atrial tachycardia(巣状心房頻拍 / SPEC §7.5・§9.5・CLAUDE.md §6)。
+     焦点(=ABL distal)を時間原点に置き、そこから centrifugal に各構造へ遅れて伝わる。
+     §6 不変条件: earliest A = ABL distal / HRA・CS は ABL より遅れる / 局所A が表面P波に先行 /
+     心房レート 150–220 bpm。時間関係は focalATBeat / focalATcsTime が一元管理(単一の真実)。
+     AV結節は 1:1 順行伝導(心房駆動性 = AVNRT/AVRT との鑑別点)で各拍に narrow QRS が続く。 */
+  MODEL.focalAT = function(params, tStart, tEnd){
+    const T = params.timing;
+    const cl = T.cl / 1000;
+    const pad = 0.45;                          // 表面 T波が窓端で切れないよう広めに
+    const nFrom = Math.floor((tStart - pad) / cl);
+    const nTo   = Math.ceil ((tEnd   + pad) / cl);
+    const ev = [];
+    for (let n = nFrom; n <= nTo; n++){
+      const L = focalATBeat(n, T);
+      switch (params.role){
+        case 'surfaceII':   // 下壁誘導: 速い心房レートで P が QRS に先行。narrow QRS。振幅 mV。
+          gaussEv(ev, L.pOn + 0.020, 0.11, +1, 0.018, 'P');
+          gaussEv(ev, L.v + 0.004, 0.07, -1, 0.006, 'QRS');   // q
+          gaussEv(ev, L.v + 0.026, 0.60, +1, 0.011, 'QRS');   // R
+          gaussEv(ev, L.v + 0.050, 0.12, -1, 0.008, 'QRS');   // s
+          gaussEv(ev, L.v + 0.270, 0.20, +1, 0.040, 'T');
+          break;
+        case 'surfaceV1':   // V1: P 二相 / rS / T 小。振幅 mV。
+          gaussEv(ev, L.pOn + 0.016, 0.050, +1, 0.015, 'P');
+          gaussEv(ev, L.pOn + 0.040, 0.040, -1, 0.015, '');
+          gaussEv(ev, L.v + 0.008, 0.14, +1, 0.008, 'QRS');   // r
+          gaussEv(ev, L.v + 0.038, 0.56, -1, 0.012, 'QRS');   // S
+          gaussEv(ev, L.v + 0.270, 0.11, +1, 0.040, 'T');
+          break;
+        case 'HRA':         // 高位右房: 焦点より遅れて到達する A、心室 far-field はごく小。
+          egmEv(ev, L.hraA, 0.85, +1, 'A', 0.0032);
+          egmEv(ev, L.v + 0.010, 0.16, -1, 'V', 0.006);
+          break;
+        case 'His':         // 単一 His ch: A 小・H 明瞭・V 大(1:1 順行伝導)。
+          egmEv(ev, L.hisA, 0.55, +1, 'A', 0.0032);
+          egmEv(ev, L.h,    0.30, +1, 'H', 0.0021);
+          egmEv(ev, L.v,    0.95, -1, 'V', 0.0035);
+          break;
+        case 'CS':          // 冠静脈洞: 焦点から遅れて到達(centrifugal)+ 心室 far-field。
+          egmEv(ev, focalATcsTime(L, T, params.csFrac), 0.80, +1, 'A', 0.0032);
+          egmEv(ev, L.v + 0.008, 0.28, -1, 'V', 0.006);
+          break;
+        case 'ABLd':        // ABL distal: earliest atrial activation(=焦点)。鋭く大きい A。
+          egmEv(ev, L.ablD, 1.20, +1, 'A', 0.0030);
+          egmEv(ev, L.v + 0.012, 0.20, -1, 'V', 0.006);
+          break;
+        case 'ABLp':        // ABL proximal: 焦点のすぐ傍。distal よりわずかに遅れる。
+          egmEv(ev, L.ablP, 0.95, +1, 'A', 0.0032);
+          egmEv(ev, L.v + 0.012, 0.18, -1, 'V', 0.006);
+          break;
+      }
+    }
+    return ev;
+  }
+
+/* ===========================================================================
+   AF / PVI のランドマーク(全チャネル共通の「単一の真実」)。
+   洞調律のような明確な「1拍」は無い(規則的順序なし / SPEC §9.6)。
+   そこで窓 [a,b] にかかる2系列を「決定論的」に生成して返す:
+     ・fAtrial : 心房 f波(細動波)の時刻列。基本周期 fAtrialCL を hash01 で前後に
+                 ±fAtrialJit 揺らした、ほぼ連続・不規則な心房興奮の起点。
+     ・vBeats  : 心室 QRS の時刻列。RR を hash01 で [rrMin,rrMax] に取り、固定アンカー
+                 (絶対 index)から両方向に積み上げる irregularly irregular な RR。
+   すべて hash01(シード付き決定論RNG)ベース。sin波は使わない(CLAUDE.md §2)。
+   時刻が「絶対 index 由来」なので、どの窓から呼んでも同一時刻を返す
+   → rolling buffer の窓継ぎ目で f波/QRS がズレない(再描画でガタつかない)。
+   role 別 emit はこのランドマークだけを参照する(単一の真実)。 =========================================================================== */
+function afLandmarks(T, a, b){
+  const fcl = T.fAtrialCL / 1000;   // 心房 f波の基本周期 [s]
+  const fj  = T.fAtrialJit / 1000;  // f波 jitter 振幅 [s]
+  // f波: グローバル整数 index k を時刻に写像し、各 k を hash01 で前後にずらす。
+  const fAtrial = [];
+  const kFrom = Math.floor(a / fcl) - 2, kTo = Math.ceil(b / fcl) + 2;
+  for (let k = kFrom; k <= kTo; k++){
+    const jt = (hash01(k * 2 + 1) - 0.5) * 2 * fj;   // [-fj, +fj] 決定論
+    fAtrial.push({ k, t: k * fcl + jt });
+  }
+  // 心室 QRS: 絶対 beat index m の時刻を、固定アンカー(0.40s)から RR 累積で決める。
+  // m の関数として一意 → 窓に依存せず常に同じ QRS 時刻(継ぎ目ズレ防止)。
+  const rrMin = T.rrMin / 1000, rrSpan = (T.rrMax - T.rrMin) / 1000;
+  function rrFor(m){ return rrMin + hash01((m * 2654435761) >>> 0) * rrSpan; }
+  function vTimeAt(m){
+    let t = 0.40;                                    // beat 0 のアンカー
+    if (m >= 0){ for (let i = 1; i <= m; i++) t += rrFor(i); }
+    else       { for (let i = 0; i > m; i--) t -= rrFor(i); }
+    return t;
+  }
+  const vBeats = [];
+  let m = 0;
+  while (vTimeAt(m) > a - 0.6) m--;                  // 窓の手前まで後方展開
+  const mLo = m; m = 0;
+  while (vTimeAt(m) < b + 0.6) m++;                  // 窓の先まで前方展開
+  for (let mm = mLo; mm <= m; mm++) vBeats.push({ m: mm, t: vTimeAt(mm) });
+  return { fAtrial, vBeats };
+}
+MODEL.afib = function(params, tStart, tEnd){
+    // AF / PVI(SPEC §7.6 / §9.6 / CLAUDE.md §6)。
+    // RR 不整 / 表面 P波なし f波 / CS・PV に fractionated で不規則な A / PV potential あり。
+    // His チャネルは無い(montage に His 無し)。時間関係は afLandmarks が一元管理。
+    const T = params.timing;
+    const pad = 0.45;                                   // 窓端で波が切れないよう外側まで
+    const a = tStart - pad, b = tEnd + pad;
+    const L = afLandmarks(T, a, b);
+    const ev = [];
+    const role = params.role;
+    const cf = (params.csFrac != null ? params.csFrac : 0);  // CS: 0=prox(9-10) … 1=distal(1-2)
+    const pf = (params.pvFrac != null ? params.pvFrac : 0);  // 同一静脈内の bipole 差(1-2 vs 3-4)
+
+    // --- 表面 ECG: P波なし。微細で不規則な f波うねり(小ガウスの連なり / sin波は使わない)
+    //     + 不規則 RR の QRS / T。f波は kind:'' で整形のみ(ラベル/監査対象外)。
+    if (role === 'surfaceII' || role === 'surfaceV1'){
+      for (const f of L.fAtrial){
+        const amp = (role === 'surfaceII' ? 0.045 : 0.035) * (0.5 + hash01(f.k * 3 + 7));
+        const pol = (hash01(f.k * 5 + 2) < 0.5) ? +1 : -1;
+        gaussEv(ev, f.t, amp, pol, 0.022, '');          // f波: 低振幅・極性も揺らぐ
+      }
+      for (const v of L.vBeats){
+        if (role === 'surfaceII'){                      // 下壁: qRs(narrow)+ T 上向き
+          gaussEv(ev, v.t + 0.004, 0.07, -1, 0.006, 'QRS');
+          gaussEv(ev, v.t + 0.026, 0.62, +1, 0.011, 'QRS');
+          gaussEv(ev, v.t + 0.050, 0.12, -1, 0.008, 'QRS');
+          gaussEv(ev, v.t + 0.300, 0.22, +1, 0.045, 'T');
+        } else {                                        // V1: rS + T 小
+          gaussEv(ev, v.t + 0.008, 0.14, +1, 0.008, 'QRS');
+          gaussEv(ev, v.t + 0.038, 0.58, -1, 0.012, 'QRS');
+          gaussEv(ev, v.t + 0.300, 0.12, +1, 0.045, 'T');
+        }
+      }
+      return ev;
+    }
+
+    // --- CS: 不規則・fractionated な心房 A(2〜3 成分の鋭い deflection)+ 心室 far-field。
+    //     f波ごとに伝導方向(prox→distal / 逆)も揺らぎ、固定順序を持たない(=AF, flutter と違う)。
+    if (role === 'CS'){
+      for (const f of L.fAtrial){
+        const seqDir = (hash01(f.k * 11 + 4) < 0.72) ? +1 : -1;        // 多くは prox→distal、時に逆行
+        const baseDelay = (seqDir > 0 ? cf : (1 - cf)) * (T.csSpan / 1000);
+        const t0 = f.t + baseDelay;
+        const nComp = 2 + (hash01(f.k * 13 + cf * 97 + 1) < 0.5 ? 1 : 0); // 2〜3 成分(fractionation)
+        for (let c = 0; c < nComp; c++){
+          const jit = (hash01(f.k * 17 + c * 23 + cf * 31) - 0.5) * 0.014;
+          const amp = 0.45 + 0.50 * hash01(f.k * 19 + c * 29 + cf * 41);
+          const pol = (hash01(f.k * 23 + c * 31 + cf * 53) < 0.5) ? +1 : -1;
+          egmEv(ev, t0 + c * 0.006 + jit, amp, pol, 'A', 0.0026);     // 鋭い高周波 A 成分
+        }
+      }
+      for (const v of L.vBeats) egmEv(ev, v.t + 0.008, 0.28, -1, 'V', 0.006); // 心室 far-field
+      return ev;
+    }
+
+    // --- PV(LSPV/LIPV/RSPV/RIPV): broad で低振幅の far-field LA signal + 鋭く高周波の PV potential。
+    //     PV potential は far-field の「直後」(LA→PV 伝導)に出す。両者の区別が学習の核(SPEC §9.6)。
+    //     pvIsolated(Phase 5 の entrance block 演出)が真なら PV potential を消す。
+    if (role === 'LSPV' || role === 'LIPV' || role === 'RSPV' || role === 'RIPV'){
+      const veinDelay = (role === 'LSPV') ? 0.020 : (role === 'LIPV') ? 0.028 : (role === 'RSPV') ? 0.012 : 0.018;
+      const hasPV = !T.pvIsolated;
+      for (const f of L.fAtrial){
+        const t0 = f.t + veinDelay + pf * 0.004;
+        egmEv(ev, t0, 0.30 + 0.12 * hash01(f.k * 7 + 3), +1, 'A', 0.0060); // far-field: broad/小 (kind:'A')
+        if (hasPV){
+          const pvJit = (hash01(f.k * 29 + 9) - 0.5) * 0.006;
+          const pvAmp = 0.55 + 0.50 * hash01(f.k * 31 + pf * 13 + 5);
+          const pol = (hash01(f.k * 37 + pf * 17) < 0.5) ? +1 : -1;
+          egmEv(ev, t0 + 0.022 + pvJit, pvAmp, pol, 'PV', 0.0022);     // PV potential: 鋭く高周波 (kind:'PV')
+        }
+      }
+      return ev;
+    }
+
+    // --- ABL(マッピングカテ): fractionated な局所 A + 心室 far-field。
+    if (role === 'ABL'){
+      for (const f of L.fAtrial){
+        const t0 = f.t + 0.024;
+        const nComp = 2 + (hash01(f.k * 41 + 6) < 0.45 ? 1 : 0);
+        for (let c = 0; c < nComp; c++){
+          const jit = (hash01(f.k * 43 + c * 47) - 0.5) * 0.012;
+          const amp = 0.40 + 0.45 * hash01(f.k * 53 + c * 59);
+          const pol = (hash01(f.k * 61 + c * 67) < 0.5) ? +1 : -1;
+          egmEv(ev, t0 + c * 0.005 + jit, amp, pol, 'A', 0.0026);
+        }
+      }
+      for (const v of L.vBeats) egmEv(ev, v.t + 0.012, 0.22, -1, 'V', 0.006);
+      return ev;
+    }
+    return ev;
+  }
+
+/* ===== PVC / Idiopathic VT 用ヘルパ（1拍ぶんランドマークの「単一の真実」） =====
+   方針: 基礎リズムは洞調律。洞調律ランドマークは既存の epsBeat(n,T) を「そのまま再利用」する
+   ことで「洞調律拍は正常 A-H-V」（§6）を baselineEPS と完全に同一に保証する。
+   その上で、決定論的に選んだ洞調律拍の後ろへ PVC（心室期外収縮・RVOT 起源）を1個挿入する。
+   PVC は心室起源なので「先行する P/His が駆動しない」。代わりに起源（origin）が表面 QRS onset
+   より preQRS だけ先行する（= §6: ABL distal の局所 V が QRS onset より 20–40ms 先行）。
+   心房は PVC の影響を受けず洞調律のまま march through（完全代償性休止＝房室解離）。
+
+   依存: スコープ既存の epsBeat(n,T) を参照する（baselineEPS と同じ関数。再定義しない）。
+   epsBeat(n,T) -> { t0, hraA, hisA, h, v }  （v = 洞調律 QRS onset 相当）
+
+   返り値: { S:洞調律ランドマーク, hasPVC:boolean, P:{origin,qOnset}|null }
+     origin = 心室異所性起源（RVOT）の時刻 [s]。ABL distal の最早期局所 V はここ。
+     qOnset = PVC の表面 QRS onset [s]。origin より preQRS だけ後 → origin が先行する。 */
+function pvcPlan(n, T){
+  const S = epsBeat(n, T);                                // 洞調律ランドマーク（単一の真実を再利用）
+  const m = T.pvcEvery || 3;                              // 何拍に1回 PVC を入れるか（決定論的・count）
+  const hasPVC = ((((n % m) + m) % m) === 0);             // n が m の倍数の洞調律拍の後に PVC
+  let P = null;
+  if (hasPVC){
+    const origin = S.v + T.coupling / 1000;              // 先行洞調律 QRS から coupling 後に異所性興奮
+    const qOnset = origin + T.preQRS / 1000;             // 表面 QRS onset。origin が preQRS 先行
+    P = { origin: origin, qOnset: qOnset };
+  }
+  return { S: S, hasPVC: hasPVC, P: P };
+}
+MODEL.pvc = function(params, tStart, tEnd){
+  const T = params.timing;
+  const cl = T.cl / 1000;
+  const pad = 0.45;                              // 表面 T波／PVC が窓端で切れないよう広めに
+  const nFrom = Math.floor((tStart - pad) / cl);
+  const nTo   = Math.ceil ((tEnd   + pad) / cl);
+  const ev = [];
+  for (let n = nFrom; n <= nTo; n++){
+    const PL = pvcPlan(n, T);                    // { S:洞調律ランドマーク, hasPVC, P:{origin,qOnset}|null }
+    const S = PL.S, P = PL.P;
+    switch (params.role){
+
+      /* ---- 表面 II: 洞調律=正常 P-qRs-T（baselineEPS と同一）。
+              PVC=幅広・高い R（RVOT=下方軸→II 陽性）+ QRS と逆向きの discordant T。 ---- */
+      case 'surfaceII':
+        gaussEv(ev, S.t0 + 0.035, 0.13, +1, 0.020, 'P');     // 洞調律 P（PVC 中も房室解離で march through）
+        gaussEv(ev, S.v + 0.004, 0.07, -1, 0.006, 'QRS');    // q
+        gaussEv(ev, S.v + 0.026, 0.62, +1, 0.011, 'QRS');    // R（narrow 洞調律）
+        gaussEv(ev, S.v + 0.050, 0.12, -1, 0.008, 'QRS');    // s
+        gaussEv(ev, S.v + 0.300, 0.22, +1, 0.045, 'T');
+        if (P){
+          gaussEv(ev, P.qOnset,         0.95, +1, 0.024, 'QRS'); // 幅広・高い R（QRS onset = qOnset）
+          gaussEv(ev, P.qOnset + 0.078, 0.20, -1, 0.018, '');    // 終末の振れ（整形のみ）
+          gaussEv(ev, P.qOnset + 0.250, 0.30, -1, 0.060, 'T');   // discordant T（QRS と逆向き=陰性）
+        }
+        break;
+
+      /* ---- 表面 V1: 洞調律=二相 P / rS。PVC=LBBB 様（陰性優位）+ discordant T（陽性）。 ---- */
+      case 'surfaceV1':
+        gaussEv(ev, S.t0 + 0.028, 0.055, +1, 0.016, 'P');
+        gaussEv(ev, S.t0 + 0.055, 0.050, -1, 0.016, '');
+        gaussEv(ev, S.v + 0.008, 0.14, +1, 0.008, 'QRS');    // r
+        gaussEv(ev, S.v + 0.038, 0.58, -1, 0.012, 'QRS');    // S
+        gaussEv(ev, S.v + 0.300, 0.12, +1, 0.045, 'T');
+        if (P){
+          gaussEv(ev, P.qOnset + 0.006, 0.16, +1, 0.010, 'QRS'); // 小さな初期 r
+          gaussEv(ev, P.qOnset + 0.044, 0.80, -1, 0.026, 'QRS'); // 幅広い深い S（LBBB 様）
+          gaussEv(ev, P.qOnset + 0.270, 0.16, +1, 0.060, 'T');   // discordant T（陽性）
+        }
+        break;
+
+      /* ---- HRA: 鋭い心房 A（洞調律のまま regular に march through）+ 心室 far-field 小。 ---- */
+      case 'HRA':
+        egmEv(ev, S.hraA, 1.00, +1, 'A', 0.0032);
+        egmEv(ev, S.v + 0.010, 0.16, -1, 'V', 0.006);             // 洞調律拍の遠隔 V
+        if (P) egmEv(ev, P.qOnset + 0.032, 0.12, -1, 'V', 0.007); // PVC の遠隔 V（小・後行）
+        break;
+
+      /* ---- His: 洞調律で A→H→V（AH/HV はこの role で計測）。
+              PVC は心室起源 → 順行 H なし（房室解離）。心室興奮は QRS 後に遅れて到達。 ---- */
+      case 'His':
+        egmEv(ev, S.hisA, 0.50, +1, 'A', 0.0032);
+        egmEv(ev, S.h,    0.34, +1, 'H', 0.0021);
+        egmEv(ev, S.v,    0.95, -1, 'V', 0.0035);
+        if (P) egmEv(ev, P.qOnset + 0.010, 0.55, -1, 'V', 0.0040); // PVC: H 先行なしの遅れた V
+        break;
+
+      /* ---- RV apex: 洞調律で大きく鋭い V。RVOT 起源 PVC では心尖は遠隔 → QRS 後に遅れて興奮。 ---- */
+      case 'RVA':
+        egmEv(ev, S.v + 0.006, 1.25, +1, 'V', 0.0034);
+        egmEv(ev, S.hraA + 0.018, 0.10, +1, 'A', 0.006);
+        if (P) egmEv(ev, P.qOnset + 0.014, 1.05, +1, 'V', 0.0036); // PVC: QRS onset より後（遠隔・後行）
+        break;
+
+      /* ---- RVOT（流出路マッピング電極）: 洞調律では QRS 付近〜やや遅れ。
+              PVC（RVOT 起源）では origin 近傍で早い（ABL distal の直後）。 ---- */
+      case 'RVOT':
+        egmEv(ev, S.v + 0.012, 0.80, +1, 'V', 0.0036);            // 洞調律: 流出路は早くない
+        egmEv(ev, S.hraA + 0.020, 0.08, +1, 'A', 0.006);
+        if (P) egmEv(ev, P.origin + 0.006, 1.05, +1, 'V', 0.0034); // PVC: origin 近傍（pre-QRS）
+        break;
+
+      /* ---- ABL distal（roving、RVOT の成功部位＝起源に留置）:
+              洞調律では「早くない」normal-timed V（QRS 付近）。← PVC との対比が要点。
+              PVC では★最早期 local V = origin（表面 QRS onset より preQRS=20–40ms 先行）。 ---- */
+      case 'ABLd':
+        egmEv(ev, S.v + 0.012, 0.70, +1, 'V', 0.0036);            // 洞調律: pre-QRS ではない
+        egmEv(ev, S.hraA + 0.022, 0.07, +1, 'A', 0.006);
+        if (P) egmEv(ev, P.origin, 1.20, +1, 'V', 0.0032);        // ★PVC: 最早期 local V（= origin）
+        break;
+
+      /* ---- ABL proximal（双極の対側）: distal よりやや遅れ・小さい。 ---- */
+      case 'ABLp':
+        egmEv(ev, S.v + 0.016, 0.45, +1, 'V', 0.0040);
+        if (P) egmEv(ev, P.origin + 0.010, 0.70, +1, 'V', 0.0036); // distal の少し後
+        break;
+    }
+  }
+  return ev;
+}
+
+
+/* ===========================================================================
+   2. synthesis 層 — イベント列 → サンプルバッファ(Gaussian pulse の合成)
+   ---------------------------------------------------------------------------
+   CLAUDE.md §2: 波形は sin 波ではなく Gaussian pulse の合成で作る。
+   ここでは「信号本体」だけを合成しリングバッファへ書き込む(ノイズは描画時に決定論加算)。
+   合成するのは渡された idx 範囲のみ = 「1フレームぶんの新規サンプル」(CLAUDE.md §4)。
+   =========================================================================== */
+const SYNTH = {
+  // 1イベントの寄与(時刻 t における Gaussian)
+  gaussianAt(ev, t){
+    const d = (t - ev.center) / ev.sigma;
+    return ev.polarity * ev.amp * Math.exp(-0.5 * d * d);
+  },
+  // チャネル chan のリングバッファに、絶対サンプル index [idxFrom, idxTo) を合成して書き込む。
+  fillRing(chan, idxFrom, idxTo){
+    if (idxTo <= idxFrom) return;
+    const ring = chan.ring, L = ring.length;
+    const tStart = idxFrom / SR, tEnd = (idxTo - 1) / SR;
+    const events = eventsForChannel(chan, tStart, tEnd);  // 表示用(アブレーション状態を反映)
+    for (let i = idxFrom; i < idxTo; i++){
+      const t = i / SR;
+      let v = 0;
+      for (let e = 0; e < events.length; e++){
+        const ev = events[e];
+        // 4σ より遠いイベントは無視(無駄な exp を省く)
+        const dt = t - ev.center;
+        if (dt < -4 * ev.sigma || dt > 4 * ev.sigma) continue;
+        v += SYNTH.gaussianAt(ev, t);
+      }
+      const slot = ((i % L) + L) % L;
+      ring[slot] = v;
+    }
+  }
+};
+
+
+/* ===========================================================================
+   3. render 層 — リングバッファを Canvas へスクロール描画
+   ---------------------------------------------------------------------------
+   ・grid バッファ(静的・設定変更時のみ再生成)と trace バッファ(blit-scroll 更新)を
+     画面 canvas へ毎フレーム合成する。チャネル名/ルーラーはガターに直接描画(固定)。
+   ・通常再生: trace バッファを整数 px だけ横シフトし、先端の帯だけ新規サンプルで描く。
+   =========================================================================== */
+
+// --- 状態(単純な可変オブジェクト)---
+const state = {
+  playing: true,
+  tNow: 0,          // 画面右端(rtl)/左端(ltr)が指す現在時刻 [s]
+  remPx: 0,         // 整数pxスクロールの端数(px)を繰り越す
+  dir: 'rtl',       // 'rtl' = 右→左(新しい波形が右), 'ltr' = 左→右
+  sweep: 25,        // mm/s
+  egmGain: 1,       // × (intracardiac EGM)
+  surfGain: 10,     // mm/mV (surface ECG)
+  noise: 'none',
+  disease: 'baselineEPS',
+  nCh: 0,           // チャネル数(loadDisease が設定)
+  cursorOn: false,  // 計測カーソル (SPEC §10.1)
+  cursorA: null,    // Cursor A の時刻 [s](波形に追従するよう「時刻」で保持)
+  cursorB: null,    // Cursor B の時刻 [s]
+  abl: { on: false, tStart: 0 },  // アブレーション状態 (SPEC §10.5)
+  labelsOn: true,   // イベントラベル ON/OFF (SPEC §10.2)
+  pacing: false,    // Pacing(刺激 artifact)
+  scenario: 'observe', // 観察 / 解説 / クイズ (SPEC §10.3)
+  filter: 'bipolar',   // フィルタ感(表示)
+  audio: { on: false, chIndex: 0, vol: 0.5 },  // EGM 音声化(1ch 聴診)
+  // ゲーム(診断チャレンジ): ランダム出題・制限時間・スコア・連続正解・ランク・ハイスコア
+  game: { active: false, round: 0, rounds: 5, correct: 0, score: 0, streak: 0, best: 0,
+          qLimit: 20, tLeft: 0, answered: false, last: null, diff: 'normal' }
+};
+
+// --- レイアウト(リサイズ/設定で再計算)---
+const layout = {
+  dpr:1, devW:0, devH:0, plotW:0, gutterDev:0, rulerDev:0,
+  ppmDev:0, ppsDev:0, rowH:0, ringLen:0, baseAmpDev:0
+};
+
+// --- オフスクリーン & 画面 canvas ---
+const screen   = document.getElementById('scope');
+const screenCtx= screen.getContext('2d');
+const gridBuf  = document.createElement('canvas');
+const gridCtx  = gridBuf.getContext('2d');
+const traceBuf = document.createElement('canvas');
+const traceCtx = traceBuf.getContext('2d');
+
+// --- チャネル配列(diseaseConfig から構築)---
+let channels = [];
+
+/* --- diseaseConfig(§9 / 疾患追加はここにエントリを足すだけ) ---
+   group: 'surface'(mV / mm/mV gain)| 'egm'(正規化 / × gain)。
+   role : MODEL が emit を切り替えるキー。 baseFrac: 行内の baseline 位置(0=上,1=下)。
+   edu  : SPEC §9 を逐語で格納(Claude は臨床内容を創作・追記しない)。 */
+const diseaseConfig = {
+  baselineEPS: {
+    name: 'Sinus rhythm / Baseline EPS',
+    model: 'baselineEPS',
+    measureRole: 'HisD',            // AH/HV を実測するチャネル
+    timing: {                       // ms。この数値関係が §6 の不変条件。
+      cl: 857,                      // 洞周期 ≒ 70 bpm
+      hraToHisA: 35,                // HRA-A → His-A(心房内伝導)
+      ah: 92,                       // AH(His-A → H)  ∈ [60,120]
+      hv: 45,                       // HV(H → V)      ∈ [35,55]
+      csProxDelay: 28,              // HRA-A → CS proximal(9-10)
+      csDistDelay: 76               // HRA-A → CS distal(1-2) … 近位→遠位
+    },
+    channels: [
+      { label:'ECG II',      role:'surfaceII', group:'surface', color:'#e3ecf5', baseFrac:0.62 },
+      { label:'ECG V1',      role:'surfaceV1', group:'surface', color:'#a9bccf', baseFrac:0.42 },
+      { label:'HRA',         role:'HRA',       group:'egm',     color:'#ffd24a', baseFrac:0.60 },
+      { label:'His distal',  role:'HisD',      group:'egm',     color:'#46f08c', baseFrac:0.46 },
+      { label:'His prox',    role:'HisP',      group:'egm',     color:'#37c97c', baseFrac:0.46 },
+      { label:'CS 9-10',     role:'CS', csFrac:0.00, group:'egm', color:'#bdecff', baseFrac:0.54 },
+      { label:'CS 7-8',      role:'CS', csFrac:0.25, group:'egm', color:'#86d9fb', baseFrac:0.54 },
+      { label:'CS 5-6',      role:'CS', csFrac:0.50, group:'egm', color:'#56c5f2', baseFrac:0.54 },
+      { label:'CS 3-4',      role:'CS', csFrac:0.75, group:'egm', color:'#33aee6', baseFrac:0.54 },
+      { label:'CS 1-2',      role:'CS', csFrac:1.00, group:'egm', color:'#1f97d6', baseFrac:0.54 },
+      { label:'RVA',         role:'RVA',       group:'egm',     color:'#ff9d5c', baseFrac:0.62 }
+    ],
+    // 波形上に出すラベル(role → [kind])。疾患ごとに見せたいランドマークを指定。
+    labels: { surfaceII:['P'], HRA:['A'], HisD:['A','H','V'], RVA:['V'] },
+    edu: {  // SPEC §9.1 を逐語で格納(臨床監修待ちのドラフト)
+      overview: '正常洞調律下のベースライン電気生理。各カテーテルの正常興奮順序と基本 interval(AH / HV)を確認し、以降の頻拍評価の基準とする。',
+      look:     'P波の後に HRA の A波 / His で A → H → V の順 / AH・HV が正常範囲。',
+      seq:      '洞結節 → 心房(HRA → CS 近位→遠位)→ AV node(AH)→ His(HV)→ 心室。',
+      ddx:      'ベースラインなので頻拍の鑑別対象ではないが、AH/HV の延長や順序異常は伝導障害の手がかり。',
+      target:   'なし(基準計測)。',
+      danger:   '—',
+      pitfall:  'His電位を心房 far-field と取り違える / A・H・V の同定ミス。'
+    }
+  }
+};
+/* @@DISEASE_CONFIGS@@ */
+diseaseConfig.avnrt = {"name":"AVNRT slow-fast","model":"avnrt","measureRole":"HisD","timing":{"cl":340,"hv":42,"va":35,"csSeptalDelay":6,"csLatDelay":22,"hraDelay":28,"ablADelay":4,"ahForward":263},"channels":[{"label":"ECG II","role":"surfaceII","group":"surface","color":"#e3ecf5","baseFrac":0.62},{"label":"ECG V1","role":"surfaceV1","group":"surface","color":"#a9bccf","baseFrac":0.42},{"label":"HRA","role":"HRA","group":"egm","color":"#ffd24a","baseFrac":0.6},{"label":"His distal","role":"HisD","group":"egm","color":"#46f08c","baseFrac":0.46},{"label":"His prox","role":"HisP","group":"egm","color":"#37c97c","baseFrac":0.46},{"label":"CS 9-10","role":"CS","csFrac":0,"group":"egm","color":"#bdecff","baseFrac":0.54},{"label":"CS 7-8","role":"CS","csFrac":0.25,"group":"egm","color":"#86d9fb","baseFrac":0.54},{"label":"CS 5-6","role":"CS","csFrac":0.5,"group":"egm","color":"#56c5f2","baseFrac":0.54},{"label":"CS 3-4","role":"CS","csFrac":0.75,"group":"egm","color":"#33aee6","baseFrac":0.54},{"label":"CS 1-2","role":"CS","csFrac":1,"group":"egm","color":"#1f97d6","baseFrac":0.54},{"label":"RVA","role":"RVA","group":"egm","color":"#ff9d5c","baseFrac":0.62},{"label":"ABL distal","role":"ABLd","group":"egm","color":"#ff8fae","baseFrac":0.58},{"label":"ABL prox","role":"ABLp","group":"egm","color":"#d96f90","baseFrac":0.58}],"labels":{"HisD":["A","H","V"],"HRA":["A"],"ABLd":["A"]},"edu":{"overview":"房室結節二重伝導路を背景にしたリエントリー性頻拍。通常型では slow pathway を順行、fast pathway を逆行する。","look":"A波と V波が近接する / VA interval が短い / His電位が V波直前に出る / CS 内の心房興奮は septal earliest になりやすい。","seq":"頻拍中、心房と心室がほぼ同時〜短い VA。逆行性心房興奮は中隔最早期。","ddx":"AVRT では VA interval が長くなることがある / AT では心房興奮が頻拍を駆動する。","target":"Koch三角下方の slow pathway 領域。","danger":"His近傍通電では AV block に注意。","pitfall":"junctional rhythm を頻拍再発と誤認 / VA の長短の評価ミス。"}};
+diseaseConfig.avrt = {"name":"Orthodromic AVRT","model":"avrt","measureRole":"His","timing":{"cl":330,"ah":160,"hv":45,"vaSeptal":125,"vaAbl":100,"vaHRA":150,"vaCsDist":105,"vaCsProx":133},"channels":[{"label":"ECG II","role":"surfaceII","group":"surface","color":"#e3ecf5","baseFrac":0.62},{"label":"ECG V1","role":"surfaceV1","group":"surface","color":"#a9bccf","baseFrac":0.42},{"label":"HRA","role":"HRA","group":"egm","color":"#ffd24a","baseFrac":0.6},{"label":"His","role":"His","group":"egm","color":"#46f08c","baseFrac":0.46},{"label":"CS 9-10","role":"CS","csFrac":0,"group":"egm","color":"#bdecff","baseFrac":0.54},{"label":"CS 7-8","role":"CS","csFrac":0.25,"group":"egm","color":"#86d9fb","baseFrac":0.54},{"label":"CS 5-6","role":"CS","csFrac":0.5,"group":"egm","color":"#56c5f2","baseFrac":0.54},{"label":"CS 3-4","role":"CS","csFrac":0.75,"group":"egm","color":"#33aee6","baseFrac":0.54},{"label":"CS 1-2","role":"CS","csFrac":1,"group":"egm","color":"#1f97d6","baseFrac":0.54},{"label":"RVA","role":"RVA","group":"egm","color":"#ff9d5c","baseFrac":0.62},{"label":"ABL","role":"ABL","group":"egm","color":"#ff8fae","baseFrac":0.55}],"labels":{"His":["A","H","V"],"HRA":["A"],"ABL":["A"]},"edu":{"overview":"副伝導路を逆行路、房室結節–His–Purkinje を順行路とするリエントリー頻拍。narrow QRS。","look":"VA interval が AVNRT より長め(特に側壁副伝導路)/ CS の最早期心房興奮部位が副伝導路の位置を示す(eccentric activation)。","seq":"順行 AV node → His → 心室 → 副伝導路を逆行 → 心房。心房最早期は副伝導路付着部側。","ddx":"AVNRT は concentric / short VA。AT は心房が頻拍を駆動(VA が心室に依存しない)。ventricular overdrive pacing 等のマヌーバで機序確認。","target":"副伝導路の心房・心室付着部(僧帽弁輪 / 三尖弁輪)。","danger":"中隔副伝導路では AV block / 冠静脈洞・冠動脈の近接。","pitfall":"eccentric と concentric の心房興奮順序の読み違い。"}};
+diseaseConfig.aflutter = {"name":"Typical atrial flutter","model":"aflutter","measureRole":"His","timing":{"acl":240,"cl":240,"hisOff":20,"csProxOff":6,"csDistOff":122,"hraOff":92,"ctiDistOff":150,"ctiProxOff":198,"ablOff":174,"ah":140,"hv":46},"channels":[{"label":"ECG II","role":"surfaceII","group":"surface","color":"#e3ecf5","baseFrac":0.5},{"label":"ECG V1","role":"surfaceV1","group":"surface","color":"#a9bccf","baseFrac":0.42},{"label":"HRA","role":"HRA","group":"egm","color":"#ffd24a","baseFrac":0.55},{"label":"His","role":"His","group":"egm","color":"#46f08c","baseFrac":0.5},{"label":"CS 9-10","role":"CS","csFrac":0,"group":"egm","color":"#bdecff","baseFrac":0.54},{"label":"CS 7-8","role":"CS","csFrac":0.25,"group":"egm","color":"#86d9fb","baseFrac":0.54},{"label":"CS 5-6","role":"CS","csFrac":0.5,"group":"egm","color":"#56c5f2","baseFrac":0.54},{"label":"CS 3-4","role":"CS","csFrac":0.75,"group":"egm","color":"#33aee6","baseFrac":0.54},{"label":"CS 1-2","role":"CS","csFrac":1,"group":"egm","color":"#1f97d6","baseFrac":0.54},{"label":"CTI proximal","role":"CTIp","group":"egm","color":"#66d9b2","baseFrac":0.54},{"label":"CTI distal","role":"CTId","group":"egm","color":"#34e39a","baseFrac":0.54},{"label":"ABL","role":"ABL","group":"egm","color":"#ff9d5c","baseFrac":0.6}],"labels":{"His":["V"],"HRA":["A"],"CTId":["A"],"ABL":["A"]},"edu":{"overview":"三尖弁輪–下大静脈間峡部(CTI)を含むマクロリエントリー。典型は反時計回り。","look":"ACL 220–260 ms / ECG II の sawtooth flutter wave / CS の連続的な activation(反時計回りで proximal→distal)。","seq":"心房内を連続的に旋回(明瞭な等電位線がない continuous activation)。","ddx":"focal AT / 非定型 flutter との区別は entrainment mapping。","target":"CTI line(三尖弁輪〜IVC)。","danger":"アブレーション後は CTI 双方向ブロックを pacing で確認(flutter 停止だけでは不十分)。","pitfall":"flutter 停止=成功と早合点し、bidirectional block 確認を省く。"}};
+diseaseConfig.focalAT = {"name":"Focal atrial tachycardia","model":"focalAT","measureRole":"His","timing":{"cl":353,"ablDtoP":12,"aToP":24,"ablToHRA":40,"ablToHisA":46,"ah":100,"hv":45,"csProxDelay":30,"csDistDelay":64},"channels":[{"label":"ECG II","role":"surfaceII","group":"surface","color":"#e3ecf5","baseFrac":0.62},{"label":"ECG V1","role":"surfaceV1","group":"surface","color":"#a9bccf","baseFrac":0.42},{"label":"HRA","role":"HRA","group":"egm","color":"#ffd24a","baseFrac":0.6},{"label":"His","role":"His","group":"egm","color":"#46f08c","baseFrac":0.5},{"label":"CS 9-10","role":"CS","csFrac":0,"group":"egm","color":"#bdecff","baseFrac":0.56},{"label":"CS 7-8","role":"CS","csFrac":0.25,"group":"egm","color":"#86d9fb","baseFrac":0.56},{"label":"CS 5-6","role":"CS","csFrac":0.5,"group":"egm","color":"#56c5f2","baseFrac":0.56},{"label":"CS 3-4","role":"CS","csFrac":0.75,"group":"egm","color":"#33aee6","baseFrac":0.56},{"label":"CS 1-2","role":"CS","csFrac":1,"group":"egm","color":"#1f97d6","baseFrac":0.56},{"label":"ABL distal","role":"ABLd","group":"egm","color":"#ff7ea8","baseFrac":0.58},{"label":"ABL prox","role":"ABLp","group":"egm","color":"#c95f86","baseFrac":0.58}],"labels":{"ABLd":["A"],"His":["A","H","V"],"HRA":["A"],"surfaceII":["P"]},"edu":{"overview":"単一起源からの巣状心房頻拍。中心から放散状(centrifugal)に興奮が広がる。","look":"earliest atrial activation site がマッピングの的 / 局所A電位が表面 P波に先行 / HRA・CS は earliest より遅れる。","seq":"起源 → 周囲心房へ放散。","ddx":"マクロリエントリー(flutter)は continuous / entrainable、focal は centrifugal。","target":"earliest activation site。","danger":"起源が His近傍 / AV node 近傍なら通電で AV block リスク。","pitfall":"far-field signal を local earliest と誤認。"}};
+diseaseConfig.afib = {"name":"Atrial fibrillation / PVI","model":"afib","measureRole":null,"timing":{"fAtrialCL":160,"fAtrialJit":34,"rrMin":460,"rrMax":820,"csSpan":30,"pvIsolated":0},"channels":[{"label":"ECG II","role":"surfaceII","group":"surface","color":"#e3ecf5","baseFrac":0.62},{"label":"ECG V1","role":"surfaceV1","group":"surface","color":"#a9bccf","baseFrac":0.42},{"label":"CS 9-10","role":"CS","csFrac":0,"group":"egm","color":"#bdecff","baseFrac":0.54},{"label":"CS 7-8","role":"CS","csFrac":0.25,"group":"egm","color":"#86d9fb","baseFrac":0.54},{"label":"CS 5-6","role":"CS","csFrac":0.5,"group":"egm","color":"#56c5f2","baseFrac":0.54},{"label":"CS 3-4","role":"CS","csFrac":0.75,"group":"egm","color":"#33aee6","baseFrac":0.54},{"label":"CS 1-2","role":"CS","csFrac":1,"group":"egm","color":"#1f97d6","baseFrac":0.54},{"label":"LSPV 1-2","role":"LSPV","pvFrac":0,"group":"egm","color":"#46f08c","baseFrac":0.5},{"label":"LSPV 3-4","role":"LSPV","pvFrac":1,"group":"egm","color":"#37c97c","baseFrac":0.5},{"label":"LIPV 1-2","role":"LIPV","pvFrac":0,"group":"egm","color":"#2bb56b","baseFrac":0.5},{"label":"RSPV 1-2","role":"RSPV","pvFrac":0,"group":"egm","color":"#ffd24a","baseFrac":0.5},{"label":"RIPV 1-2","role":"RIPV","pvFrac":0,"group":"egm","color":"#f2b733","baseFrac":0.5},{"label":"ABL","role":"ABL","group":"egm","color":"#ff9d5c","baseFrac":0.54}],"labels":{"LSPV":["PV"],"RSPV":["PV"],"CS":["A"]},"edu":{"overview":"多くの発作性 AF は肺静脈起源 trigger。PV isolation が治療の柱。","look":"PV potential(鋭く高周波)と far-field(LA / 心房筋)signal の区別 / fractionated な CS activation / entrance block(PV 内電位の消失・dissociation)/ exit block(PV pacing で LA capture なし)。","seq":"AF 中は規則的順序なし。PVI 後、PV 内が電気的に隔離。","ddx":"PV potential vs far-field — differential pacing 等のマヌーバで鑑別。","target":"PV 開口部 / antrum の円周状隔離。","danger":"横隔神経 / 食道 / PV 狭窄。","pitfall":"far-field A波を PV potential と誤認し、不要な通電をする。"}};
+diseaseConfig.pvc = {"name":"PVC / Idiopathic VT","model":"pvc","measureRole":"His","timing":{"cl":880,"hraToHisA":35,"ah":90,"hv":45,"coupling":480,"preQRS":30,"pvcEvery":3},"channels":[{"label":"ECG II","role":"surfaceII","group":"surface","color":"#e3ecf5","baseFrac":0.62},{"label":"ECG V1","role":"surfaceV1","group":"surface","color":"#a9bccf","baseFrac":0.42},{"label":"HRA","role":"HRA","group":"egm","color":"#ffd24a","baseFrac":0.58},{"label":"His","role":"His","group":"egm","color":"#46f08c","baseFrac":0.5},{"label":"RV apex","role":"RVA","group":"egm","color":"#ff9d5c","baseFrac":0.6},{"label":"RVOT","role":"RVOT","group":"egm","color":"#ffc08a","baseFrac":0.58},{"label":"ABL distal","role":"ABLd","group":"egm","color":"#5ad1ff","baseFrac":0.58},{"label":"ABL prox","role":"ABLp","group":"egm","color":"#2f9fce","baseFrac":0.58}],"labels":{"ABLd":["V"],"His":["A","H","V"],"RVA":["V"],"surfaceII":["P"]},"edu":{"overview":"構造的心疾患のない特発性 PVC / VT。RVOT 起源が代表。","look":"起源部の局所 V電位が QRS onset より先行(良好なターゲットは概ね 20–40 ms 以上 pre-QRS)/ pace mapping で臨床 PVC の QRS と一致 / activation mapping。","seq":"起源 → 心室全体へ。ABL distal が QRS に先行。","ddx":"起源推定(RVOT / LVOT / aortic cusp / 乳頭筋 等)は QRS morphology + local activation。","target":"最早期局所心室興奮部位 / 最良 pace map 部位。","danger":"His束近傍起源は AV block リスク。aortic cusp は冠動脈近接。","pitfall":"late potential / far-field を pre-potential と誤認 / pace map 一致だけで activation を軽視。"}};
+
+/* §6 不変条件(疾患ごと)。新疾患はここに範囲を足すと、config 複製時の数値ミスが
+   auditDisease() で自動検出される(計測確認の安全網)。 */
+const DISEASE_INVARIANTS = {
+  baselineEPS: [
+    { key:'AH',    label:'AH 60–120 ms', unit:'ms', lo:60, hi:120 },
+    { key:'HV',    label:'HV 35–55 ms',  unit:'ms', lo:35, hi:55 },
+    { key:'order', label:'His で A < H < V の順', bool:true },
+    { key:'csSeq', label:'CS 近位→遠位(prox が先)', bool:true, showDelta:'csDelta' }
+  ]
+};
+/* @@DISEASE_INVARIANTS@@ */
+DISEASE_INVARIANTS.avnrt = [{"key":"CL","label":"CL 300–380 ms","unit":"ms","lo":300,"hi":380},{"key":"HV","label":"HV 35–55 ms(His→V)","unit":"ms","lo":35,"hi":55},{"key":"VA","label":"VA 短い(≤70 ms)","unit":"ms","lo":1,"hi":70},{"key":"avProx","label":"A と V が近接(≤60 ms)","unit":"ms","lo":0,"hi":60},{"key":"hisBeforeV","label":"His電位が V 直前(H<V)","bool":true},{"key":"csSeptal","label":"CS septal earliest(prox≤dist, 差小)","bool":true,"showDelta":"csDelta"},{"key":"narrowQRS","label":"narrow QRS(≤110 ms)","unit":"ms","lo":20,"hi":110}];
+DISEASE_INVARIANTS.avrt = [{"key":"CL","label":"CL 300–360 ms","unit":"ms","lo":300,"hi":360},{"key":"VAseptal","label":"VA(中隔)≥70ms = AVNRTより長い","unit":"ms","lo":70,"hi":180},{"key":"HV","label":"HV 35–55 ms(正常His-Purkinje)","unit":"ms","lo":35,"hi":55},{"key":"csEccentric","label":"CS eccentric(distal が earliest)","bool":true,"showDelta":"csDelta"},{"key":"narrowQRS","label":"narrow QRS(QRS幅 ≤110ms)","unit":"ms","lo":0,"hi":110}];
+DISEASE_INVARIANTS.aflutter = [{"key":"ACL","label":"ACL 220–260 ms","unit":"ms","lo":220,"hi":260},{"key":"avRatio","label":"心室応答 2:1(A:V ≈ 2)","unit":"","lo":1.9,"hi":2.1},{"key":"sawtooth","label":"ECG II に sawtooth(連続f波・等電位線なし)","bool":true},{"key":"csSeq","label":"CS continuous(反時計回り prox→distal)","bool":true,"showDelta":"csDelta"},{"key":"ctiDep","label":"CTI が回路に参加(CTI dependent)","bool":true}];
+DISEASE_INVARIANTS.focalAT = [{"key":"rate","label":"心房レート 150–220 bpm","unit":"bpm","lo":150,"hi":220},{"key":"ablEarliest","label":"earliest A = ABL distal(全chで最早期)","bool":true},{"key":"hraAfterAbl","label":"HRA の A が ABL より遅れる","bool":true,"showDelta":"hraDelta"},{"key":"csAfterAbl","label":"CS の A が ABL より遅れる","bool":true,"showDelta":"csProxDelta"},{"key":"aBeforeP","label":"局所A(ABL distal)が 表面P に先行","bool":true,"showDelta":"aToPDelta"}];
+DISEASE_INVARIANTS.afib = [{"key":"rrIrregular","label":"RR 不整(irregularly irregular)","bool":true},{"key":"noSurfaceP","label":"表面 ECG に P波なし(f波)","bool":true},{"key":"csFractionated","label":"CS の A が fractionated(多成分)","bool":true},{"key":"csIrregular","label":"CS 心房興奮の間隔が不規則","bool":true},{"key":"pvPotential","label":"PV potential あり(LSPV/RSPV 等)","bool":true},{"key":"pvSharp","label":"PV potential は far-field A より鋭い","bool":true},{"key":"pvAfterFarField","label":"PV potential は far-field A の直後","bool":true},{"key":"noHis","label":"His チャネルは無い(H を emit しない)","bool":true},{"key":"vRate","label":"心室応答 60–150 bpm(平均RR)","unit":"ms","lo":400,"hi":1000}];
+DISEASE_INVARIANTS.pvc = [{"key":"preExc","label":"PVC: ABL distal local V が QRS onset に 20–40ms 先行","unit":"ms","lo":20,"hi":40,"showDelta":"preExc"},{"key":"preOrder","label":"PVC: ABL distal V が表面 QRS onset より前","bool":true},{"key":"ablEarliest","label":"PVC: ABL distal V が RV apex V より早い（最早期）","bool":true},{"key":"AH","label":"洞調律拍 AH 60–120 ms","unit":"ms","lo":60,"hi":120},{"key":"HV","label":"洞調律拍 HV 35–55 ms","unit":"ms","lo":35,"hi":55},{"key":"order","label":"洞調律拍 His で A < H < V の順","bool":true}];
+
+// diseaseConfig を読み、チャネル実体(リングバッファ等)を構築する。
+function loadDisease(key){
+  const cfg = diseaseConfig[key];
+  state.disease = key;
+  channels = cfg.channels.map((c, i) => ({
+    label: c.label, color: c.color, group: c.group, role: c.role,
+    model: cfg.model,
+    params: { role: c.role, timing: cfg.timing,
+              csFrac: (c.csFrac != null ? c.csFrac : 0),
+              pvFrac: (c.pvFrac != null ? c.pvFrac : 0),
+              sinusBehavior: (ABLATION_SPEC[key] && ABLATION_SPEC[key].sinusMap) ? ABLATION_SPEC[key].sinusMap[c.role] : null },
+    baseFrac: (c.baseFrac != null ? c.baseFrac : 0.5),
+    noiseOffset: i * 7919,   // ノイズをチャネル間で脱相関させる
+    ring: null, lastIdx: 0, baseY: 0
+  }));
+  state.nCh = channels.length;
+}
+
+/* ===========================================================================
+   アブレーション演出 + 状態遷移 (SPEC §10.5 / CLAUDE.md P3 DoD)
+   ---------------------------------------------------------------------------
+   表示専用(synthesis / 描画の経路のみ)。監査ハーネスは常に基礎疾患を測る(ablation 非依存)。
+   ablation ON → 経過 termSec 後に「成功」:
+     terminate : 頻拍停止 → 同じ montage 上に洞調律復帰。AVNRT は停止直前に junctional 風。
+     fadePV    : PV potential が徐々に減衰し消失(entrance block)。AF 自体は継続。
+     stopPVC   : PVC が消えて純洞調律。
+   =========================================================================== */
+const SINUS_TIMING = { cl: 880, hraToHisA: 35, ah: 95, hv: 45, csProxDelay: 28, csDistDelay: 76 };
+const ABLATION_SPEC = {
+  avnrt:    { mode: 'terminate', termSec: 9, junctional: true, result: 'AVNRT 停止 → junctional 風 → 洞調律復帰',
+              sinusMap: { surfaceII:'surfII', surfaceV1:'surfV1', HRA:'A', HisD:'AHV', HisP:'AHV', CS:'Acs', RVA:'V', ABLd:'A', ABLp:'A' } },
+  avrt:     { mode: 'terminate', termSec: 9, result: '副伝導路ブロック → 洞調律復帰',
+              sinusMap: { surfaceII:'surfII', surfaceV1:'surfV1', HRA:'A', His:'AHV', CS:'Acs', RVA:'V', ABL:'A' } },
+  aflutter: { mode: 'terminate', termSec: 10, result: 'flutter termination(CTI 双方向ブロックを pacing で確認)',
+              sinusMap: { surfaceII:'surfII', surfaceV1:'surfV1', HRA:'A', His:'AHV', CS:'Acs', CTIp:'A', CTId:'A', ABL:'A' } },
+  focalAT:  { mode: 'terminate', termSec: 8, result: 'earliest A 消失 → 洞調律復帰',
+              sinusMap: { surfaceII:'surfII', surfaceV1:'surfV1', HRA:'A', His:'AHV', CS:'Acs', ABLd:'A', ABLp:'A' } },
+  afib:     { mode: 'fadePV', termSec: 8, result: 'PV potential 消失(entrance block)' },
+  pvc:      { mode: 'stopPVC', termSec: 7, result: '局所 V 先行電位の消失 / PVC 停止',
+              sinusMap: { surfaceII:'surfII', surfaceV1:'surfV1', HRA:'A', His:'AHV', RVA:'V', RVOT:'V', ABLd:'V', ABLp:'V' } }
+};
+
+// 復帰リズム(洞調律 / junctional)を role の挙動(sinusBehavior)に従って生成。
+function sinusLikeEvents(chan, w0, w1, junctional){
+  const beh = chan.params.sinusBehavior; if (!beh) return [];
+  const T = SINUS_TIMING, cl = junctional ? 0.58 : T.cl / 1000, pad = 0.45, ev = [];
+  const cf = chan.params.csFrac || 0;
+  for (let n = Math.floor((w0 - pad) / cl); n <= Math.ceil((w1 + pad) / cl); n++){
+    let pA, hisA, h, v, hasP, csBase, csSpan;
+    if (junctional){
+      const t0 = n * cl; h = t0; v = h + T.hv / 1000; const ra = v + 0.03;   // junction → H→V → 逆行A
+      pA = ra; hisA = ra; hasP = false; csBase = ra + 0.004; csSpan = 0.012;
+    } else {
+      const L = epsBeat(n, T); pA = L.hraA; hisA = L.hisA; h = L.h; v = L.v; hasP = true;
+      csBase = L.hraA + T.csProxDelay / 1000; csSpan = (T.csDistDelay - T.csProxDelay) / 1000;
+    }
+    switch (beh){
+      case 'surfII':
+        if (hasP) gaussEv(ev, pA + 0.035, 0.13, +1, 0.020, 'P');
+        gaussEv(ev, v + 0.004, 0.07, -1, 0.006, 'QRS'); gaussEv(ev, v + 0.026, 0.62, +1, 0.011, 'QRS');
+        gaussEv(ev, v + 0.050, 0.12, -1, 0.008, 'QRS'); gaussEv(ev, v + 0.300, 0.22, +1, 0.045, 'T'); break;
+      case 'surfV1':
+        if (hasP){ gaussEv(ev, pA + 0.028, 0.055, +1, 0.016, 'P'); gaussEv(ev, pA + 0.055, 0.050, -1, 0.016, ''); }
+        gaussEv(ev, v + 0.008, 0.14, +1, 0.008, 'QRS'); gaussEv(ev, v + 0.038, 0.58, -1, 0.012, 'QRS');
+        gaussEv(ev, v + 0.300, 0.12, +1, 0.045, 'T'); break;
+      case 'A':   egmEv(ev, pA, 0.95, +1, 'A', 0.0032); egmEv(ev, v + 0.010, 0.16, -1, 'V', 0.006); break;
+      case 'Acs': egmEv(ev, csBase + cf * csSpan, 0.85, +1, 'A', 0.0032); egmEv(ev, v + 0.008, 0.30, -1, 'V', 0.006); break;
+      case 'AHV': egmEv(ev, hisA, 0.52, +1, 'A', 0.0032); egmEv(ev, h, 0.32, +1, 'H', 0.0021); egmEv(ev, v, 0.95, -1, 'V', 0.0035); break;
+      case 'V':   egmEv(ev, v + 0.006, 1.10, +1, 'V', 0.0034); break;
+      case 'farA':egmEv(ev, pA + 0.020, 0.30, +1, 'A', 0.0060); break;
+    }
+  }
+  return ev;
+}
+
+// アブレーション状態を反映したイベント(下の eventsForChannel から呼ぶ)。
+function ablResolvedEvents(chan, w0, w1){
+  const abl = state.abl, spec = ABLATION_SPEC[state.disease];
+  const base = () => MODEL[chan.model](chan.params, w0, w1);
+  if (!abl.on || !spec || w1 <= abl.tStart) return base();
+  const t0 = abl.tStart;
+  if (spec.mode === 'fadePV'){                       // AF: PV potential を時間減衰
+    const ev = base();
+    for (const e of ev){ if (e.kind === 'PV'){ e.amp *= Math.max(0, 1 - (e.center - t0) / spec.termSec); } }
+    return ev;
+  }
+  // terminate / stopPVC: 時刻でフェーズ分割(tachy → [junctional] → sinus)。center でセグメント抽出。
+  const tTerm = t0 + spec.termSec, tJunc = tTerm - 1.4;
+  const tachyEnd = spec.junctional ? tJunc : tTerm, out = [];
+  base().forEach(e => { if (e.center < tachyEnd) out.push(e); });
+  if (spec.junctional) sinusLikeEvents(chan, w0, w1, true).forEach(e => { if (e.center >= tJunc && e.center < tTerm) out.push(e); });
+  sinusLikeEvents(chan, w0, w1, false).forEach(e => { if (e.center >= tTerm) out.push(e); });
+  return out;
+}
+// アブレーションが成功フェーズに入ったか(バナー表示用)
+function ablationPhase(){
+  const spec = ABLATION_SPEC[state.disease];
+  if (!state.abl.on || !spec) return null;
+  const el = state.tNow - state.abl.tStart;
+  if (el < spec.termSec) return { phase: 'delivering', el: el, spec };
+  return { phase: 'success', el: el, spec };
+}
+
+// 表示用イベント(fillRing / drawLabels が使用)。アブレーション + Pacing を反映。監査はこれを通らない。
+function eventsForChannel(chan, w0, w1){
+  const ev = ablResolvedEvents(chan, w0, w1);
+  if (state.pacing){                                  // 刺激 artifact(細く鋭い縦線)を pacing CL ごとに付加
+    const pcl = 0.4;
+    for (let n = Math.floor(w0 / pcl); n <= Math.ceil(w1 / pcl); n++){
+      ev.push({ center: n * pcl, amp: 1.5, sigma: 0.0012, polarity: +1, kind: 'Stim' });
+    }
+  }
+  return ev;
+}
+
+/* ===========================================================================
+   EGM 音声化(1ch 聴診)— Web Audio API のみ(外部依存なし / オフライン / CLAUDE.md §2)
+   ---------------------------------------------------------------------------
+   選択 1ch の A/H/V/PV/QRS/Stim 各デフレクションが now を通過した瞬間に、kind 別音色の
+   短いクリックを鳴らす。EP ラボで術者が ABL ch の局所電位を「聴いて」早期/鋭さを判断するのと同じ。
+   全ch同時再生はしない(雑音化するため。ユーザーの懸念どおり)。再生中のみ発音。
+   =========================================================================== */
+let audioCtx = null, masterGain = null;
+const audioLast = {};   // kind ごとの直近発音 sim時刻(不応期)
+// 高音域のモニター風「ピッ」。V/QRS を主ビープ(~1.3kHz)に、A は少し低く、H/PV/Stim はさらに高く区別。
+const AUDIO_TONE    = { A:{f:988,d:0.05}, H:{f:1976,d:0.03}, V:{f:1319,d:0.07}, QRS:{f:1319,d:0.07}, PV:{f:2349,d:0.03}, Stim:{f:2637,d:0.02} };
+const AUDIO_REFRACT = { A:0.06, H:0.04, V:0.10, QRS:0.15, PV:0.05, Stim:0.05 };
+function ensureAudio(){
+  if (!audioCtx){
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false;
+    audioCtx = new AC(); masterGain = audioCtx.createGain();
+    masterGain.gain.value = state.audio.vol; masterGain.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();   // 自動再生制限の解除(ユーザー操作起点)
+  return true;
+}
+function clickSound(when, freq, amp, dur){
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = 'sine'; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.linearRampToValueAtTime(amp, when + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  o.connect(g); g.connect(masterGain); o.start(when); o.stop(when + dur + 0.02);
+}
+// 再生で (tPrev, tNow] を通過したイベントを発音(frame ループの通常再生分岐から呼ぶ)
+function playAudioForWindow(tPrev, tNow){
+  if (!state.audio.on || !audioCtx || !channels.length) return;
+  const chan = channels[Math.min(state.audio.chIndex, channels.length - 1)];
+  const ev = eventsForChannel(chan, tPrev, tNow + 0.0005);
+  for (const e of ev){
+    const tone = AUDIO_TONE[e.kind]; if (!tone) continue;
+    if (e.center <= tPrev || e.center > tNow) continue;
+    if (e.center - (audioLast[e.kind] || -1) < AUDIO_REFRACT[e.kind]) continue;  // q/R/s 等の重複を抑制
+    audioLast[e.kind] = e.center;
+    const amp = state.audio.vol * Math.min(1, Math.abs(e.amp) * 0.8);            // 振幅 = 信号の大きさ
+    clickSound(audioCtx.currentTime + Math.max(0, e.center - tPrev), tone.f, amp, tone.d);
+  }
+}
+// 既定の聴診ch(マッピングch優先 → His → RVA → 先頭 egm)
+function pickDefaultAudioCh(){
+  let i = channels.findIndex(c => c.role && c.role.indexOf('ABL') === 0);
+  if (i < 0) i = channels.findIndex(c => c.role === 'HisD' || c.role === 'His');
+  if (i < 0) i = channels.findIndex(c => c.role === 'RVA');
+  if (i < 0) i = channels.findIndex(c => c.group === 'egm');
+  return i < 0 ? 0 : i;
+}
+// 聴診ch セレクトを現在の montage で再構築
+function populateAudioChannels(){
+  const sel = document.getElementById('sel-audio-ch'); if (!sel) return;
+  sel.innerHTML = '';
+  channels.forEach((c, i) => { const o = document.createElement('option'); o.value = i; o.textContent = c.label; sel.appendChild(o); });
+  state.audio.chIndex = pickDefaultAudioCh(); sel.value = state.audio.chIndex;
+}
+
+// --- 時刻 ↔ trace バッファ x 座標(device px)。grid と同じ式 → グリッド整合(DoD P1)---
+function timeToX(t){
+  const d = (state.tNow - t) * layout.ppsDev;        // 「現在からの経過」に対応する距離(px)
+  return state.dir === 'rtl' ? (layout.plotW - d) : d; // rtl は右端=now、ltr は左端=now
+}
+// --- サンプル値 → y(device px)。gain は描画時に適用 → gain 変更は repaint で全体反映 ---
+// 表面: 値は mV。たわみ = mV × (mm/mV) × (px/mm)。 EGM: 値は正規化。たわみ = 値 × 基準px × ×gain。
+function sampleToY(chan, idx){
+  const L = chan.ring.length;
+  const raw = chan.ring[((idx % L) + L) % L];
+  const nz = noiseAt(idx + chan.noiseOffset, state.noise);
+  if (chan.group === 'surface'){
+    return chan.baseY - (raw + nz * 0.12) * state.surfGain * layout.ppmDev;
+  }
+  return chan.baseY - (raw + nz) * layout.baseAmpDev * state.egmGain;
+}
+
+/* --- レイアウト再計算 + 各バッファ確保 + 初期波形バックフィル ---
+   リサイズ・ch数変更で呼ぶ。可視範囲の再合成を「1回だけ」行う(per-frame では絶対やらない)。 */
+function relayout(){
+  const dpr = layout.dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const rect = document.getElementById('stage').getBoundingClientRect();
+  const devW = layout.devW = Math.max(1, Math.round(rect.width  * dpr));
+  const devH = layout.devH = Math.max(1, Math.round(rect.height * dpr));
+  layout.gutterDev = Math.round(GUTTER_CSS * dpr);
+  layout.rulerDev  = Math.round(RULER_CSS * dpr);
+  layout.ppmDev    = PX_PER_MM_CSS * dpr;
+  layout.ppsDev    = state.sweep * layout.ppmDev;     // px/s = mm/s × px/mm
+  layout.baseAmpDev= BASE_AMP_CSS * dpr;
+  layout.plotW     = Math.max(1, devW - layout.gutterDev);
+  const plotH      = devH - layout.rulerDev;
+  layout.rowH      = plotH / Math.max(1, state.nCh);
+
+  // リングバッファ長: 最も遅い sweep(=最も広い時間窓)+ 余裕。どの sweep でも可視窓を満たす。
+  const slowestPps = SWEEP_OPTIONS[0] * layout.ppmDev;
+  const windowSamplesMax = Math.ceil(layout.plotW / slowestPps * SR);
+  layout.ringLen = windowSamplesMax + 2 * SR;         // +2秒ぶんの余裕
+
+  // 画面 & オフスクリーン canvas のバッキングストアを設定
+  screen.width = devW;   screen.height = devH;
+  gridBuf.width = layout.plotW;  gridBuf.height = devH;
+  traceBuf.width = layout.plotW; traceBuf.height = devH;
+
+  // 各チャネルの baseline とリングバッファを確保し、初期履歴をバックフィル
+  const idxNow = Math.floor(state.tNow * SR);
+  for (let i = 0; i < channels.length; i++){
+    const ch = channels[i];
+    ch.baseY = layout.rulerDev + layout.rowH * (i + ch.baseFrac); // baseline 位置は config の baseFrac
+    ch.ring  = new Float32Array(layout.ringLen);
+    SYNTH.fillRing(ch, idxNow - layout.ringLen + 1, idxNow + 1); // 過去 ringLen ぶんを合成
+    ch.lastIdx = idxNow;
+  }
+
+  drawGrid();          // 静的グリッドを生成
+  repaintTrace();      // 可視範囲を1回だけ描画(初期表示を満たす)
+}
+
+/* --- 静的グリッド描画(設定変更時のみ)。細かいグリッド + 太い秒線 (SPEC §4.3/§8) --- */
+function drawGrid(){
+  const W = layout.plotW, H = layout.devH, dpr = layout.dpr;
+  const ppm = layout.ppmDev, pps = layout.ppsDev;
+  gridCtx.clearRect(0, 0, W, H);
+
+  // 背景(プロット領域)
+  gridCtx.fillStyle = '#04070b';
+  gridCtx.fillRect(0, 0, W, H);
+
+  // 縦線は「now 端」を基準に等間隔 → 波形と必ず整合する(timeToX と同じ原点)
+  const nowX = state.dir === 'rtl' ? W : 0;
+  const dirSign = state.dir === 'rtl' ? -1 : 1;        // now から過去へ進む向き
+
+  // (a) 細グリッド 1mm
+  gridCtx.lineWidth = 1;
+  gridCtx.strokeStyle = 'rgba(120,150,140,0.10)';
+  gridCtx.beginPath();
+  for (let k = 0; ; k++){
+    const x = nowX + dirSign * k * ppm;
+    if (x < 0 || x > W) break;
+    gridCtx.moveTo(Math.round(x) + 0.5, 0); gridCtx.lineTo(Math.round(x) + 0.5, H);
+  }
+  // 水平 1mm
+  for (let y = layout.rulerDev; y <= H; y += ppm){
+    gridCtx.moveTo(0, Math.round(y) + 0.5); gridCtx.lineTo(W, Math.round(y) + 0.5);
+  }
+  gridCtx.stroke();
+
+  // (b) 5mm グリッド(やや濃く)
+  gridCtx.strokeStyle = 'rgba(120,150,140,0.20)';
+  gridCtx.beginPath();
+  for (let k = 0; ; k++){
+    const x = nowX + dirSign * k * ppm * 5;
+    if (x < 0 || x > W) break;
+    gridCtx.moveTo(Math.round(x) + 0.5, 0); gridCtx.lineTo(Math.round(x) + 0.5, H);
+  }
+  gridCtx.stroke();
+
+  // (c) 太い秒線(1秒ごと)+ 時刻オフセットラベル。now 端=0s なので固定で正しい。
+  gridCtx.strokeStyle = 'rgba(190,210,200,0.34)';
+  gridCtx.lineWidth = Math.max(1, dpr);
+  gridCtx.fillStyle = 'rgba(170,190,205,0.7)';
+  gridCtx.font = (10 * dpr) + 'px system-ui, sans-serif';
+  gridCtx.textBaseline = 'top';
+  for (let k = 0; ; k++){
+    const x = nowX + dirSign * k * pps;
+    if (x < 0 || x > W) break;
+    gridCtx.beginPath();
+    gridCtx.moveTo(Math.round(x) + 0.5, 0); gridCtx.lineTo(Math.round(x) + 0.5, H);
+    gridCtx.stroke();
+    if (k > 0){
+      gridCtx.textAlign = state.dir === 'rtl' ? 'right' : 'left';
+      gridCtx.fillText('-' + k + 's', x + (state.dir === 'rtl' ? -3 : 3) * dpr, 3 * dpr);
+    }
+  }
+
+  // チャネル間の区切り線(やや濃い水平線)
+  gridCtx.strokeStyle = 'rgba(120,150,140,0.28)';
+  gridCtx.lineWidth = 1;
+  gridCtx.beginPath();
+  for (let i = 0; i <= channels.length; i++){
+    const y = layout.rulerDev + layout.rowH * i;
+    gridCtx.moveTo(0, Math.round(y) + 0.5); gridCtx.lineTo(W, Math.round(y) + 0.5);
+  }
+  gridCtx.stroke();
+}
+
+/* --- 可視範囲を1回だけ trace バッファへ描画(初期化 / 設定変更 / Step ジャンプ時のみ)---
+   これは per-frame パスではない。通常再生は drawNewStrip() を使う。 */
+function repaintTrace(){
+  const W = layout.plotW, H = layout.devH;
+  traceCtx.clearRect(0, 0, W, H);
+  const idxNow = Math.floor(state.tNow * SR);
+  const visibleSamples = Math.ceil(layout.plotW / layout.ppsDev * SR) + 2;
+  const idxFrom = idxNow - visibleSamples;
+
+  for (let c = 0; c < channels.length; c++){
+    const ch = channels[c];
+    traceCtx.save();
+    // 行をクリップ(gain 過大でも隣のチャネルへはみ出さない)
+    const top = layout.rulerDev + layout.rowH * c;
+    traceCtx.beginPath();
+    traceCtx.rect(0, top, W, layout.rowH);
+    traceCtx.clip();
+
+    traceCtx.strokeStyle = ch.color;
+    traceCtx.lineWidth = Math.max(1, layout.dpr) * (state.filter === 'surface' ? 1.5 : state.filter === 'unipolar' ? 1.25 : 1.0);
+    traceCtx.lineJoin = 'round';
+    traceCtx.beginPath();
+    let started = false;
+    for (let i = idxFrom; i <= idxNow; i++){
+      const x = timeToX(i / SR), y = sampleToY(ch, i);
+      if (!started){ traceCtx.moveTo(x, y); started = true; }
+      else traceCtx.lineTo(x, y);
+    }
+    traceCtx.stroke();
+    traceCtx.restore();
+    ch.lastIdx = idxNow;
+  }
+}
+
+/* --- 通常再生の先端描画: trace を step px 横シフトし、新しい帯だけ描く(CLAUDE.md §4)--- */
+function drawNewStrip(step){
+  const W = layout.plotW, H = layout.devH;
+
+  // (1) 既存波形を1フレームぶん横へずらす(自己 drawImage + 'copy' で余白は透明化)
+  traceCtx.globalCompositeOperation = 'copy';
+  traceCtx.drawImage(traceBuf, state.dir === 'rtl' ? -step : step, 0);
+  traceCtx.globalCompositeOperation = 'source-over';
+
+  // (2) 先端の帯だけ、新規サンプルで描く
+  const idxNow = Math.floor(state.tNow * SR);
+  for (let c = 0; c < channels.length; c++){
+    const ch = channels[c];
+    const idxPrev = ch.lastIdx;
+    if (idxNow <= idxPrev) continue;
+    SYNTH.fillRing(ch, idxPrev + 1, idxNow + 1);   // ← 新規サンプルだけ合成(synthesis 層)
+
+    traceCtx.save();
+    const top = layout.rulerDev + layout.rowH * c;
+    traceCtx.beginPath();
+    traceCtx.rect(0, top, W, layout.rowH);
+    traceCtx.clip();
+
+    traceCtx.strokeStyle = ch.color;
+    traceCtx.lineWidth = Math.max(1, layout.dpr) * (state.filter === 'surface' ? 1.5 : state.filter === 'unipolar' ? 1.25 : 1.0);
+    traceCtx.lineJoin = 'round';
+    traceCtx.beginPath();
+    traceCtx.moveTo(timeToX(idxPrev / SR), sampleToY(ch, idxPrev)); // 前フレーム末尾から連続
+    for (let i = idxPrev + 1; i <= idxNow; i++){
+      traceCtx.lineTo(timeToX(i / SR), sampleToY(ch, i));
+    }
+    traceCtx.stroke();
+    traceCtx.restore();
+    ch.lastIdx = idxNow;
+  }
+}
+
+/* --- 画面へ合成(毎フレーム。grid と trace の drawImage + ガター/ラベルのみ。軽い)--- */
+function composite(){
+  const dpr = layout.dpr;
+  screenCtx.clearRect(0, 0, layout.devW, layout.devH);
+  // グリッド → 波形(ともにプロット領域。ガターぶん右へオフセット)
+  screenCtx.drawImage(gridBuf,  layout.gutterDev, 0);
+  screenCtx.drawImage(traceBuf, layout.gutterDev, 0);
+
+  // ガター(チャネル名固定表示 / SPEC §4.3)
+  screenCtx.fillStyle = '#070c12';
+  screenCtx.fillRect(0, 0, layout.gutterDev, layout.devH);
+  screenCtx.strokeStyle = 'rgba(120,150,140,0.28)';
+  screenCtx.lineWidth = 1;
+  screenCtx.beginPath();
+  screenCtx.moveTo(layout.gutterDev + 0.5, 0); screenCtx.lineTo(layout.gutterDev + 0.5, layout.devH);
+  screenCtx.stroke();
+
+  screenCtx.textBaseline = 'middle';
+  screenCtx.textAlign = 'left';
+  screenCtx.font = (11 * dpr) + 'px system-ui, sans-serif';
+  for (let c = 0; c < channels.length; c++){
+    const ch = channels[c];
+    const cy = ch.baseY;
+    screenCtx.fillStyle = ch.color;
+    screenCtx.fillRect(6 * dpr, cy - 5 * dpr, 3 * dpr, 10 * dpr); // 色チップ
+    screenCtx.fillStyle = '#cdd9e6';
+    screenCtx.fillText(ch.label, 14 * dpr, cy);
+  }
+  // ルーラーのコーナー見出し
+  screenCtx.fillStyle = '#0a0f17';
+  screenCtx.fillRect(0, 0, layout.gutterDev, layout.rulerDev);
+  screenCtx.fillStyle = 'rgba(170,190,205,0.7)';
+  screenCtx.font = (10 * dpr) + 'px system-ui, sans-serif';
+  screenCtx.fillText('time', 14 * dpr, layout.rulerDev / 2);
+
+  drawLabels();   // A/H/V/P イベントラベル(波形に追従)
+  drawCursors();  // 計測カーソル (SPEC §10.1)
+  drawAblation(); // アブレーション演出 (SPEC §10.5)
+}
+
+/* --- アブレーション演出: ABL ch 付近の赤 RF アイコン + 上部バナー(通電/成功)(SPEC §10.5)--- */
+function drawAblation(){
+  if (!state.abl.on) return;
+  const dpr = layout.dpr, info = ablationPhase();
+  if (!info) return;
+  // ABL チャネル付近に赤い RF アイコン
+  for (const ch of channels){
+    if (ch.role && ch.role.indexOf('ABL') === 0){
+      screenCtx.fillStyle = '#ff3b46';
+      screenCtx.beginPath(); screenCtx.arc(layout.gutterDev - 12 * dpr, ch.baseY, 4.4 * dpr, 0, Math.PI * 2); screenCtx.fill();
+      screenCtx.fillStyle = '#ffd0d3'; screenCtx.font = (8 * dpr) + 'px system-ui, sans-serif';
+      screenCtx.textAlign = 'center'; screenCtx.textBaseline = 'middle';
+      screenCtx.fillText('RF', layout.gutterDev - 12 * dpr, ch.baseY + 11 * dpr);
+    }
+  }
+  // 上部バナー
+  const txt = info.phase === 'delivering' ? ('RF delivery … ' + info.el.toFixed(0) + ' s')
+                                          : ('✓ ' + info.spec.result);
+  const deliv = info.phase === 'delivering';
+  screenCtx.font = '700 ' + (12 * dpr) + 'px system-ui, sans-serif';
+  screenCtx.textAlign = 'center'; screenCtx.textBaseline = 'middle';
+  const w = screenCtx.measureText(txt).width + 24 * dpr, h = 22 * dpr;
+  const bx = layout.gutterDev + layout.plotW / 2 - w / 2, by = layout.rulerDev + 8 * dpr;
+  screenCtx.fillStyle = deliv ? 'rgba(120,20,24,0.92)' : 'rgba(10,60,32,0.92)';
+  screenCtx.fillRect(bx, by, w, h);
+  screenCtx.strokeStyle = deliv ? '#ff5d6c' : '#46f08c'; screenCtx.lineWidth = 1 * dpr;
+  screenCtx.strokeRect(bx, by, w, h);
+  screenCtx.fillStyle = deliv ? '#ffd0d3' : '#bff5d4';
+  screenCtx.fillText(txt, bx + w / 2, by + h / 2);
+}
+
+/* --- イベントラベル重畳 (SPEC §4.3 / §10.2)。P→A→H→V を視認しやすくする(DoD P2)。
+   サンプル再合成ではなく、可視範囲の「疎なランドマーク」を model から読むだけ(§4 に抵触しない)。
+   Phase 5 で ON/OFF トグルを被せる前提。 */
+function drawLabels(){
+  if (!state.labelsOn) return;                              // ラベル ON/OFF (SPEC §10.2)
+  const dpr = layout.dpr;
+  const plan = diseaseConfig[state.disease].labels || {};   // role → [kind](疾患ごと)
+  const window = layout.plotW / layout.ppsDev;        // 可視時間幅[s]
+  const tEnd = state.tNow + 0.05, tStart = state.tNow - window - 0.05;
+  screenCtx.font = '700 ' + (9.5 * dpr) + 'px system-ui, sans-serif';
+  screenCtx.textAlign = 'center';
+  screenCtx.textBaseline = 'alphabetic';
+  for (const ch of channels){
+    const kinds = plan[ch.role];
+    if (!kinds) continue;
+    const ev = eventsForChannel(ch, tStart, tEnd);
+    for (const e of ev){
+      if (!e.kind || kinds.indexOf(e.kind) < 0) continue;
+      const xb = timeToX(e.center);
+      if (xb < 2 || xb > layout.plotW - 2) continue;
+      const x = layout.gutterDev + xb;
+      const y = ch.baseY - layout.rowH * 0.30;
+      // 視認性のため淡い縁取り
+      screenCtx.lineWidth = 3 * dpr;
+      screenCtx.strokeStyle = 'rgba(4,8,12,0.85)';
+      screenCtx.strokeText(e.kind, x, y);
+      screenCtx.fillStyle = '#eaf2fb';
+      screenCtx.fillText(e.kind, x, y);
+    }
+  }
+}
+
+/* --- 計測カーソル (SPEC §10.1)。時刻で保持 → 波形に追従。2点間を ms 表示。 --- */
+// クリック位置(client px)→ 時刻[s](プロット外なら null)
+function screenXToTime(clientX){
+  const rect = screen.getBoundingClientRect();
+  const xDev = (clientX - rect.left) * (layout.devW / rect.width);   // CSS → device px
+  const xBuf = xDev - layout.gutterDev;                              // プロット内 device px
+  if (xBuf < 0 || xBuf > layout.plotW) return null;
+  const d = state.dir === 'rtl' ? (layout.plotW - xBuf) : xBuf;      // now からの距離(px)
+  return state.tNow - d / layout.ppsDev;
+}
+function placeCursor(clientX){
+  const t = screenXToTime(clientX);
+  if (t == null) return;
+  // A 未設定 or 両方設定済み → A を置き直す。A だけ設定済み → B を置く。
+  if (state.cursorA == null || state.cursorB != null){ state.cursorA = t; state.cursorB = null; }
+  else { state.cursorB = t; }
+}
+function drawCursors(){
+  if (!state.cursorOn) return;
+  const dpr = layout.dpr;
+  const drawOne = (t, name) => {
+    const xb = timeToX(t);
+    if (xb < 0 || xb > layout.plotW) return null;
+    const x = layout.gutterDev + xb;
+    screenCtx.strokeStyle = '#ffd24a';
+    screenCtx.lineWidth = 1 * dpr;
+    screenCtx.setLineDash([4 * dpr, 3 * dpr]);
+    screenCtx.beginPath(); screenCtx.moveTo(x, layout.rulerDev); screenCtx.lineTo(x, layout.devH); screenCtx.stroke();
+    screenCtx.setLineDash([]);
+    screenCtx.fillStyle = '#ffd24a';
+    screenCtx.font = '700 ' + (10 * dpr) + 'px system-ui, sans-serif';
+    screenCtx.textAlign = 'center'; screenCtx.textBaseline = 'top';
+    screenCtx.fillText(name, x, layout.rulerDev + 2 * dpr);
+    return x;
+  };
+  const xA = (state.cursorA != null) ? drawOne(state.cursorA, 'A') : null;
+  const xB = (state.cursorB != null) ? drawOne(state.cursorB, 'B') : null;
+  if (state.cursorA != null && state.cursorB != null){
+    const ms = Math.abs(state.cursorB - state.cursorA) * 1000;
+    const midX = (xA != null && xB != null) ? (xA + xB) / 2 : (xA != null ? xA : xB);
+    if (midX != null){
+      const label = ms.toFixed(0) + ' ms';
+      screenCtx.font = '700 ' + (12 * dpr) + 'px system-ui, sans-serif';
+      screenCtx.textAlign = 'center'; screenCtx.textBaseline = 'alphabetic';
+      const w = screenCtx.measureText(label).width + 12 * dpr;
+      const y = layout.rulerDev + 30 * dpr;
+      screenCtx.fillStyle = 'rgba(8,12,18,0.88)';
+      screenCtx.fillRect(midX - w / 2, y - 13 * dpr, w, 17 * dpr);
+      screenCtx.fillStyle = '#ffe89a';
+      screenCtx.fillText(label, midX, y);
+    }
+  }
+}
+
+
+/* ===========================================================================
+   4. エンジンループ(requestAnimationFrame)
+   =========================================================================== */
+let lastT = 0, needTimeReset = true;
+let msEma = 0;
+
+function frame(now){
+  // dt をクランプ(タブ復帰時の飛び防止 / CLAUDE.md §7)
+  if (needTimeReset){ lastT = now; needTimeReset = false; }
+  let dt = (now - lastT) / 1000;
+  lastT = now;
+  if (dt < 0) dt = 0;
+  const dtClamped = Math.min(dt, DT_CLAMP);
+
+  // フレーム時間の指数移動平均。stall(タブ切替・デバッグ停止等)は定常負荷ではないため EMA に含めない。
+  // FPS は ms から一貫計算するので、両者の表示が食い違わない。
+  if (dt > 0 && dt < 0.1){
+    msEma = msEma ? msEma * 0.88 + dt * 1000 * 0.12 : dt * 1000;
+  }
+
+  // ゲームのタイマー(実時間で減算。タブ stall は dtClamped で抑制)
+  if (state.game.active && !state.game.answered){
+    state.game.tLeft -= dtClamped;
+    updateGameTimer();
+    if (state.game.tLeft <= 0) gameTimeout();
+  }
+
+  // 再生中のみ前進。整数pxシフトのため端数を繰り越す(blit のにじみ防止)。
+  if (state.playing){
+    const advancePx = layout.ppsDev * dtClamped + state.remPx;
+    let step = Math.floor(advancePx);
+    state.remPx = advancePx - step;
+    if (step > 0){
+      // step が極端に大きい(復帰直後など)場合は repaint に切替えてコスト上限を担保
+      if (step >= layout.plotW){
+        state.tNow += step / layout.ppsDev;
+        const idxNow = Math.floor(state.tNow * SR);
+        for (const ch of channels) SYNTH.fillRing(ch, ch.lastIdx + 1, idxNow + 1);
+        repaintTrace();
+      } else {
+        const tPrevAudio = state.tNow;
+        state.tNow += step / layout.ppsDev;
+        drawNewStrip(step);
+        playAudioForWindow(tPrevAudio, state.tNow);   // EGM 音声化(選択1ch)
+      }
+    }
+  }
+
+  composite();
+  updateHud();
+  requestAnimationFrame(frame);
+}
+
+function updateHud(){
+  const fps = msEma ? 1000 / msEma : 0;
+  setText('hud-fps', fps ? fps.toFixed(0) : '–');
+  setText('hud-ms',  msEma ? msEma.toFixed(1) : '–');
+}
+
+
+/* ===========================================================================
+   4b. 計測確認ハーネス (§6 不変条件をイベント列から実測して照合) + 右パネル
+   ---------------------------------------------------------------------------
+   ねらい(CLAUDE.md §3/§6): 「教材として正しいか?」を「この数字は正しいか?」に還元。
+   config の数値を読み返すのではなく、model が emit した「イベントの時刻」を測るので、
+   順序ミス・ラベルミス・遅延ミスを検出できる。新疾患を config 複製で増やす際の安全網。
+   =========================================================================== */
+// kind が k で center が beatT に最も近いイベント
+function nearestEvent(events, k, beatT){
+  let best = null, bd = Infinity;
+  for (const e of events){
+    if (e.kind !== k) continue;
+    const d = Math.abs(e.center - beatT);
+    if (d < bd){ bd = d; best = e; }
+  }
+  return best;
+}
+
+// --- 監査ハーネス共通ヘルパ(疾患非依存)---
+function evRole(key, role, w0, w1, csFrac, pvFrac){
+  const cfg = diseaseConfig[key];
+  return MODEL[cfg.model]({ role, timing: cfg.timing, csFrac: csFrac || 0, pvFrac: pvFrac || 0 }, w0, w1);
+}
+function kindCenters(ev, k){ return ev.filter(e => e.kind === k).map(e => e.center).sort((a, b) => a - b); }
+function firstKindAfter(ev, k, t){ let b = null; for (const e of ev){ if (e.kind !== k) continue; if (e.center > t && (!b || e.center < b.center)) b = e; } return b; }
+function medianDiff(sorted){ const d = []; for (let i = 1; i < sorted.length; i++) d.push(sorted[i] - sorted[i - 1]); d.sort((a, b) => a - b); return d.length ? d[Math.floor(d.length / 2)] : NaN; }
+function cv(arr){ if (arr.length < 2) return 0; const m = arr.reduce((a, b) => a + b, 0) / arr.length; const v = arr.reduce((a, b) => a + (b - m) * (b - m), 0) / arr.length; return Math.sqrt(v) / m; }
+// QRS をクラスタリングして拍時刻列(RR 計測用)
+function beatTimesFromQRS(ev, gap){
+  const c = kindCenters(ev, 'QRS'), beats = []; let cur = [];
+  for (const t of c){ if (cur.length && t - cur[cur.length - 1] > gap){ beats.push(cur.reduce((a, b) => a + b, 0) / cur.length); cur = []; } cur.push(t); }
+  if (cur.length) beats.push(cur.reduce((a, b) => a + b, 0) / cur.length);
+  return beats;
+}
+// 同一拍内 QRS イベントの span(ms)= QRS幅
+function qrsSpanMs(ev, beatT){
+  const c = ev.filter(e => e.kind === 'QRS' && Math.abs(e.center - beatT) < 0.12).map(e => e.center);
+  return c.length ? (Math.max.apply(null, c) - Math.min.apply(null, c)) * 1000 : NaN;
+}
+// 信号を合成して最長の等電位区間(ms)を返す(flutter の sawtooth / 等電位線なしの検証)
+function maxIsoelectricMs(key, role, w0, w1, thr, stepMs){
+  const ev = evRole(key, role, w0 - 0.1, w1 + 0.1);
+  const step = (stepMs || 2) / 1000; let run = 0, maxRun = 0;
+  for (let t = w0; t <= w1; t += step){
+    let v = 0;
+    for (const e of ev){ const dt = (t - e.center) / e.sigma; if (dt < -4 || dt > 4) continue; v += e.polarity * e.amp * Math.exp(-0.5 * dt * dt); }
+    if (Math.abs(v) < thr){ run += step; if (run > maxRun) maxRun = run; } else run = 0;
+  }
+  return maxRun * 1000;
+}
+// 不変条件1件の照合(数値 lo/hi か bool)
+function chk(inv, m){
+  let ok, val = null;
+  if (inv.bool){ ok = !!m[inv.key]; if (inv.showDelta) val = m[inv.showDelta]; }
+  else { val = m[inv.key]; ok = (val != null && !isNaN(val) && val >= inv.lo && val <= inv.hi); }
+  return { label: inv.label, ok, val, unit: inv.unit };
+}
+function pack(key, m){ const checks = (DISEASE_INVARIANTS[key] || []).map(inv => chk(inv, m)); return { measured: m, checks, pass: checks.every(c => c.ok) }; }
+
+/* --- 疾患別 監査関数。model が emit したイベントの center を実測して §6 を検算する。
+   疾患ごとに「何を・どの role/kind で測るか」が違うため、generic 1本でなく疾患別に分ける
+   (AF は His 無し、PVC は CS 無し・PVC拍と洞調律拍を区別、AVNRTは逆行Aが V の後、等)。 */
+const AUDIT = {
+  baselineEPS(key){
+    const T = diseaseConfig[key].timing, cl = T.cl / 1000, w1 = cl * 4, beatT = 2 * cl;
+    const his = evRole(key, 'HisD', 0, w1);
+    const A = nearestEvent(his, 'A', beatT), H = nearestEvent(his, 'H', beatT), V = nearestEvent(his, 'V', beatT);
+    const cl_ = medianDiff(kindCenters(evRole(key, 'HRA', 0, w1), 'A')) * 1000;
+    const csP = nearestEvent(evRole(key, 'CS', 0, w1, 0), 'A', beatT).center;
+    const csD = nearestEvent(evRole(key, 'CS', 0, w1, 1), 'A', beatT).center;
+    return pack(key, { CL: cl_, AH: (H.center - A.center) * 1000, HV: (V.center - H.center) * 1000, VA: null, AA: cl_, VV: cl_,
+      order: (A.center < H.center && H.center < V.center), csSeq: (csP < csD), csDelta: (csD - csP) * 1000 });
+  },
+  avnrt(key){
+    const T = diseaseConfig[key].timing, cl = T.cl / 1000, w1 = cl * 5, beatT = 2 * cl;
+    const his = evRole(key, 'HisD', 0, w1);
+    const H = nearestEvent(his, 'H', beatT), V = nearestEvent(his, 'V', beatT), A = firstKindAfter(his, 'A', V.center);
+    const cl_ = medianDiff(kindCenters(evRole(key, 'HRA', 0, w1), 'A')) * 1000;
+    const hv = (V.center - H.center) * 1000, va = (A.center - V.center) * 1000;
+    const csP = nearestEvent(evRole(key, 'CS', 0, w1, 0), 'A', V.center).center;
+    const csD = nearestEvent(evRole(key, 'CS', 0, w1, 1), 'A', V.center).center;
+    return pack(key, { CL: cl_, AH: cl_ - (hv + va), HV: hv, VA: va, AA: cl_, VV: cl_,
+      avProx: Math.abs(A.center - V.center) * 1000, hisBeforeV: (H.center < V.center),
+      csSeptal: (csP <= csD), csDelta: (csD - csP) * 1000, narrowQRS: qrsSpanMs(evRole(key, 'surfaceII', 0, w1), V.center) });
+  },
+  avrt(key){
+    const T = diseaseConfig[key].timing, cl = T.cl / 1000, w1 = cl * 5, beatT = 2 * cl;
+    const his = evRole(key, 'His', 0, w1);
+    const A = nearestEvent(his, 'A', beatT), H = firstKindAfter(his, 'H', A.center), V = firstKindAfter(his, 'V', H.center);
+    const aNext = firstKindAfter(his, 'A', V.center);
+    const cl_ = medianDiff(kindCenters(evRole(key, 'HRA', 0, w1), 'A')) * 1000;
+    const va = (aNext.center - V.center) * 1000;
+    const csP = nearestEvent(evRole(key, 'CS', 0, w1, 0), 'A', A.center).center;
+    const csD = nearestEvent(evRole(key, 'CS', 0, w1, 1), 'A', A.center).center;
+    return pack(key, { CL: cl_, AH: (H.center - A.center) * 1000, HV: (V.center - H.center) * 1000, VA: va, AA: cl_, VV: cl_,
+      VAseptal: va, csEccentric: (csD < csP), csDelta: (csP - csD) * 1000, narrowQRS: qrsSpanMs(evRole(key, 'surfaceII', 0, w1), V.center) });
+  },
+  aflutter(key){
+    const T = diseaseConfig[key].timing, acl = T.acl / 1000, w1 = acl * 9, beatT = 2 * acl;
+    const aT = kindCenters(evRole(key, 'HRA', 0, w1), 'A'), acl_ = medianDiff(aT) * 1000;
+    const vCount = kindCenters(evRole(key, 'His', 0, w1), 'V').length;
+    // 連続旋回のため「同一サイクル内」で比較する(最早期=CS proximal を起点に後続を辿る)。
+    // beatT 最近傍では prox と distal が別サイクルに割れて符号が反転するため。
+    const csPev = nearestEvent(evRole(key, 'CS', 0, w1, 0), 'A', beatT);
+    const csDev = firstKindAfter(evRole(key, 'CS', 0, w1, 1), 'A', csPev.center - 0.001);
+    const ctiDev = firstKindAfter(evRole(key, 'CTId', 0, w1), 'A', csPev.center - 0.001);
+    const ctiPev = firstKindAfter(evRole(key, 'CTIp', 0, w1), 'A', ctiDev.center - 0.001);
+    const hisANext = firstKindAfter(evRole(key, 'His', 0, w1), 'A', ctiPev.center);
+    const iso = maxIsoelectricMs(key, 'surfaceII', beatT - 2 * acl, beatT + 2 * acl, 0.03, 2);
+    return pack(key, { CL: acl_, AH: null, HV: null, VA: null, AA: acl_, VV: acl_ * 2, ACL: acl_,
+      avRatio: aT.length / Math.max(1, vCount), sawtooth: (iso < 90),
+      csSeq: (csPev.center < csDev.center), csDelta: (csDev.center - csPev.center) * 1000,
+      ctiDep: (ctiDev.center < ctiPev.center && (!hisANext || ctiPev.center < hisANext.center)) });
+  },
+  focalAT(key){
+    const T = diseaseConfig[key].timing, cl = T.cl / 1000, w1 = cl * 4, beatT = 2 * cl;
+    const ablD = nearestEvent(evRole(key, 'ABLd', 0, w1), 'A', beatT).center;
+    const ablP = nearestEvent(evRole(key, 'ABLp', 0, w1), 'A', beatT).center;
+    const hraA = nearestEvent(evRole(key, 'HRA', 0, w1), 'A', beatT).center;
+    const his = evRole(key, 'His', 0, w1);
+    const hisA = nearestEvent(his, 'A', beatT), H = firstKindAfter(his, 'H', hisA.center), V = firstKindAfter(his, 'V', (H ? H.center : hisA.center));
+    const csP = nearestEvent(evRole(key, 'CS', 0, w1, 0), 'A', beatT).center;
+    const csD = nearestEvent(evRole(key, 'CS', 0, w1, 1), 'A', beatT).center;
+    const pII = nearestEvent(evRole(key, 'surfaceII', 0, w1), 'P', beatT).center;
+    const cl_ = medianDiff(kindCenters(evRole(key, 'HRA', 0, w1), 'A')) * 1000;
+    return pack(key, { CL: cl_, AH: H ? (H.center - hisA.center) * 1000 : null, HV: (H && V) ? (V.center - H.center) * 1000 : null, VA: null, AA: cl_, VV: cl_,
+      rate: 60000 / cl_, ablEarliest: (ablD < ablP && ablD < hraA && ablD < hisA.center && ablD < csP && ablD < csD),
+      hraAfterAbl: (hraA > ablD), hraDelta: (hraA - ablD) * 1000,
+      csAfterAbl: (csP > ablD), csProxDelta: (csP - ablD) * 1000,
+      aBeforeP: (ablD < pII), aToPDelta: (pII - ablD) * 1000 });
+  },
+  afib(key){
+    const w1 = 8.0;
+    const sII = evRole(key, 'surfaceII', 0, w1), sV1 = evRole(key, 'surfaceV1', 0, w1);
+    const beats = beatTimesFromQRS(sII, 0.2), rr = [];
+    for (let i = 1; i < beats.length; i++) rr.push((beats[i] - beats[i - 1]) * 1000);
+    const rrMean = rr.reduce((a, b) => a + b, 0) / Math.max(1, rr.length);
+    const rrRange = rr.length ? (Math.max.apply(null, rr) - Math.min.apply(null, rr)) : 0;
+    const noP = kindCenters(sII, 'P').length === 0 && kindCenters(sV1, 'P').length === 0;
+    const csA = kindCenters(evRole(key, 'CS', 0, w1, 0.5), 'A'); const groups = []; let cur = [];
+    for (const t of csA){ if (cur.length && t - cur[cur.length - 1] > 0.040){ groups.push(cur); cur = []; } cur.push(t); }
+    if (cur.length) groups.push(cur);
+    const gStarts = groups.map(g => g[0]), gInt = [];
+    for (let i = 1; i < gStarts.length; i++) gInt.push(gStarts[i] - gStarts[i - 1]);
+    const pv = evRole(key, 'LSPV', 0, w1, 0, 0), pvK = pv.filter(e => e.kind === 'PV'), ffA = pv.filter(e => e.kind === 'A');
+    const pvSharp = (pvK.length && ffA.length) ? (Math.min.apply(null, pvK.map(e => e.sigma)) < Math.min.apply(null, ffA.map(e => e.sigma))) : false;
+    let pvAfter = true, cnt = 0;
+    for (const ff of ffA){ if (ff.center < 0.5 || ff.center > 7.5) continue; let near = null, bd = 1e9; for (const p of pvK){ const d = Math.abs(p.center - ff.center); if (d < bd){ bd = d; near = p; } } if (near){ cnt++; if (near.center <= ff.center) pvAfter = false; } }
+    let noHis = true; for (const r of ['surfaceII', 'CS', 'LSPV', 'LIPV', 'RSPV', 'RIPV', 'ABL']){ if (kindCenters(evRole(key, r, 0, 2), 'H').length){ noHis = false; break; } }
+    return pack(key, { CL: null, AH: null, HV: null, VA: null, AA: null, VV: rrMean,
+      rrIrregular: (cv(rr) > 0.06 && rrRange >= 80), noSurfaceP: noP,
+      csFractionated: (csA.length / Math.max(1, groups.length) > 1.5), csIrregular: (cv(gInt) > 0.05),
+      pvPotential: (pvK.length > 0), pvSharp: pvSharp, pvAfterFarField: (cnt > 0 && pvAfter), noHis: noHis, vRate: rrMean });
+  },
+  pvc(key){
+    const T = diseaseConfig[key].timing, cl = T.cl / 1000, w1 = cl * 4, beatT = 2 * cl;  // n=2 は非PVC拍
+    const his = evRole(key, 'His', 0, w1);
+    const A = nearestEvent(his, 'A', beatT), H = nearestEvent(his, 'H', beatT), V = nearestEvent(his, 'V', beatT);
+    const cl_ = medianDiff(kindCenters(evRole(key, 'HRA', 0, w1), 'A')) * 1000;
+    // PVC拍(n=3)。epsBeat(洞調律ランドマーク)を再利用して qOnset を厳密に推定。
+    const S3 = epsBeat(3, T), qOnsetEst = S3.v + (T.coupling + T.preQRS) / 1000;
+    const sII = evRole(key, 'surfaceII', 0, w1);
+    let qOnset = null, bd = 1e9; for (const c of kindCenters(sII, 'QRS')){ const d = Math.abs(c - qOnsetEst); if (d < bd){ bd = d; qOnset = c; } }
+    const ablV = evRole(key, 'ABLd', 0, w1).filter(e => e.kind === 'V'); let ablVc = null; bd = 1e9; for (const e of ablV){ const d = Math.abs(e.center - qOnset); if (d < bd){ bd = d; ablVc = e.center; } }
+    const rvaV = evRole(key, 'RVA', 0, w1).filter(e => e.kind === 'V'); let rvaVc = null; bd = 1e9; for (const e of rvaV){ const d = Math.abs(e.center - qOnset); if (d < bd){ bd = d; rvaVc = e.center; } }
+    return pack(key, { CL: cl_, AH: (H.center - A.center) * 1000, HV: (V.center - H.center) * 1000, VA: null, AA: cl_, VV: null,
+      preExc: (qOnset - ablVc) * 1000, preOrder: (ablVc < qOnset), ablEarliest: (ablVc < rvaVc),
+      order: (A.center < H.center && H.center < V.center) });
+  }
+};
+
+// 疾患別監査をディスパッチ(未定義疾患は baseline 方式にフォールバック)
+function auditDisease(key){
+  try { return (AUDIT[key] || AUDIT.baselineEPS)(key); }
+  catch (e){ console.warn('[audit] ' + key + ' error:', e); return { measured: {}, checks: [], pass: false, error: String(e) }; }
+}
+
+// 右パネル(疾患説明 + interval 自動計算 + 監査結果 + クイズ)を描画する。
+function renderRightPanel(key){
+  const cfg = diseaseConfig[key], edu = cfg.edu;
+  const isQuiz = state.scenario === 'quiz', isGame = state.scenario === 'game', hide = isQuiz || isGame;
+  setText('rp-name', hide ? (isGame ? '??? — ゲーム' : '??? — クイズモード') : cfg.name);
+  setText('rp-overview', hide ? '心内心電図・interval から病態を推定してください。' : edu.overview);
+  const E = (id, t) => setText(id, hide ? '—' : t);   // クイズ/ゲーム中は教育文を伏せる
+  E('rp-look', edu.look); E('rp-seq', edu.seq); E('rp-ddx', edu.ddx);
+  E('rp-target', edu.target); E('rp-danger', edu.danger); E('rp-pitfall', edu.pitfall);
+
+  // やさしい解説(AI下書き)。クイズ/ゲーム中は答えが分かるため伏せる。
+  const P = PLAIN[key] || {}, pb = $('plain-box');
+  if (hide){ pb.style.display = 'none'; }
+  else {
+    pb.style.display = 'block';
+    setText('pl-what', P.what || '—'); setText('pl-heart', P.heart || '—');
+    setText('pl-screen', P.screen || '—'); setText('pl-why', P.why || '—');
+  }
+
+  // interval は常に表示(計測の手がかり)
+  const a = auditDisease(key), m = a.measured;
+  const ms = x => (x == null || isNaN(x)) ? '—' : Math.round(x) + ' <small>ms</small>';
+  setHtml('iv-cl', ms(m.CL)); setHtml('iv-ah', ms(m.AH)); setHtml('iv-hv', ms(m.HV));
+  setHtml('iv-va', ms(m.VA)); setHtml('iv-aa', ms(m.AA)); setHtml('iv-vv', ms(m.VV));
+
+  // §6 監査リスト: クイズ/ゲームでは伏せる(答えが分かるため)
+  const list = $('audit-list'); list.innerHTML = '';
+  if (hide){
+    list.innerHTML = '<div class="chk"><span class="val">' + (isGame ? 'ゲーム' : 'クイズ') + '中は伏せています</span></div>';
+  } else for (const c of a.checks){
+    const div = document.createElement('div');
+    div.className = 'chk ' + (c.ok ? 'ok' : 'ng');
+    const val = (c.val == null || isNaN(c.val)) ? '' : (Math.round(c.val) + (c.unit ? ' ' + c.unit : ''));
+    div.innerHTML = '<span class="mk">' + (c.ok ? '✓' : '✗') + '</span><span>' + c.label +
+                    '</span><span class="val">' + val + '</span>';
+    list.appendChild(div);
+  }
+
+  $('quiz-box').style.display = isQuiz ? 'block' : 'none';
+  if (isQuiz) buildQuiz(key);
+  $('game-box').style.display = isGame ? 'block' : 'none';
+  console.log('[audit] ' + key + ': ' + (a.pass ? 'PASS' : 'FAIL'), m);
+}
+
+/* --- クイズ (SPEC §10.4): 疾患名を隠し 6択、回答後に根拠(§9)を表示 --- */
+const QUIZ_CHOICES = ['AVNRT', 'AVRT', 'AT', 'AFL', 'AF', 'VT'];
+const QUIZ_ANSWER = { avnrt:'AVNRT', avrt:'AVRT', focalAT:'AT', aflutter:'AFL', afib:'AF', pvc:'VT', baselineEPS:null };
+function buildQuiz(key){
+  const ans = QUIZ_ANSWER[key], ch = $('quiz-choices');
+  ch.innerHTML = ''; $('quiz-result').textContent = '';
+  QUIZ_CHOICES.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'btn'; b.textContent = c; b.style.flex = '0 0 auto';
+    b.addEventListener('click', () => {
+      const correct = (c === ans);
+      const edu = diseaseConfig[key].edu;
+      $('quiz-result').innerHTML =
+        (correct ? '<b style="color:#46f08c">正解: ' + c + '</b>'
+                 : '<b style="color:#ff5d6c">不正解</b> — 正解は <b>' + (ans || '洞調律(頻拍ではない)') + '</b>') +
+        '<br><span style="color:#9fb0c0">根拠: ' + edu.look + '<br>鑑別: ' + edu.ddx + '</span>';
+      Array.from(ch.children).forEach(x => { x.disabled = true; if (x.textContent === ans) x.classList.add('on'); });
+    });
+    ch.appendChild(b);
+  });
+}
+// シナリオ切替 (SPEC §10.3)
+function applyScenario(mode){
+  state.scenario = mode;
+  const grp = document.getElementById('grp-disease');
+  if (mode === 'game'){
+    grp.style.display = 'none';            // 出題を隠す(疾患ドロップダウン)
+    state.game.active = false;
+    renderRightPanel(state.disease);       // 識別情報を伏せ、game-box を表示
+    showGameStart();
+    return;
+  }
+  state.game.active = false;
+  grp.style.display = '';
+  document.getElementById('sel-disease').value = state.disease;  // ゲームで変わった疾患に同期
+  if (mode === 'explain') state.labelsOn = true;
+  const lb = $('btn-labels'); lb.textContent = state.labelsOn ? 'ラベル ON' : 'ラベル OFF';
+  lb.classList.toggle('on', state.labelsOn);
+  renderRightPanel(state.disease);
+}
+
+/* ===========================================================================
+   ゲーム: 診断チャレンジ — ランダム出題・制限時間・スコア・連続正解・ランク・ハイスコア
+   =========================================================================== */
+const GAME_POOL = ['avnrt','avrt','focalAT','aflutter','afib','pvc'];   // 6択に対応する頻拍6種
+function gameRank(c, t){ const p = c / t; return p>=1?'達人 — Attending級':p>=0.8?'上級':p>=0.6?'中級':p>=0.4?'初級':'研修中'; }
+function showGameStart(){
+  setText('g-round', '');
+  setText('g-stats', '最高スコア ' + state.game.best);
+  setText('g-question', '心内心電図から頻拍の種類を当てます。難易度を選んでスタート。全' + state.game.rounds + '問。');
+  $('g-choices').innerHTML = ''; $('g-feedback').innerHTML = '';
+  $('g-next').style.display = 'none';
+  $('g-start-row').style.display = 'flex'; $('g-start').textContent = 'スタート';
+  $('g-timerbar').style.width = '100%'; $('g-timerbar').style.background = 'var(--accent)';
+}
+function startGame(){
+  const g = state.game;
+  g.active = true; g.round = 0; g.correct = 0; g.score = 0; g.streak = 0; g.answered = false;
+  g.qLimit = g.diff === 'hard' ? 12 : g.diff === 'easy' ? 30 : 20;
+  document.getElementById('grp-disease').style.display = 'none';
+  if (!state.playing){ state.playing = true; const b = $('btn-play'); b.textContent = 'Pause'; b.classList.remove('paused'); needTimeReset = true; }
+  nextRound();
+}
+function nextRound(){
+  const g = state.game;
+  g.round++;
+  if (g.round > g.rounds){ endGame(); return; }
+  state.noise = (g.diff === 'hard') ? 'medium' : 'none';
+  $('sel-noise').value = state.noise; setText('hud-noise', state.noise);
+  const pool = GAME_POOL.filter(d => d !== g.last);     // 直前と重複回避
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  g.last = pick; g.answered = false; g.tLeft = g.qLimit;
+  loadDisease(pick); populateAudioChannels(); relayout(); renderRightPanel(pick);
+  setText('g-round', 'Q' + g.round + ' / ' + g.rounds);
+  updateGameStats();
+  setText('g-question', 'この心電図は?(制限時間内に回答)');
+  $('g-feedback').innerHTML = ''; $('g-next').style.display = 'none'; $('g-start-row').style.display = 'none';
+  const ch = $('g-choices'); ch.style.display = 'flex'; ch.innerHTML = '';
+  QUIZ_CHOICES.forEach(c => {
+    const b = document.createElement('button'); b.className = 'btn'; b.textContent = c; b.style.flex = '0 0 auto';
+    b.addEventListener('click', () => answerGame(c)); ch.appendChild(b);
+  });
+}
+function updateGameStats(){ const g = state.game; setText('g-stats', 'スコア ' + g.score + '  /  連続 ' + g.streak + '  /  最高 ' + g.best); }
+function updateGameTimer(){
+  const bar = $('g-timerbar'); if (!bar) return; const g = state.game;
+  const pct = Math.max(0, g.tLeft / g.qLimit * 100);
+  bar.style.width = pct + '%';
+  bar.style.background = pct < 30 ? '#ff5d6c' : pct < 60 ? '#ffd24a' : '#46f08c';
+}
+function answerGame(choice){
+  const g = state.game; if (!g.active || g.answered) return; g.answered = true;
+  const ans = QUIZ_ANSWER[state.disease], correct = (choice === ans), edu = diseaseConfig[state.disease].edu;
+  let pts = 0;
+  if (correct){ g.streak++; pts = 100 + Math.round((g.tLeft / g.qLimit) * 100) + (g.streak - 1) * 25; g.score += pts; g.correct++; }
+  else g.streak = 0;
+  Array.from($('g-choices').children).forEach(b => {
+    b.disabled = true;
+    if (b.textContent === ans) b.classList.add('on');
+    else if (b.textContent === choice) b.style.background = 'rgba(255,93,108,0.30)';
+  });
+  $('g-feedback').innerHTML =
+    (choice === '__timeout__' ? '<b style="color:#ff5d6c">時間切れ</b> 正解は <b>' + ans + '</b>'
+      : correct ? '<b style="color:#46f08c">正解! +' + pts + '</b>'
+                : '<b style="color:#ff5d6c">不正解</b> 正解は <b>' + ans + '</b>')
+    + '<br><span style="color:#9fb0c0">' + edu.look + '</span>';
+  updateGameStats();
+  const nb = $('g-next'); nb.style.display = 'block'; nb.textContent = (g.round >= g.rounds) ? '結果を見る ▶' : '次へ ▶';
+}
+function gameTimeout(){ if (state.game.active && !state.game.answered) answerGame('__timeout__'); }
+function endGame(){
+  const g = state.game; g.active = false;
+  const isBest = g.score > g.best;
+  if (isBest){ g.best = g.score; try { localStorage.setItem('egmBest', String(g.best)); } catch(e){} }
+  setText('g-round', '結果');
+  $('g-choices').innerHTML = ''; setText('g-question', '');
+  $('g-feedback').innerHTML =
+    '<b>正解 ' + g.correct + ' / ' + g.rounds + '</b> ・ スコア <b>' + g.score + '</b><br>' +
+    'ランク: <b style="color:#46f08c">' + gameRank(g.correct, g.rounds) + '</b>' +
+    (isBest ? ' <span style="color:#ffd24a">★ 自己ベスト更新!</span>' : '');
+  updateGameStats();
+  $('g-next').style.display = 'none';
+  $('g-start-row').style.display = 'flex'; $('g-start').textContent = 'もう一度';
+}
+
+/* ===========================================================================
+   やさしい解説(AI下書き・臨床未監修)+ 用語ガイド
+   ---------------------------------------------------------------------------
+   ※ CLAUDE.md §9 の「Claude は臨床内容を創作しない」原則の例外として、ユーザー承認のもと
+      素人向けの平易な解説を別レイヤーで追加したもの。SPEC §9 の正式文(監修待ち)は別に残す。
+      標準的なEP生理の範囲の概念説明に限定し、画面に「AI下書き・臨床未監修」と明示する。
+   =========================================================================== */
+const PLAIN = {
+  baselineEPS: {
+    what: '正常な心臓のリズム(洞調律)です。不整脈ではなく、他のタイプと見比べるための「お手本」。',
+    heart: '心臓の天然ペースメーカー(洞結節)から電気が出て、心房 → 中継地点(房室結節・His束)→ 心室へと、一方向に順番どおり伝わります。',
+    screen: '上の心電図の山(P波→大きな波)に続き、各カテーテルが上から順に反応します。His の行で小さな波が「A→H→V」の順に並ぶのが正常の証拠です。',
+    why: '治療の対象ではありません。ここでの間隔(AH・HV など)を覚えておき、頻拍のときと比べるのが目的です。'
+  },
+  avnrt: {
+    what: '中継地点(房室結節)のすぐ近くで電気が「ぐるぐる回って」起こる動悸発作。若い人にも多く、命に関わりにくいタイプです。',
+    heart: '房室結節に「速い道」と「遅い道」の2本があり、電気がこの2本で小さな輪を作って高速回転します。心房と心室がほぼ同時に動くのが特徴。',
+    screen: '脈が速く(1分あたり約180〜200)、心房の波(A)と心室の波(V)がほぼ重なります。His の小さな波(H)が心室の直前に出ます。',
+    why: '「遅い道」をピンポイントで焼く(アブレーション)と輪が途切れて止まります。中継地点に近いので、焼きすぎて伝導を傷つけないよう注意します。'
+  },
+  avrt: {
+    what: '生まれつき心房と心室をつなぐ「抜け道(余分な電線)」があり、そこを電気が逆走して輪になる動悸発作です。',
+    heart: '電気は正規ルート(房室結節→心室)で下り、抜け道を通って心房へ逆流し、また下る…を繰り返します。輪が大きいぶん、心房への戻りが AVNRT より少し遅れます。',
+    screen: '心室の波の後に、やや遅れて心房の波が戻ります。CS(心臓の裏の血管)カテーテルで「どこが一番早く戻るか」を見ると、抜け道のおよその場所が分かります。',
+    why: '抜け道そのものを焼くと、輪が成立しなくなり治ります。'
+  },
+  aflutter: {
+    what: '心房の中を電気が大きな一方通行の輪でぐるぐる回り続ける不整脈。規則正しく速いのが特徴です。',
+    heart: '多くは右心房の決まった場所(三尖弁の周り)を反時計回りに旋回します。心室へは2回に1回などに間引かれて伝わります。',
+    screen: '体表心電図がノコギリの歯のように途切れず波打ちます(平らな線にならない)。CS が端から端へ順に光るように興奮します。',
+    why: '輪が必ず通る細い通り道「峡部(CTI)」に線を引くように焼いて、輪を断ち切ります。止まっただけで満足せず「両方向で通れなくなったか」を確認するのが大切です。'
+  },
+  focalAT: {
+    what: '心房の「一点」が勝手に高速で電気を出し続けて起こる動悸です。',
+    heart: '一つの発信源から、池に石を落としたときの波紋のように、周囲の心房へ放射状に広がります。',
+    screen: 'その発信源(ABL distal=探りカテーテル)の波が、他のどのカテーテルよりも一番早く出ます。そこが治療の的です。',
+    why: '一番早く興奮する場所(発信源)を見つけて焼けば止まります。'
+  },
+  afib: {
+    what: '心房が細かく不規則に震えてしまう、最も多い不整脈です。脈がバラバラになります。',
+    heart: '多くは肺静脈(心房につながる血管)から余計な電気が飛び出すのが引き金です。そこで肺静脈を電気的に「隔離」する治療(PVI)を行います。',
+    screen: '脈の間隔がバラバラ。体表心電図にきれいな P波がなく細かく揺れます。肺静脈(PV)カテーテルに鋭い「PV電位」が見えます。',
+    why: '肺静脈の入口を丸く囲んで焼き、隔離します。隔離できると PV電位が消えます(この画面の演出)。本物の PV電位か、周りから紛れ込む波(far-field)かの区別が肝心です。'
+  },
+  pvc: {
+    what: 'ときどき心室から「早めの余分な1拍」が出るもの(期外収縮)。それが連続して速く続くと心室頻拍になります。',
+    heart: '心室の一点が、本来の番より早く勝手に興奮します(多くは右室流出路という出口付近)。',
+    screen: '普段は正常リズムで、時々、幅の広い大きな拍が混ざります。その起源(ABL distal)の波が、体表心電図の幅広い波より少し早く(20〜40ミリ秒)出ます。',
+    why: 'その「一番早く動く場所(起源)」を見つけて焼きます。波形が臨床の発作とそっくりかも併せて確認します。'
+  }
+};
+// 用語ガイド(略語・interval を平易に)
+const GLOSSARY = [
+  ['A波', '心房(心臓の上の部屋)が興奮したときの波'],
+  ['H波', 'His束(中継地点の先の電気の通り道)の波。とても小さく鋭い'],
+  ['V波', '心室(心臓の下の部屋)が興奮したときの波'],
+  ['PV potential', '肺静脈そのものの電位(鋭く高周波)。周りの心房の波(far-field)と区別する'],
+  ['P波 / QRS(体表)', '体の表面から見た、心房(P)と心室(QRS)の興奮の波'],
+  ['CL', 'Cycle Length=1拍の間隔(ミリ秒)。短いほど速い脈'],
+  ['AH', '心房(A)から His(H)までの時間=中継地点(房室結節)を通る時間'],
+  ['HV', 'His(H)から心室(V)までの時間=His束より先を通る時間'],
+  ['VA', '心室(V)から心房(A)へ戻る時間。頻拍の種類を見分ける鍵'],
+  ['AA / VV', '心房どうし・心室どうしの間隔'],
+  ['EGM', '心内心電図。カテーテルで心臓の中から直接とった電気信号。体表より鋭い'],
+  ['HRA', '高位右房=右心房の上の方に置くカテーテル'],
+  ['His', 'His束付近のカテーテル(A・H・V が見える)'],
+  ['CS', '冠静脈洞=心臓の裏を通る血管のカテーテル。左心房側の興奮順を見る'],
+  ['RVA / RV apex', '右室心尖部=右心室の先に置くカテーテル'],
+  ['ABL', 'アブレーション(焼灼)用カテーテル。探って焼く'],
+  ['CTI', '三尖弁と下大静脈の間の細い通り道。心房粗動を焼く場所'],
+  ['RVOT', '右室流出路=右心室の出口。特発性の期外収縮が出やすい場所']
+];
+function renderGlossary(){
+  const dl = $('glossary'); if (!dl) return; dl.innerHTML = '';
+  for (const [t, m] of GLOSSARY){
+    const dt = document.createElement('dt'); dt.textContent = t;
+    const dd = document.createElement('dd'); dd.textContent = m;
+    dl.appendChild(dt); dl.appendChild(dd);
+  }
+}
+
+
+/* ===========================================================================
+   5. UI 配線
+   =========================================================================== */
+function $(id){ return document.getElementById(id); }
+function setText(id, t){ const e = $(id); if (e) e.textContent = t; }
+function setHtml(id, h){ const e = $(id); if (e) e.innerHTML = h; }
+
+// Step(1拍ぶん前進)。洞調律 = 1拍 = 1 CL (CLAUDE.md §7)。
+function stepOneBeat(){
+  const dtSec = diseaseConfig[state.disease].timing.cl / 1000;
+  state.tNow += dtSec;
+  const idxNow = Math.floor(state.tNow * SR);
+  for (const ch of channels) SYNTH.fillRing(ch, ch.lastIdx + 1, idxNow + 1);
+  repaintTrace();   // 大きなジャンプは repaint(1回)で確定
+}
+
+function wireUI(){
+  // disease(Phase 2 では Baseline EPS のみ有効。他は disabled)
+  $('sel-disease').addEventListener('change', e => {
+    state.abl.on = false; state.pacing = false;   // 疾患切替で演出状態をリセット
+    $('btn-abl').textContent = 'Ablation OFF'; $('btn-abl').classList.remove('on');
+    $('btn-pacing').textContent = 'Pacing OFF'; $('btn-pacing').classList.remove('on');
+    loadDisease(e.target.value);
+    populateAudioChannels();          // 聴診ch を新 montage で再構築
+    relayout();                       // チャネル構成・バッファを作り直す
+    renderRightPanel(e.target.value); // 説明・interval・監査を更新
+  });
+
+  // sweep
+  $('sel-sweep').value = String(state.sweep);
+  $('sel-sweep').addEventListener('change', e => {
+    state.sweep = Number(e.target.value);
+    layout.ppsDev = state.sweep * layout.ppmDev;
+    setText('hud-sweep', state.sweep);
+    drawGrid(); repaintTrace();           // sweep 変更 → グリッドと波形を1回だけ再描画
+  });
+
+  // EGM gain
+  $('sel-egm-gain').addEventListener('change', e => {
+    state.egmGain = Number(e.target.value);
+    setText('hud-gain', e.target.value);
+    repaintTrace();                       // gain 変更 → 振幅再スケール(1回だけ)
+  });
+
+  // surface gain(mm/mV)
+  $('sel-surf-gain').addEventListener('change', e => {
+    state.surfGain = Number(e.target.value);
+    setText('hud-surf', e.target.value);
+    repaintTrace();                       // 表面chの振幅を再スケール(1回だけ)
+  });
+
+  // noise
+  $('sel-noise').addEventListener('change', e => {
+    state.noise = e.target.value;
+    setText('hud-noise', state.noise);
+    repaintTrace();                       // ノイズは決定論 → 再描画で一貫表示
+  });
+
+  // scroll direction
+  $('dir-rtl').addEventListener('click', () => setDir('rtl'));
+  $('dir-ltr').addEventListener('click', () => setDir('ltr'));
+  function setDir(d){
+    state.dir = d;
+    $('dir-rtl').classList.toggle('on', d === 'rtl');
+    $('dir-ltr').classList.toggle('on', d === 'ltr');
+    drawGrid(); repaintTrace();
+  }
+
+  // play / pause
+  $('btn-play').addEventListener('click', () => {
+    state.playing = !state.playing;
+    const b = $('btn-play');
+    b.textContent = state.playing ? 'Pause' : 'Start';
+    b.classList.toggle('paused', !state.playing);
+    if (state.playing) needTimeReset = true;   // 再開時の dt スパイク防止
+  });
+
+  // reset
+  $('btn-reset').addEventListener('click', () => {
+    state.tNow = 0; state.remPx = 0;
+    state.abl.on = false; state.pacing = false; state.cursorA = null; state.cursorB = null;
+    $('btn-abl').textContent = 'Ablation OFF'; $('btn-abl').classList.remove('on');
+    $('btn-pacing').textContent = 'Pacing OFF'; $('btn-pacing').classList.remove('on');
+    const idxNow = 0;
+    for (const ch of channels){
+      SYNTH.fillRing(ch, idxNow - layout.ringLen + 1, idxNow + 1);
+      ch.lastIdx = idxNow;
+    }
+    repaintTrace();
+  });
+
+  // step
+  $('btn-step').addEventListener('click', stepOneBeat);
+
+  // 計測カーソル (SPEC §10.1)
+  $('btn-cursor').addEventListener('click', () => {
+    state.cursorOn = !state.cursorOn;
+    const b = $('btn-cursor');
+    b.textContent = state.cursorOn ? 'カーソル ON(2点クリック)' : 'カーソル OFF';
+    b.classList.toggle('on', state.cursorOn);
+    if (!state.cursorOn){ state.cursorA = null; state.cursorB = null; }
+  });
+  screen.addEventListener('click', e => { if (state.cursorOn) placeCursor(e.clientX); });
+
+  // アブレーション (SPEC §10.5)
+  $('btn-abl').addEventListener('click', () => {
+    state.abl.on = !state.abl.on;
+    if (state.abl.on) state.abl.tStart = state.tNow;
+    const b = $('btn-abl'); b.textContent = state.abl.on ? 'Ablation ON(RF通電中)' : 'Ablation OFF';
+    b.classList.toggle('on', state.abl.on);
+    repaintTrace();
+  });
+  // Pacing(刺激 artifact)
+  $('btn-pacing').addEventListener('click', () => {
+    state.pacing = !state.pacing;
+    const b = $('btn-pacing'); b.textContent = state.pacing ? 'Pacing ON' : 'Pacing OFF';
+    b.classList.toggle('on', state.pacing);
+    repaintTrace();
+  });
+  // フィルタ感(表示の質感)
+  $('sel-filter').addEventListener('change', e => { state.filter = e.target.value; drawGrid(); repaintTrace(); });
+  // ラベル ON/OFF (SPEC §10.2)
+  $('btn-labels').addEventListener('click', () => {
+    state.labelsOn = !state.labelsOn;
+    const b = $('btn-labels'); b.textContent = state.labelsOn ? 'ラベル ON' : 'ラベル OFF';
+    b.classList.toggle('on', state.labelsOn);
+  });
+  // PNG 保存: 画面キャンバス(グリッド+波形+ラベル単一キャンバス)を toDataURL で出力 (SPEC §10.6)
+  $('btn-png').addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = screen.toDataURL('image/png');
+    a.download = 'egm_' + state.disease + '.png';
+    a.click();
+  });
+  // シナリオ (SPEC §10.3)
+  $('sel-scenario').addEventListener('change', e => applyScenario(e.target.value));
+
+  // ゲーム(診断チャレンジ)
+  $('g-start').addEventListener('click', startGame);
+  $('g-next').addEventListener('click', nextRound);
+  $('g-diff').addEventListener('change', e => { state.game.diff = e.target.value; });
+
+  // 音声(EGM 1ch 聴診)
+  $('btn-audio').addEventListener('click', () => {
+    if (!state.audio.on){ if (!ensureAudio()){ console.warn('Web Audio 非対応'); return; } }
+    state.audio.on = !state.audio.on;
+    const b = $('btn-audio'); b.textContent = state.audio.on ? '音声 ON(EGM)' : '音声 OFF';
+    b.classList.toggle('on', state.audio.on);
+  });
+  $('sel-audio-ch').addEventListener('change', e => { state.audio.chIndex = Number(e.target.value); });
+  $('aud-vol').addEventListener('input', e => { state.audio.vol = Number(e.target.value); if (masterGain) masterGain.gain.value = state.audio.vol; });
+}
+
+
+/* ===========================================================================
+   6. 起動
+   =========================================================================== */
+loadDisease(state.disease);     // Baseline EPS のチャネルを構築
+try { state.game.best = Number(localStorage.getItem('egmBest')) || 0; } catch(e){}  // ハイスコア復元
+wireUI();
+// diseaseConfig にエントリがある疾患はドロップダウンを有効化(Phase 3/4 で順次追加された疾患)
+Array.from(document.getElementById('sel-disease').options).forEach(o => {
+  if (diseaseConfig[o.value]) o.disabled = false;
+});
+populateAudioChannels();        // 聴診ch セレクトを構築
+relayout();
+renderRightPanel(state.disease);// 疾患説明 + interval 自動計算 + §6 監査
+renderGlossary();               // 用語ガイド(やさしい)
+
+// ステージのサイズ変化に追従(リサイズ時のみ可視範囲を再合成)
+const ro = new ResizeObserver(() => relayout());
+ro.observe(document.getElementById('stage'));
+
+// タブ復帰時に dt をリセット(飛び防止 / CLAUDE.md §7)
+document.addEventListener('visibilitychange', () => { if (!document.hidden) needTimeReset = true; });
+
+// 検証用に公開(計測確認ハーネスを外から叩けるように)
+window.auditDisease = auditDisease;
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

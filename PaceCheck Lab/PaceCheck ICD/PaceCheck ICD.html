@@ -1,0 +1,1436 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CIED check ICD</title>
+    <link rel="icon" href="data:,">
+    <script>(function(){var t=localStorage.getItem('pacecheck-theme');if(!t)t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t)})()</script>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f4f7f8;
+        --surface: #ffffff;
+        --surface-soft: #eef5f3;
+        --ink: #21313a;
+        --muted: #667780;
+        --line: #d7e2df;
+        --primary: #0f766e;
+        --primary-dark: #0b5f59;
+        --accent: #a15c07;
+        --danger: #b42318;
+        --ok: #15803d;
+        --shadow: 0 18px 40px rgba(24, 39, 46, 0.09);
+      }
+
+      :root[data-theme="dark"] {
+        --bg: #0f1419;
+        --surface: #1a2228;
+        --surface-soft: #1e2a30;
+        --ink: #e0e8ec;
+        --muted: #8b99a3;
+        --line: #2a3840;
+        --primary: #14b8a6;
+        --primary-dark: #0d9488;
+        --accent: #d97706;
+        --danger: #ef4444;
+        --ok: #22c55e;
+        --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+      }
+
+      button,
+      select {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 18px 28px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(10px);
+      }
+
+      .topbar h1,
+      .panel-heading h2,
+      .case-title {
+        margin: 0;
+        letter-spacing: 0;
+      }
+
+      .topbar h1 {
+        font-size: 30px;
+      }
+
+      .eyebrow {
+        margin: 0 0 4px;
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .top-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .ghost-button,
+      .primary-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+        padding: 8px 14px;
+        background: #ffffff;
+        color: var(--ink);
+        font-weight: 800;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .primary-button {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: #ffffff;
+      }
+
+      .ghost-button:hover {
+        border-color: var(--primary);
+        color: var(--primary-dark);
+      }
+
+      .primary-button:hover {
+        background: var(--primary-dark);
+      }
+
+      .app {
+        width: min(1500px, 100%);
+        margin: 0 auto;
+        padding: 22px;
+      }
+
+      .hero,
+      .card,
+      .zone-panel,
+      .control-panel,
+      .logic-panel,
+      .reference-panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(320px, 1fr) minmax(360px, 560px);
+        gap: 16px;
+        align-items: end;
+        padding: 14px;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      select {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #ffffff;
+        color: var(--ink);
+        padding: 8px 10px;
+      }
+
+      .hero-note {
+        min-height: 42px;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface-soft);
+      }
+
+      .hero-note span,
+      .metric span,
+      .setting-cell span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .hero-note strong {
+        display: block;
+        margin-top: 1px;
+        font-size: 14px;
+      }
+
+      .dashboard {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+        gap: 18px;
+        margin-top: 18px;
+        align-items: start;
+      }
+
+      .left-stack,
+      .right-stack {
+        display: grid;
+        gap: 18px;
+      }
+
+      .card,
+      .zone-panel,
+      .control-panel,
+      .logic-panel,
+      .reference-panel {
+        padding: 18px;
+      }
+
+      .panel-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 28px;
+        border-radius: 999px;
+        padding: 4px 10px;
+        background: var(--surface-soft);
+        color: var(--primary-dark);
+        font-size: 12px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .pill.warn {
+        background: #fff7e8;
+        color: var(--accent);
+      }
+
+      .pill.danger {
+        background: #fff0ed;
+        color: var(--danger);
+      }
+
+      .pill.ok {
+        background: #edf8f1;
+        color: var(--ok);
+      }
+
+      .case-grid,
+      .metrics,
+      .settings-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .case-grid,
+      .metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-top: 14px;
+      }
+
+      .metric,
+      .setting-cell,
+      .decision-item {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfcfc;
+        padding: 10px;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 2px;
+        font-size: 20px;
+      }
+
+      .zone-map {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .rate-track {
+        position: relative;
+        height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: linear-gradient(90deg, #e7f3f1 0 45%, #fff7e8 45% 70%, #fff0ed 70% 100%);
+        overflow: hidden;
+      }
+
+      .rate-marker {
+        position: absolute;
+        top: 6px;
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        background: var(--primary);
+        transform: translateX(-50%);
+        box-shadow: 0 0 0 6px rgba(15, 118, 110, 0.15);
+      }
+
+      .zone-labels {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .therapy-path {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .path-step {
+        min-height: 72px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfcfc;
+        padding: 10px;
+      }
+
+      .path-step.active {
+        border-color: var(--primary);
+        background: #f1faf7;
+      }
+
+      .path-step.danger {
+        border-color: rgba(180, 35, 24, 0.36);
+        background: #fff7f5;
+      }
+
+      .path-step strong {
+        display: block;
+      }
+
+      .path-step span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .settings-grid {
+        margin-top: 14px;
+      }
+
+      .setting-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 36px 68px 36px;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .step-button {
+        min-height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #ffffff;
+        font-weight: 900;
+      }
+
+      .step-button:hover {
+        border-color: var(--primary);
+        color: var(--primary-dark);
+      }
+
+      .value-box {
+        min-height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 6px;
+        background: var(--surface-soft);
+        font-weight: 900;
+      }
+
+      .toggle-grid {
+        display: grid;
+        gap: 8px;
+      }
+
+      .toggle-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .toggle {
+        min-width: 74px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #ffffff;
+        padding: 7px 12px;
+        font-weight: 900;
+      }
+
+      .toggle.on {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: #ffffff;
+      }
+
+      .decision-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .decision-item.ok {
+        border-color: rgba(21, 128, 61, 0.45);
+        background: #f5fbf7;
+      }
+
+      .decision-item.warn {
+        border-color: rgba(161, 92, 7, 0.42);
+        background: #fffaf0;
+      }
+
+      .decision-item.danger {
+        border-color: rgba(180, 35, 24, 0.35);
+        background: #fff7f5;
+      }
+
+      .decision-item strong {
+        display: block;
+      }
+
+      .decision-item p,
+      .logic-panel p,
+      .reference-panel p {
+        margin: 4px 0 0;
+        color: var(--muted);
+      }
+
+      .logic-panel ul,
+      .reference-panel ul {
+        margin: 10px 0 0;
+        padding-left: 20px;
+      }
+
+      .reference-panel a {
+        color: var(--primary-dark);
+        font-weight: 800;
+      }
+
+      [data-theme="dark"] .topbar {
+        background: rgba(26, 34, 40, 0.96);
+      }
+
+      [data-theme="dark"] select,
+      [data-theme="dark"] .ghost-button,
+      [data-theme="dark"] .step-button,
+      [data-theme="dark"] .toggle {
+        background: var(--surface);
+      }
+
+      [data-theme="dark"] .metric,
+      [data-theme="dark"] .setting-cell,
+      [data-theme="dark"] .decision-item,
+      [data-theme="dark"] .path-step {
+        background: var(--surface-soft);
+      }
+
+      [data-theme="dark"] .pill.warn {
+        background: #2a2010;
+      }
+
+      [data-theme="dark"] .pill.danger {
+        background: #2a1515;
+      }
+
+      [data-theme="dark"] .pill.ok {
+        background: #152a1a;
+      }
+
+      [data-theme="dark"] .path-step.active {
+        background: #102a26;
+        border-color: rgba(20, 184, 166, 0.35);
+      }
+
+      [data-theme="dark"] .path-step.danger {
+        background: #2a1515;
+        border-color: rgba(239, 68, 68, 0.3);
+      }
+
+      [data-theme="dark"] .decision-item.ok {
+        background: #152a1a;
+        border-color: rgba(34, 197, 94, 0.35);
+      }
+
+      [data-theme="dark"] .decision-item.warn {
+        background: #2a2010;
+        border-color: rgba(217, 119, 6, 0.35);
+      }
+
+      [data-theme="dark"] .decision-item.danger {
+        background: #2a1515;
+        border-color: rgba(239, 68, 68, 0.3);
+      }
+
+      [data-theme="dark"] .rate-track {
+        background: linear-gradient(90deg, #102a26 0 45%, #2a2010 45% 70%, #2a1515 70% 100%);
+      }
+
+      /* ===== Test panel ===== */
+      .test-panel {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 18px 22px;
+        margin-bottom: 18px;
+        box-shadow: 0 18px 42px rgba(15, 118, 110, 0.08);
+      }
+      .test-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .test-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .test-meta h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+      .test-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .test-body {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+        gap: 16px;
+        margin-top: 14px;
+      }
+      .test-score-strip {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .test-score-strip > div {
+        background: var(--surface-soft);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 12px;
+      }
+      .test-score-strip span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .test-score-strip strong {
+        display: block;
+        font-size: 22px;
+        margin-top: 4px;
+        font-variant-numeric: tabular-nums;
+      }
+      .test-score-strip small {
+        color: var(--muted);
+        font-weight: 700;
+        margin-left: 4px;
+        font-size: 12px;
+      }
+      .test-score-strip .pass-color { color: var(--ok); }
+      .test-score-strip .fail-color { color: var(--danger); }
+      .test-steps {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 6px;
+      }
+      .test-steps li {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: var(--surface-soft);
+        border: 1px solid var(--line);
+        font-size: 13px;
+      }
+      .test-steps li.done {
+        background: #edf8f1;
+        border-color: rgba(34, 197, 94, 0.4);
+      }
+      .test-steps .step-mark {
+        font-weight: 900;
+        min-width: 22px;
+        text-align: center;
+        color: var(--muted);
+      }
+      .test-steps li.done .step-mark { color: var(--ok); }
+      .test-log {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 4px;
+        max-height: 240px;
+        overflow-y: auto;
+      }
+      .test-log li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        background: var(--surface-soft);
+        border: 1px solid var(--line);
+        font-size: 12px;
+      }
+      .test-log li.good {
+        background: #edf8f1;
+        border-color: rgba(34, 197, 94, 0.35);
+      }
+      .test-log li.bad {
+        background: #fff0ed;
+        border-color: rgba(239, 68, 68, 0.35);
+      }
+      .test-log .log-delta {
+        font-weight: 900;
+        min-width: 40px;
+        font-variant-numeric: tabular-nums;
+      }
+      .test-final {
+        margin-top: 14px;
+        padding: 14px 18px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--surface-soft);
+      }
+      .test-final.pass {
+        background: #edf8f1;
+        border-color: rgba(34, 197, 94, 0.55);
+      }
+      .test-final.fail {
+        background: #fff0ed;
+        border-color: rgba(239, 68, 68, 0.55);
+      }
+      .test-final strong {
+        font-size: 22px;
+        display: block;
+        margin-bottom: 4px;
+      }
+      .test-final.pass strong { color: var(--ok); }
+      .test-final.fail strong { color: var(--danger); }
+      .test-empty {
+        margin-top: 10px;
+        padding: 10px 14px;
+        color: var(--muted);
+        font-size: 13px;
+        background: var(--surface-soft);
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+      }
+      [data-theme="dark"] .test-steps li.done,
+      [data-theme="dark"] .test-log li.good,
+      [data-theme="dark"] .test-final.pass {
+        background: #152a1a;
+        border-color: rgba(34, 197, 94, 0.4);
+      }
+      [data-theme="dark"] .test-log li.bad,
+      [data-theme="dark"] .test-final.fail {
+        background: #2a1515;
+        border-color: rgba(239, 68, 68, 0.4);
+      }
+
+      @media (max-width: 1100px) {
+        .hero,
+        .dashboard,
+        .case-grid,
+        .metrics,
+        .therapy-path {
+          grid-template-columns: 1fr;
+        }
+
+        .control-panel {
+          position: static;
+        }
+
+        .test-body {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .topbar,
+        .top-actions,
+        .panel-heading {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .app {
+          padding: 14px;
+        }
+      }
+
+      @media print {
+        @page { margin: 12mm; }
+        body { background: #ffffff; }
+        .topbar, .top-actions, .step-button, .toggle { display: none !important; }
+        .app, .hero, .dashboard, .card, .zone-panel, .control-panel, .logic-panel, .reference-panel {
+          box-shadow: none;
+          break-inside: avoid;
+        }
+        .dashboard { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">ICD / CRT-D 検出・治療設定</p>
+        <h1>CIED check ICD</h1>
+      </div>
+      <div class="top-actions">
+        <button id="themeToggle" class="ghost-button" type="button"></button>
+        <a class="ghost-button" href="../PaceCheckLab.html">Labへ戻る</a>
+        <button id="resetButton" class="ghost-button" type="button">初期設定</button>
+      </div>
+    </header>
+
+    <main class="app">
+      <section class="hero">
+        <label>
+          <span>ICD症例</span>
+          <select id="scenarioSelect"></select>
+        </label>
+        <div class="hero-note">
+          <span>Focus</span>
+          <strong>VT/VF/Monitorゾーン、SVT判別、ATP(Burst/Ramp)、ショック設定をEGM文脈で確認</strong>
+        </div>
+      </section>
+
+      <section class="test-panel" id="testPanel">
+        <div class="test-toolbar">
+          <div class="test-meta">
+            <div>
+              <p class="eyebrow">Test</p>
+              <h2>テストモード</h2>
+            </div>
+            <span class="pill" id="testStatusPill">未開始</span>
+          </div>
+          <div class="test-actions">
+            <button id="soundToggle" class="ghost-button" type="button" aria-label="音 ON">🔊</button>
+            <button id="testStartBtn" class="primary-button" type="button">テスト開始</button>
+            <button id="testEndBtn" class="ghost-button" type="button" hidden>テスト終了</button>
+          </div>
+        </div>
+        <div id="testBody"></div>
+      </section>
+
+      <section class="dashboard">
+        <div class="left-stack">
+          <article class="card">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Case Context</p>
+                <h2 id="caseTitle" class="case-title">症例</h2>
+              </div>
+              <span id="riskBadge" class="pill">ICD</span>
+            </div>
+            <div id="caseGrid" class="case-grid"></div>
+          </article>
+
+          <article class="zone-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Detection + Therapy</p>
+                <h2>検出ゾーンと治療判断</h2>
+              </div>
+              <span id="zoneBadge" class="pill">--</span>
+            </div>
+            <div id="metrics" class="metrics"></div>
+            <div class="zone-map">
+              <div class="rate-track"><span id="rateMarker" class="rate-marker"></span></div>
+              <div class="zone-labels">
+                <span>Below Monitor</span>
+                <span>Monitor</span>
+                <span>VT</span>
+                <span>VF</span>
+              </div>
+            </div>
+            <div id="therapyPath" class="therapy-path"></div>
+          </article>
+
+          <article class="logic-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">ICD Logic</p>
+                <h2>チェック時の考え方</h2>
+              </div>
+            </div>
+            <p id="logicSummary"></p>
+            <ul id="logicList"></ul>
+          </article>
+        </div>
+
+        <aside class="right-stack">
+          <section class="control-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Programmer</p>
+                <h2>設定操作</h2>
+              </div>
+            </div>
+            <div id="settingsGrid" class="settings-grid"></div>
+          </section>
+
+          <section class="card">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Judgement</p>
+                <h2>判定</h2>
+              </div>
+            </div>
+            <div id="decisionList" class="decision-list"></div>
+          </section>
+        </aside>
+      </section>
+
+      <section class="reference-panel">
+        <p class="eyebrow">References</p>
+        <h2>教育用の前提</h2>
+        <p style="margin:0 0 12px;padding:12px 14px;border:1px solid rgba(217,119,6,0.5);border-left:4px solid #d97706;border-radius:8px;background:rgba(217,119,6,0.10);font-size:13px;line-height:1.75;">
+          <strong>⚠ ご注意：</strong>本ツールは個人で作成した教育・確認補助ツールであり、診療判断を代替するものではありません。実臨床では、患者状態・使用機器・院内運用・医師の指示等により対応が異なる場合があるため、必ず医師の指示および院内ルールを優先してください。
+        </p>
+        <p>このページはICD/CRT-Dチェック教育用です。実臨床では施設手順、医師指示、各社プログラマーマニュアル、患者状態、保存EGMに従ってください。</p>
+        <ul>
+          <li><a href="https://academic.oup.com/europace/article/18/2/159/2467144" target="_blank" rel="noreferrer">2015 HRS/EHRA/APHRS/SOLAECE ICD programming consensus</a></li>
+          <li><a href="https://link.springer.com/article/10.1007/s10840-019-00662-4" target="_blank" rel="noreferrer">2019 focused update to ICD programming consensus</a></li>
+          <li><a href="https://www.acc.org/Latest-in-Cardiology/ten-points-to-remember/2022/09/02/14/23/2022-ESC-Guidelines-for-VAs-ESC-2022" target="_blank" rel="noreferrer">2022 ESC ventricular arrhythmia guideline key points</a></li>
+        </ul>
+      </section>
+    </main>
+
+    <script>
+      "use strict";
+
+      const scenarios = [
+        {
+          id: "primary-prevention",
+          title: "一次予防ICD: 不適切作動を避ける標準設計",
+          context: { indication: "一次予防", rhythm: "洞調律", substrate: "ICM/HFrEF", clinicalVt: "なし", sample: "Sinus tach 170 bpm" },
+          rhythmRate: 170,
+          rhythmType: "SVT",
+          settings: { monitor: 150, vt: 190, vf: 230, detection: 30, svt: true, burst: true, ramp: false, shock: true, energy: 40 },
+          optimal: { monitor: 150, vt: 190, vf: 230, detection: 30, svt: true, burst: true, ramp: false, shock: true },
+          notes: [
+            "一次予防では不必要な治療とショックを減らす設計を重視する。",
+            "高めの治療ゾーン、長めの検出、SVT判別、ATPでショックを減らす。",
+            "臨床VTがない症例では低すぎる治療ゾーンに注意する。"
+          ]
+        },
+        {
+          id: "secondary-slow-vt",
+          title: "二次予防ICD: 既知の単形性VT 165 bpm",
+          context: { indication: "二次予防", rhythm: "単形性VT", substrate: "陳旧性MI", clinicalVt: "165 bpm", sample: "VT 166 bpm" },
+          rhythmRate: 166,
+          rhythmType: "VT",
+          settings: { monitor: 140, vt: 160, vf: 220, detection: 30, svt: true, burst: true, ramp: false, shock: true, energy: 40 },
+          optimal: { monitor: 140, vt: 160, vf: 220, detection: 30, svt: true, burst: true, ramp: false, shock: true },
+          notes: [
+            "二次予防では既知VTより少し低い治療ゾーンを検討する。",
+            "安定単形性VTではATPを先行し、ショック回避を狙う。",
+            "ただし失神、速いVT、治療失敗歴があれば医師判断を優先する。"
+          ]
+        },
+        {
+          id: "inappropriate-af",
+          title: "AFによる不適切ショック: SVT判別と検出時間",
+          context: { indication: "一次予防", rhythm: "AF", substrate: "DCM", clinicalVt: "なし", sample: "AF RVR 185 bpm" },
+          rhythmRate: 185,
+          rhythmType: "SVT",
+          settings: { monitor: 150, vt: 180, vf: 230, detection: 18, svt: false, burst: true, ramp: false, shock: true, energy: 40 },
+          optimal: { monitor: 150, vt: 200, vf: 230, detection: 30, svt: true, burst: true, ramp: false, shock: true },
+          notes: [
+            "保存EGMで不適切作動の原因がAF/SVTか、ノイズか、真のVTかをまず分ける。",
+            "SVT判別、検出時間、治療ゾーン下限、レートコントロールをセットで確認する。",
+            "治療を遅らせ過ぎない範囲で不適切治療を減らす。"
+          ]
+        },
+        {
+          id: "electrical-storm",
+          title: "電気嵐 / 反復VT: ATPとショック履歴を読む",
+          context: { indication: "二次予防", rhythm: "反復VT", substrate: "NICM", clinicalVt: "190 bpm", sample: "VT 194 bpm" },
+          rhythmRate: 194,
+          rhythmType: "VT",
+          settings: { monitor: 150, vt: 180, vf: 230, detection: 24, svt: true, burst: true, ramp: true, shock: true, energy: 40 },
+          optimal: { monitor: 150, vt: 180, vf: 230, detection: 30, svt: true, burst: true, ramp: false, shock: true },
+          notes: [
+            "反復VTではEGM、ATP成功率、加速、ショック回数、薬剤/アブレーション方針を時系列で確認する。",
+            "Burst ATPを基本に、Rampは加速や施設方針を確認する。",
+            "電気嵐は設定だけで完結せず、緊急対応・医師報告が必要。"
+          ]
+        },
+        {
+          id: "crt-d-shared",
+          title: "CRT-D: 心不全イベントとVT/VF設定を同時に見る",
+          context: { indication: "CRT-D", rhythm: "洞調律", substrate: "LBBB HFrEF", clinicalVt: "NSVT", sample: "NSVT 178 bpm" },
+          rhythmRate: 178,
+          rhythmType: "VT",
+          settings: { monitor: 150, vt: 190, vf: 230, detection: 30, svt: true, burst: true, ramp: false, shock: true, energy: 40 },
+          optimal: { monitor: 150, vt: 190, vf: 230, detection: 30, svt: true, burst: true, ramp: false, shock: true },
+          notes: [
+            "CRT-DではBiV capture低下、心不全増悪、VT/NSVTが同じ時系列で絡むことがある。",
+            "Monitorゾーンの情報は治療対象かどうかではなく、経過把握として読む。",
+            "VT/VF治療設定とCRT設定の両方を確認する。"
+          ]
+        }
+      ];
+
+      let currentId = localStorage.getItem("pacecheck-icd-scenario") || scenarios[0].id;
+      let settings = {};
+
+      // ===== Test mode state =====
+      let testActive = false;
+      let testFinalized = false;
+      let testFinal = null;
+      let completedSteps = new Set();
+      let regressedSteps = new Set();
+      let mistakes = 0;
+      let testLog = [];
+      let soundEnabled = localStorage.getItem("pacecheck-icd-sound") !== "false";
+
+      const TEST_STEPS = [
+        { id: "monitor",   label: "Monitor zone を最適化",            points: 18, check: (s, opt) => Math.abs(s.monitor - opt.monitor) <= 5 },
+        { id: "vt",        label: "VT zone を最適化",                 points: 18, check: (s, opt) => Math.abs(s.vt - opt.vt) <= 5 },
+        { id: "vf",        label: "VF zone を最適化",                 points: 18, check: (s, opt) => Math.abs(s.vf - opt.vf) <= 5 },
+        { id: "detection", label: "Detection time を最適化",          points: 18, check: (s, opt) => Math.abs(s.detection - opt.detection) <= 2 },
+        { id: "therapy",   label: "治療設定（SVT/Burst/Ramp/Shock）", points: 18, check: (s, opt) => ["svt","burst","ramp","shock"].every(k => s[k] === opt[k]) },
+      ];
+      const TEST_PASS = 80;
+      const TEST_MAX = 100;
+
+      document.addEventListener("DOMContentLoaded", init);
+
+      function initThemeToggle() {
+        var btn = document.getElementById("themeToggle");
+        if (!btn) return;
+        function update() {
+          btn.textContent = document.documentElement.getAttribute("data-theme") === "dark" ? "☀ ライト" : "☾ ダーク";
+        }
+        btn.addEventListener("click", function () {
+          var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+          document.documentElement.setAttribute("data-theme", next);
+          localStorage.setItem("pacecheck-theme", next);
+          update();
+        });
+        update();
+      }
+
+      function init() {
+        initThemeToggle();
+        const select = document.getElementById("scenarioSelect");
+        select.innerHTML = scenarios.map((scenario) => `<option value="${scenario.id}">${escapeHtml(scenario.title)}</option>`).join("");
+        select.addEventListener("change", () => loadScenario(select.value));
+        document.getElementById("resetButton").addEventListener("click", () => loadScenario(currentId, true));
+        document.getElementById("testStartBtn").addEventListener("click", startTest);
+        document.getElementById("testEndBtn").addEventListener("click", endTest);
+        document.getElementById("soundToggle").addEventListener("click", toggleSound);
+        loadScenario(currentId);
+      }
+
+      function loadScenario(id, reset = false) {
+        const scenario = scenarios.find((item) => item.id === id) || scenarios[0];
+        currentId = scenario.id;
+        localStorage.setItem("pacecheck-icd-scenario", currentId);
+        document.getElementById("scenarioSelect").value = currentId;
+        const saved = reset ? null : localStorage.getItem(`pacecheck-icd-settings-${currentId}`);
+        settings = saved ? { ...scenario.settings, ...JSON.parse(saved) } : { ...scenario.settings };
+        // Scenario change / reset cancels any ongoing test
+        resetTestState();
+        render();
+      }
+
+      // ===== Test lifecycle =====
+      function startTest() {
+        const scenario = currentScenario();
+        // Reset settings to scenario baseline so test starts from defined state
+        settings = { ...scenario.settings };
+        saveSettings();
+        testActive = true;
+        testFinalized = false;
+        testFinal = null;
+        completedSteps = new Set();
+        regressedSteps = new Set();
+        mistakes = 0;
+        testLog = [];
+        // Evaluate initial state silently (in case some steps already match optimal)
+        evaluateTestSteps(true);
+        render();
+      }
+
+      function endTest() {
+        if (!testActive) return;
+        const scenario = currentScenario();
+        const opt = scenario.optimal;
+        const allDoneNow = TEST_STEPS.every((step) => step.check(settings, opt));
+        const base = sumCompletedPoints();
+        const bonus = allDoneNow ? 10 : 0;
+        const penalty = mistakes * 10;
+        const score = clamp(base + bonus - penalty, 0, TEST_MAX);
+        const passed = score >= TEST_PASS;
+        testFinal = { score, passed, allDoneNow, base, bonus, penalty };
+        testActive = false;
+        testFinalized = true;
+        if (passed) playPassSound(); else playFailSound();
+        render();
+      }
+
+      function resetTestState() {
+        testActive = false;
+        testFinalized = false;
+        testFinal = null;
+        completedSteps = new Set();
+        regressedSteps = new Set();
+        mistakes = 0;
+        testLog = [];
+      }
+
+      function sumCompletedPoints() {
+        return TEST_STEPS
+          .filter((step) => completedSteps.has(step.id))
+          .reduce((sum, step) => sum + step.points, 0);
+      }
+
+      function computeLiveScore() {
+        return clamp(sumCompletedPoints() - mistakes * 10, 0, TEST_MAX);
+      }
+
+      function evaluateTestSteps(silent = false) {
+        if (!testActive) return;
+        const opt = currentScenario().optimal;
+        TEST_STEPS.forEach((step) => {
+          const done = step.check(settings, opt);
+          const alreadyDone = completedSteps.has(step.id);
+          if (done && !alreadyDone) {
+            completedSteps.add(step.id);
+            if (!silent) {
+              testLog.unshift({ delta: `+${step.points}`, label: `${step.label} 達成`, type: "good" });
+              playStepSound();
+            }
+          } else if (!done && alreadyDone && !regressedSteps.has(step.id)) {
+            regressedSteps.add(step.id);
+            mistakes++;
+            testLog.unshift({ delta: "-10", label: `${step.label} から逸脱（誤操作）`, type: "bad" });
+            playFailClick();
+          }
+        });
+        testLog = testLog.slice(0, 8);
+      }
+
+      function toggleSound() {
+        soundEnabled = !soundEnabled;
+        localStorage.setItem("pacecheck-icd-sound", soundEnabled ? "true" : "false");
+        const btn = document.getElementById("soundToggle");
+        btn.textContent = soundEnabled ? "🔊" : "🔈";
+        btn.setAttribute("aria-label", soundEnabled ? "音 ON" : "音 OFF");
+        if (soundEnabled) playStepSound();
+      }
+
+      // ===== Audio =====
+      let audioCtx = null;
+      function getAudioCtx() {
+        if (!soundEnabled) return null;
+        if (!audioCtx) {
+          try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+          catch (e) { return null; }
+        }
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        return audioCtx;
+      }
+      function playEnv(freq, dur, type = "sine", vol = 0.15, delay = 0) {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const start = ctx.currentTime + delay;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(vol, start + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + dur + 0.02);
+      }
+      function playStepSound() {
+        playEnv(880, 0.10, "sine", 0.14, 0);
+        playEnv(1318, 0.13, "sine", 0.14, 0.06);
+      }
+      function playPassSound() {
+        const notes = [523, 659, 784, 1047, 1319, 1568];
+        notes.forEach((f, i) => playEnv(f, 0.18, "square", 0.12, i * 0.08));
+        playEnv(2093, 0.45, "square", 0.10, 0.55);
+      }
+      function playFailSound() {
+        playEnv(440, 0.22, "triangle", 0.18, 0);
+        playEnv(330, 0.30, "triangle", 0.18, 0.18);
+      }
+      function playFailClick() {
+        playEnv(220, 0.08, "sawtooth", 0.10, 0);
+      }
+
+      function saveSettings() {
+        localStorage.setItem(`pacecheck-icd-settings-${currentId}`, JSON.stringify(settings));
+      }
+
+      function currentScenario() {
+        return scenarios.find((item) => item.id === currentId) || scenarios[0];
+      }
+
+      function render() {
+        const scenario = currentScenario();
+        const decision = therapyDecision(scenario);
+        const score = programmingScore(scenario);
+        document.getElementById("caseTitle").textContent = scenario.title;
+        document.getElementById("riskBadge").textContent = scenario.context.indication;
+        document.getElementById("caseGrid").innerHTML = Object.entries(scenario.context)
+          .map(([key, value]) => metricCell(labelForContext(key), value))
+          .join("");
+        document.getElementById("metrics").innerHTML = [
+          ["判定スコア", `${score} / 100`],
+          ["入力レート", `${scenario.rhythmRate} bpm`],
+          ["分類", decision.zone],
+          ["治療", decision.therapy]
+        ].map(([label, value]) => metricCell(label, value)).join("");
+        document.getElementById("zoneBadge").textContent = decision.zone;
+        document.getElementById("zoneBadge").className = decision.className;
+        document.getElementById("rateMarker").style.left = `${ratePercent(scenario.rhythmRate)}%`;
+        renderTherapyPath(decision);
+        renderControls();
+        renderLogic(scenario, decision, score);
+        renderDecisions(scenario, decision, score);
+        renderTestPanel();
+      }
+
+      function renderTestPanel() {
+        const statusPill = document.getElementById("testStatusPill");
+        const startBtn = document.getElementById("testStartBtn");
+        const endBtn = document.getElementById("testEndBtn");
+        const body = document.getElementById("testBody");
+        const soundBtn = document.getElementById("soundToggle");
+        soundBtn.textContent = soundEnabled ? "🔊" : "🔈";
+        soundBtn.setAttribute("aria-label", soundEnabled ? "音 ON" : "音 OFF");
+
+        if (testActive) {
+          statusPill.textContent = "テスト中";
+          statusPill.className = "pill warn";
+          startBtn.hidden = true;
+          endBtn.hidden = false;
+          endBtn.textContent = "テスト終了";
+          const live = computeLiveScore();
+          const liveClass = live >= TEST_PASS ? "pass-color" : "";
+          body.innerHTML = `
+            <div class="test-score-strip">
+              <div><span>現在スコア（${TEST_MAX}点満点）</span><strong class="${liveClass}">${live}<small>/ ${TEST_MAX}</small></strong></div>
+              <div><span>達成ステップ</span><strong>${completedSteps.size}<small>/ ${TEST_STEPS.length}</small></strong></div>
+              <div><span>誤操作</span><strong>${mistakes}<small>回</small></strong></div>
+            </div>
+            <div class="test-body">
+              <div>
+                <p class="eyebrow" style="margin:0 0 8px;">Steps</p>
+                <ul class="test-steps">${TEST_STEPS.map((step) => {
+                  const done = completedSteps.has(step.id);
+                  return `<li class="${done ? "done" : "pending"}">
+                    <span class="step-mark">${done ? "✓" : "—"}</span>
+                    <span>${escapeHtml(step.label)}</span>
+                    <span class="pill" style="margin-left:auto;">${step.points}点</span>
+                  </li>`;
+                }).join("")}</ul>
+              </div>
+              <div>
+                <p class="eyebrow" style="margin:0 0 8px;">判定ログ</p>
+                ${testLog.length
+                  ? `<ul class="test-log">${testLog.map((item) => `
+                      <li class="${item.type}"><span class="log-delta">${escapeHtml(item.delta)}</span><span>${escapeHtml(item.label)}</span></li>
+                    `).join("")}</ul>`
+                  : `<p class="test-empty">設定を最適化していくと、ここに達成・誤操作が記録されます。</p>`}
+              </div>
+            </div>
+          `;
+        } else if (testFinalized && testFinal) {
+          statusPill.textContent = testFinal.passed ? "合格" : "不合格";
+          statusPill.className = "pill " + (testFinal.passed ? "ok" : "danger");
+          startBtn.hidden = false;
+          startBtn.textContent = "もう一度テスト";
+          endBtn.hidden = true;
+          const cls = testFinal.passed ? "pass" : "fail";
+          body.innerHTML = `
+            <div class="test-final ${cls}">
+              <strong>${testFinal.passed ? `合格（${TEST_PASS}点以上）` : `不合格（合格基準 ${TEST_PASS}点）`}</strong>
+              <p>最終スコア ${testFinal.score} / ${TEST_MAX}点 ｜ ステップ ${completedSteps.size}/${TEST_STEPS.length} ｜ 誤操作 ${mistakes} 回 ${testFinal.allDoneNow ? "｜ 全項目達成ボーナス +10" : ""}</p>
+            </div>
+            <div class="test-body">
+              <div>
+                <p class="eyebrow" style="margin:0 0 8px;">Steps</p>
+                <ul class="test-steps">${TEST_STEPS.map((step) => {
+                  const done = completedSteps.has(step.id);
+                  return `<li class="${done ? "done" : "pending"}">
+                    <span class="step-mark">${done ? "✓" : "—"}</span>
+                    <span>${escapeHtml(step.label)}</span>
+                    <span class="pill" style="margin-left:auto;">${step.points}点</span>
+                  </li>`;
+                }).join("")}</ul>
+              </div>
+              <div>
+                <p class="eyebrow" style="margin:0 0 8px;">判定ログ</p>
+                ${testLog.length
+                  ? `<ul class="test-log">${testLog.map((item) => `
+                      <li class="${item.type}"><span class="log-delta">${escapeHtml(item.delta)}</span><span>${escapeHtml(item.label)}</span></li>
+                    `).join("")}</ul>`
+                  : `<p class="test-empty">記録がありません。</p>`}
+              </div>
+            </div>
+          `;
+        } else {
+          statusPill.textContent = "未開始";
+          statusPill.className = "pill";
+          startBtn.hidden = false;
+          startBtn.textContent = "テスト開始";
+          endBtn.hidden = true;
+          body.innerHTML = `
+            <p class="test-empty">テストを開始すると、症例ごとの最適化目標 (${TEST_STEPS.length}項目 × 各${TEST_STEPS[0].points}点 + 全達成ボーナス10点 = ${TEST_MAX}点) に向けた採点が始まります。合格基準は ${TEST_PASS} 点です。</p>
+          `;
+        }
+      }
+
+      function metricCell(label, value) {
+        return `<div class="metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
+      }
+
+      function labelForContext(key) {
+        return { indication: "適応", rhythm: "Rhythm", substrate: "基礎疾患", clinicalVt: "既知VT", sample: "EGM例" }[key] || key;
+      }
+
+      function therapyDecision(scenario) {
+        const rate = scenario.rhythmRate;
+        let zone = "Below Monitor";
+        let therapy = "記録なし";
+        let className = "pill";
+        if (rate >= settings.vf) {
+          zone = "VF";
+          therapy = settings.shock ? "ATP during charge → Shock" : "治療OFF";
+          className = "pill danger";
+        } else if (rate >= settings.vt) {
+          zone = "VT";
+          className = "pill warn";
+          if (scenario.rhythmType === "SVT" && settings.svt) {
+            therapy = "SVT判別で治療保留";
+            className = "pill ok";
+          } else if (settings.burst) {
+            therapy = settings.shock ? "Burst ATP → Shock backup" : "Burst ATPのみ";
+          } else {
+            therapy = settings.shock ? "Shock" : "治療OFF";
+          }
+        } else if (rate >= settings.monitor) {
+          zone = "Monitor";
+          therapy = "記録のみ";
+          className = "pill";
+        }
+        const delayOk = settings.detection >= 30 || scenario.context.indication === "二次予防" && settings.detection >= 24;
+        return { zone, therapy, className, delayOk };
+      }
+
+      function programmingScore(scenario) {
+        const target = scenario.optimal;
+        let score = 100;
+        score -= Math.min(18, Math.abs(settings.monitor - target.monitor) / 5);
+        score -= Math.min(24, Math.abs(settings.vt - target.vt) / 4);
+        score -= Math.min(16, Math.abs(settings.vf - target.vf) / 5);
+        score -= Math.min(22, Math.abs(settings.detection - target.detection) * 1.7);
+        ["svt", "burst", "ramp", "shock"].forEach((key) => {
+          if (settings[key] !== target[key]) score -= key === "shock" ? 18 : 10;
+        });
+        return Math.max(0, Math.round(score));
+      }
+
+      function renderTherapyPath(decision) {
+        const steps = [
+          ["Rate", decision.zone],
+          ["Duration", settings.detection >= 30 ? "長めの検出" : `${settings.detection} intervals`],
+          ["Discriminator", settings.svt ? "SVT判別ON" : "SVT判別OFF"],
+          ["Therapy", decision.therapy]
+        ];
+        document.getElementById("therapyPath").innerHTML = steps.map(([label, value], index) => {
+          const state = index === 3 && value.includes("Shock") ? "danger" : index === 3 || value.includes("ON") || value.includes("長め") ? "active" : "";
+          return `<div class="path-step ${state}"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></div>`;
+        }).join("");
+      }
+
+      function renderControls() {
+        const rows = [
+          { key: "monitor", label: "Monitor zone", unit: "bpm", step: 5, min: 120, max: 200 },
+          { key: "vt", label: "VT therapy zone", unit: "bpm", step: 5, min: 140, max: 230 },
+          { key: "vf", label: "VF zone", unit: "bpm", step: 5, min: 190, max: 260 },
+          { key: "detection", label: "Detection", unit: "NID", step: 2, min: 12, max: 40 },
+          { key: "energy", label: "Shock energy", unit: "J", step: 1, min: 20, max: 40 }
+        ];
+        document.getElementById("settingsGrid").innerHTML = rows.map((row) => `
+          <div class="setting-cell">
+            <div class="setting-row">
+              <strong>${escapeHtml(row.label)}</strong>
+              <button class="step-button" type="button" aria-label="${escapeHtml(row.label)} を下げる" data-step="${row.key}" data-dir="-1">▼</button>
+              <span class="value-box">${escapeHtml(formatValue(settings[row.key], row.unit))}</span>
+              <button class="step-button" type="button" aria-label="${escapeHtml(row.label)} を上げる" data-step="${row.key}" data-dir="1">▲</button>
+            </div>
+          </div>
+        `).join("") + `
+          <div class="setting-cell toggle-grid">
+            ${toggleRow("svt", "SVT discriminators")}
+            ${toggleRow("burst", "ATP Burst")}
+            ${toggleRow("ramp", "ATP Ramp")}
+            ${toggleRow("shock", "Shock backup")}
+          </div>
+        `;
+        document.querySelectorAll("[data-step]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const row = rows.find((item) => item.key === button.dataset.step);
+            settings[row.key] = clamp(settings[row.key] + Number(button.dataset.dir) * row.step, row.min, row.max);
+            if (settings.vt <= settings.monitor) settings.vt = settings.monitor + 5;
+            if (settings.vf <= settings.vt) settings.vf = settings.vt + 5;
+            saveSettings();
+            if (testActive) evaluateTestSteps();
+            render();
+          });
+        });
+        document.querySelectorAll("[data-toggle]").forEach((button) => {
+          button.addEventListener("click", () => {
+            settings[button.dataset.toggle] = !settings[button.dataset.toggle];
+            saveSettings();
+            if (testActive) evaluateTestSteps();
+            render();
+          });
+        });
+      }
+
+      function toggleRow(key, label) {
+        return `
+          <div class="toggle-row">
+            <strong>${escapeHtml(label)}</strong>
+            <button class="toggle ${settings[key] ? "on" : ""}" type="button" data-toggle="${key}">${settings[key] ? "ON" : "OFF"}</button>
+          </div>
+        `;
+      }
+
+      function renderLogic(scenario, decision, score) {
+        document.getElementById("logicSummary").textContent = scenario.notes[0];
+        const dynamic = [
+          settings.vt < 185 && scenario.context.indication === "一次予防" ? "一次予防でVT治療ゾーンが低めです。不適切治療リスクを確認します。" : "治療ゾーンは症例背景と既知VTに合わせて確認します。",
+          settings.detection < 24 ? "検出が短めです。自己停止VTやSVTへの不要治療に注意します。" : "検出時間は長めで、不必要な治療を減らす方向です。",
+          !settings.svt && scenario.rhythmType === "SVT" ? "SVT判別OFFで不適切治療リスクがあります。保存EGMで原因を確認します。" : "SVT判別の適用範囲と禁忌を確認します。",
+          settings.ramp ? "Ramp ATPは加速リスクや施設方針を確認します。Burst優先が基本になる場面があります。" : "Burst ATPを中心に、成功率と加速の履歴を見ます。",
+          decision.therapy.includes("Shock") ? "ショックが想定されます。ATPで回避できるVTか、VF/不安定VTかを分けます。" : "ショック回避または記録のみの判断です。治療遅延リスクも同時に見ます。"
+        ];
+        document.getElementById("logicList").innerHTML = [...scenario.notes.slice(1), ...dynamic]
+          .map((item) => `<li>${escapeHtml(item)}</li>`)
+          .join("");
+      }
+
+      function renderDecisions(scenario, decision, score) {
+        const items = [
+          {
+            title: "Rate zones",
+            state: settings.monitor < settings.vt && settings.vt < settings.vf ? "ok" : "danger",
+            body: `Monitor ${settings.monitor} / VT ${settings.vt} / VF ${settings.vf} bpm。ゾーンの重なりと既知VTを確認します。`
+          },
+          {
+            title: "Detection duration",
+            state: decision.delayOk ? "ok" : "warn",
+            body: decision.delayOk ? "長めの検出で不要治療を減らす方向です。" : "短めです。自己停止やSVTへの治療リスクを確認します。"
+          },
+          {
+            title: "SVT discrimination",
+            state: settings.svt ? "ok" : scenario.rhythmType === "SVT" ? "danger" : "warn",
+            body: settings.svt ? "SVT判別ON。適用ゾーンと信頼性を確認します。" : "SVT判別OFF。AF/SVT症例では不適切治療に注意します。"
+          },
+          {
+            title: "ATP / Shock",
+            state: settings.burst && settings.shock ? "ok" : settings.shock ? "warn" : "danger",
+            body: `${settings.burst ? "Burst ATPあり" : "Burst ATPなし"} / ${settings.ramp ? "Rampあり" : "Rampなし"} / ${settings.shock ? `Shock ${settings.energy}J` : "Shockなし"}。`
+          }
+        ];
+        document.getElementById("decisionList").innerHTML = items.map((item) => `
+          <div class="decision-item ${item.state}">
+            <strong>${escapeHtml(item.title)}</strong>
+            <p>${escapeHtml(item.body)}</p>
+          </div>
+        `).join("");
+      }
+
+      function ratePercent(rate) {
+        return clamp((rate - 100) / 180 * 100, 4, 96);
+      }
+
+      function formatValue(value, unit) {
+        return `${Number(value).toFixed(0)} ${unit}`;
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;"
+        })[char]);
+      }
+    </script>
+  </body>
+</html>

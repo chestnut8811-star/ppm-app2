@@ -1,0 +1,13 @@
+# OS / editor
+.DS_Store
+.claude/
+.vscode/
+.idea/
+
+# build / deps / logs
+node_modules/
+*.log
+
+# backups / archives (公開不要)
+*.zip
+保管/
