@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EP スティムレータ・トレーナー(心内心電図)</title>
+<style>
+  /* ==================================================================
+     操作特化レイアウト: 左=刺激操作 / 中=全幅の心内心電図 / 下=計測バー
+     右パネルは撤去(画面要素を減らし、波形を大きく全体表示)。
+     ================================================================== */
+  :root{
+    --bg:#070a0f; --panel:#0e141d; --panel2:#121a25; --line:#1d2733;
+    --text:#d7e2ee; --muted:#7f8ea0; --accent:#46f08c; --warn:#ffd24a; --danger:#ff5d6c; --cyan:#5ad1ff;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{ margin:0; background:var(--bg); color:var(--text); overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;
+    font-size:13px; line-height:1.5; display:flex; flex-direction:column; height:100vh; }
+
+  header.app-header{ flex:0 0 auto; padding:7px 14px; background:linear-gradient(180deg,#0c1320,#0a0f18);
+    border-bottom:1px solid var(--line); display:flex; align-items:center; gap:14px; }
+  header.app-header h1{ font-size:15px; margin:0; }
+  header.app-header .caution{ color:var(--warn); font-size:12px; }
+  header.app-header .right{ margin-left:auto; display:flex; gap:8px; align-items:center; }
+  header.app-header .badge{ color:var(--muted); font-size:11px; border:1px solid var(--line); padding:2px 8px; border-radius:999px; }
+  header.app-header a.link{ color:var(--cyan); font-size:11px; border:1px solid var(--cyan); padding:2px 10px; border-radius:999px; text-decoration:none; white-space:nowrap; }
+  header.app-header a.link:hover{ background:var(--cyan); color:#04240f; }
+
+  .app{ flex:1 1 auto; display:flex; min-height:0; }
+
+  /* 左: 刺激操作パネル */
+  .sidebar{ flex:0 0 226px; background:var(--panel); border-right:1px solid var(--line); padding:11px; overflow-y:auto; }
+  .grp{ margin-bottom:13px; }
+  .grp > .label{ color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; margin-bottom:5px; }
+  select, input[type=number]{ width:100%; background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:6px; padding:5px 7px; font-size:13px; }
+  .seg{ display:flex; gap:4px; } .seg button{ flex:1; }
+  .num-row{ display:flex; align-items:center; gap:8px; margin:5px 0; }
+  .num-row label{ flex:0 0 64px; color:var(--muted); font-size:11.5px; }
+  .num-row input{ flex:1; }
+  .num-row .unit{ color:var(--muted); font-size:11px; }
+  button.btn{ background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:6px;
+    padding:6px 8px; cursor:pointer; font-size:12px; }
+  button.btn:hover{ border-color:#2a3a4c; }
+  button.btn.on{ background:var(--accent); color:#04240f; border-color:var(--accent); font-weight:600; }
+  button.btn.deliver{ width:100%; background:var(--danger); color:#fff; border-color:var(--danger); font-weight:700; padding:9px; font-size:14px; }
+  button.btn.deliver.armed:hover{ filter:brightness(1.1); }
+  button.btn.stop{ width:100%; }
+  .row2{ display:flex; gap:6px; } .row2 .btn{ flex:1; }
+  .hint{ color:var(--muted); font-size:10.5px; margin-top:5px; }
+  .cap-ind{ font-size:11px; padding:2px 7px; border-radius:5px; font-weight:600; }
+  .cap-ind.cap{ background:rgba(70,240,140,.15); color:var(--accent); }
+  .cap-ind.nocap{ background:rgba(255,93,108,.15); color:var(--danger); }
+
+  /* 中: 全幅の波形 */
+  .stage-wrap{ position:relative; flex:1 1 auto; min-width:0; background:#000; }
+  canvas#scope{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .hud{ position:absolute; top:7px; right:10px; z-index:5; pointer-events:none; background:rgba(8,12,18,.72);
+    border:1px solid var(--line); border-radius:8px; padding:5px 9px; font-size:11px; color:var(--muted);
+    display:grid; grid-template-columns:auto auto; gap:0 10px; }
+  .hud b{ color:var(--text); } .hud .fps b{ color:var(--accent); }
+
+  /* 下: 計測・結果ステータスバー(右パネルの代替・操作に直結) */
+  .statusbar{ flex:0 0 auto; background:var(--panel); border-top:1px solid var(--line); padding:8px 14px;
+    display:flex; gap:18px; align-items:flex-start; min-height:62px; }
+  .statusbar .col{ font-size:12px; }
+  .statusbar .col .h{ color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.05em; }
+  .statusbar .col .v{ color:var(--text); font-weight:600; }
+  .statusbar .col.result{ flex:1; }
+  .statusbar .result .v{ color:var(--accent); font-weight:600; }
+  .statusbar .result.bad .v{ color:var(--danger); }
+  .statusbar .result .obs{ color:var(--muted); font-weight:400; font-size:11px; margin-top:2px; }
+
+  footer.disclaimer{ flex:0 0 auto; background:#0a0f17; border-top:1px solid var(--line);
+    color:var(--muted); font-size:10.5px; padding:5px 14px; line-height:1.4; }
+
+  /* ===== 追加: プリセット / 高度マヌーバ / 表示の小ボタン ===== */
+  .preset-grid{ display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+  button.btn.preset{ font-size:11px; padding:6px 5px; text-align:center; line-height:1.25; }
+  button.btn.preset.on{ background:var(--cyan); color:#04240f; border-color:var(--cyan); font-weight:600; }
+  button.btn.adv{ width:100%; margin-bottom:5px; text-align:left; }
+  button.btn.adv:disabled{ opacity:.4; cursor:not-allowed; }
+  button.btn.adv .k{ color:var(--cyan); font-weight:600; }
+  .mini-row{ display:flex; gap:5px; flex-wrap:wrap; margin-top:5px; }
+  .mini-row .btn{ flex:1 1 44%; font-size:11px; padding:5px 4px; }
+  .chk-row{ display:flex; align-items:center; gap:7px; margin:6px 0 2px; color:var(--muted); font-size:11.5px; cursor:pointer; user-select:none; }
+  .chk-row input{ width:auto; accent-color:var(--accent); }
+
+  /* ===== 追加: 上部左の自動計測 HUD(リアルタイム interval 読み出し) ===== */
+  .readout{ position:absolute; top:7px; left:104px; z-index:5; pointer-events:none;
+    background:rgba(8,12,18,.82); border:1px solid var(--line); border-radius:8px; padding:6px 10px;
+    font-size:11px; color:var(--muted); min-width:148px; }
+  .readout .ttl{ color:var(--cyan); font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; margin-bottom:3px; }
+  .readout .rg{ display:grid; grid-template-columns:auto 1fr; gap:1px 10px; }
+  .readout .rg .lab{ color:var(--muted); } .readout .rg .val{ color:var(--text); font-weight:600; text-align:right; font-variant-numeric:tabular-nums; }
+  .readout .spec{ margin-top:4px; padding-top:4px; border-top:1px solid var(--line); color:var(--warn); font-size:10.5px; font-weight:600; }
+
+  /* ===== 追加: 解説カード(AI下書き・臨床未監修)とフラグ ===== */
+  .flag-unsup{ display:inline-block; background:rgba(255,210,74,.16); color:var(--warn);
+    border:1px solid rgba(255,210,74,.5); border-radius:5px; padding:1px 7px; font-size:10px; font-weight:700; }
+  .teach-card{ position:absolute; top:7px; right:10px; z-index:7; width:316px; max-width:calc(100% - 16px);
+    background:rgba(11,17,26,.96); border:1px solid var(--line); border-radius:10px; padding:11px 13px;
+    box-shadow:0 8px 26px rgba(0,0,0,.5); max-height:calc(100% - 16px); overflow-y:auto; }
+  .teach-card.hidden{ display:none; }
+  .teach-card .tc-head{ display:flex; align-items:flex-start; gap:8px; margin-bottom:4px; }
+  .teach-card .tc-head h3{ margin:0; font-size:13px; flex:1; word-break:keep-all; line-height:1.35; }
+  .teach-card .tc-close{ cursor:pointer; color:var(--muted); border:1px solid var(--line); border-radius:5px; padding:0 7px; font-size:13px; background:none; }
+  .teach-card .tc-close:hover{ color:var(--text); }
+  .teach-card h4{ margin:9px 0 2px; font-size:11px; color:var(--cyan); text-transform:uppercase; letter-spacing:.04em; }
+  .teach-card p{ margin:2px 0; font-size:12px; line-height:1.55; color:var(--text); }
+  .teach-card .muted{ color:var(--muted); font-size:11px; }
+
+  /* ===== 追加: 伝導曲線モーダル ===== */
+  .curve-modal{ position:absolute; inset:0; z-index:9; display:flex; align-items:center; justify-content:center;
+    background:rgba(2,5,9,.66); }
+  .curve-modal.hidden{ display:none; }
+  .curve-box{ width:min(620px,92%); background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:14px 16px; box-shadow:0 12px 40px rgba(0,0,0,.6); }
+  .curve-box .cb-head{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .curve-box .cb-head h3{ margin:0; font-size:14px; flex:1; }
+  .curve-box canvas{ width:100%; height:300px; display:block; background:#04070b; border:1px solid var(--line); border-radius:8px; }
+  .curve-box .cb-note{ margin-top:9px; font-size:11.5px; color:var(--muted); line-height:1.55; }
+  .curve-box .cb-close{ cursor:pointer; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:3px 11px; background:var(--panel2); font-size:12px; }
+
+  /* ===== 追加: 計測ログカード ===== */
+  .log-card{ position:absolute; bottom:8px; right:10px; z-index:6; width:330px; max-width:48%;
+    background:rgba(11,17,26,.95); border:1px solid var(--line); border-radius:10px; padding:9px 11px; box-shadow:0 6px 22px rgba(0,0,0,.45); }
+  .log-card.hidden{ display:none; }
+  .log-card .lc-head{ display:flex; align-items:center; gap:8px; margin-bottom:5px; }
+  .log-card .lc-head .ttl{ flex:1; color:var(--cyan); font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
+  .log-card .lc-head button{ cursor:pointer; color:var(--muted); border:1px solid var(--line); border-radius:5px; padding:1px 7px; font-size:11px; background:none; }
+  .log-list{ max-height:168px; overflow-y:auto; font-size:11.5px; line-height:1.5; }
+  .log-list .li{ padding:3px 0; border-bottom:1px solid rgba(29,39,51,.6); }
+  .log-list .li .p{ color:var(--text); font-weight:600; } .log-list .li .m{ color:var(--muted); }
+  .log-list .empty{ color:var(--muted); padding:6px 0; }
+</style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>EP スティムレータ・トレーナー</h1>
+    <span class="caution">教育用合成波形です。診療判断には使用しないでください。</span>
+    <span class="right">
+      <span class="badge">プログラム刺激 / 心内心電図</span>
+      <a class="link" href="index.html">↩ 通常版</a>
+      <a class="link" href="manual.html" target="_blank" rel="noopener">📖 使い方</a>
+    </span>
+  </header>
+
+  <div class="app">
+    <!-- ========== 左: 刺激操作 ========== -->
+    <aside class="sidebar">
+      <div class="grp">
+        <div class="label">プロトコル・プリセット</div>
+        <div class="preset-grid" id="preset-grid">
+          <button class="btn preset" data-preset="snrt">洞結節機能<br>SNRT</button>
+          <button class="btn preset" data-preset="wenckebach">房室結節<br>Wenckebach点</button>
+          <button class="btn preset" data-preset="avnERP">房室結節ERP<br>S1-S2</button>
+          <button class="btn preset" data-preset="avnrt">AVNRT<br>誘発</button>
+          <button class="btn preset" data-preset="preexc">副伝導路<br>preexcitation</button>
+          <button class="btn preset" data-preset="vaERP">心室ERP<br>VA評価</button>
+        </div>
+        <div class="hint">ワンクリックで標準プロトコルを設定。解説は右上「解説」で表示。</div>
+      </div>
+
+      <div class="grp">
+        <div class="label">基質 / Substrate</div>
+        <select id="sel-sub">
+          <option value="normal" selected>正常房室伝導</option>
+          <option value="avnrtDual">AVNRT基質(二重房室結節)</option>
+          <option value="accessory">副伝導路(WPW・左側)</option>
+        </select>
+      </div>
+
+      <div class="grp">
+        <div class="label">刺激部位 / Site</div>
+        <div class="seg">
+          <button class="btn on" id="site-A">心房 (HRA)</button>
+          <button class="btn" id="site-V">心室 (RVA)</button>
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="label">モード / Mode</div>
+        <div class="seg">
+          <button class="btn on" id="mode-s1">連続 S1</button>
+          <button class="btn" id="mode-s1s2">S1-S2</button>
+          <button class="btn" id="mode-burst">バースト</button>
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="label">刺激パラメータ</div>
+        <div class="num-row"><label>S1 CL</label><input type="number" id="p-cl" value="600" min="200" max="1200" step="10"><span class="unit">ms</span></div>
+        <div class="num-row" id="row-s2"><label>S2 連結</label><input type="number" id="p-s2" value="300" min="150" max="600" step="10"><span class="unit">ms</span></div>
+        <label class="chk-row" id="row-s3chk"><input type="checkbox" id="p-s3on"> S3 を追加(2連発期外刺激)</label>
+        <div class="num-row" id="row-s3"><label>S3 連結</label><input type="number" id="p-s3" value="250" min="150" max="600" step="10"><span class="unit">ms</span></div>
+        <div class="num-row"><label>本数</label><input type="number" id="p-n" value="8" min="1" max="16" step="1"><span class="unit">拍</span></div>
+        <div class="num-row"><label>出力</label><input type="number" id="p-out" value="2.0" min="0" max="10" step="0.5"><span class="unit">mA</span></div>
+        <div class="hint">捕捉閾値 <b id="thr">1.0</b> mA(出力がこれ以上で捕捉)。S2/S3 を短くして ERP・誘発を探る。</div>
+      </div>
+
+      <div class="grp">
+        <button class="btn deliver armed" id="btn-deliver">▶ 刺激 Deliver</button>
+        <div class="row2" style="margin-top:6px;">
+          <button class="btn stop" id="btn-stop">停止</button>
+          <button class="btn" id="btn-reset">Reset</button>
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="label">高度マヌーバ / 解析</div>
+        <button class="btn adv" id="btn-curve"><span class="k">📈</span> 伝導曲線スキャン(S1-S2)</button>
+        <button class="btn adv" id="btn-entrain" disabled><span class="k">⟳</span> エントレインメント / PPI</button>
+        <div class="hint" id="hint-adv">伝導曲線=減衰伝導と二重結節 jump を作図。エントレインメントは頻拍中に有効。</div>
+      </div>
+
+      <div class="grp">
+        <div class="label">表示</div>
+        <div class="num-row"><label>Sweep</label>
+          <select id="sel-sweep" style="flex:1;"><option value="25">25</option><option value="50">50</option><option value="100" selected>100</option></select>
+          <span class="unit">mm/s</span></div>
+        <div class="num-row"><label>EGM gain</label>
+          <select id="sel-gain" style="flex:1;"><option value="0.5">×0.5</option><option value="1" selected>×1</option><option value="2">×2</option><option value="4">×4</option></select></div>
+        <div class="mini-row">
+          <button class="btn on" id="btn-labels">ラベル</button>
+          <button class="btn on" id="btn-measure">自動計測</button>
+          <button class="btn" id="btn-cursor">カーソル</button>
+          <button class="btn" id="btn-teach">解説</button>
+          <button class="btn" id="btn-log">ログ</button>
+          <button class="btn" id="btn-png">PNG保存</button>
+        </div>
+        <div class="hint">自動計測ON=波形上に St-A/A-H/H-V/VA を表示。カーソルは2点クリックで手動 ms 計測。ショートカット: <b>Space</b>=刺激 / <b>S</b>停止 / <b>R</b>Reset / <b>L M C</b> 切替 / <b>P</b>保存。</div>
+      </div>
+    </aside>
+
+    <!-- ========== 中: 全幅の心内心電図 ========== -->
+    <div class="stage-wrap" id="stage">
+      <canvas id="scope"></canvas>
+      <div class="hud">
+        <span>Sweep</span><span><b id="hud-sweep">100</b> mm/s</span>
+        <span>EGM</span><span>×<b id="hud-gain">1</b></span>
+        <span class="fps">FPS</span><span class="fps"><b id="hud-fps">–</b></span>
+      </div>
+
+      <!-- 上部左: リアルタイム interval 読み出し(モデルのランドマーク時刻を読むだけ) -->
+      <div class="readout" id="readout">
+        <div class="ttl">計測(自動)</div>
+        <div class="rg" id="readout-rows"><div class="lab">最新拍</div><div class="val">—</div></div>
+        <div class="spec" id="readout-spec" style="display:none;"></div>
+      </div>
+
+      <!-- 右: 解説カード(AI下書き・臨床未監修・別レイヤー) -->
+      <div class="teach-card hidden" id="teach-card">
+        <div class="tc-head">
+          <h3 id="teach-title">解説</h3>
+          <button class="tc-close" id="teach-close" title="閉じる">×</button>
+        </div>
+        <div style="margin:-2px 0 7px;"><span class="flag-unsup">AI下書き・臨床未監修</span></div>
+        <div id="teach-body"></div>
+        <p class="muted" style="margin-top:9px;">※ 本パネルの解説は AI が作成した下書きで、臨床監修を受けていません。数値は教育用の代表値です。教材としての確定は院内の accountable な専門家の確認後に行ってください。</p>
+      </div>
+
+      <!-- 計測ログ -->
+      <div class="log-card hidden" id="log-card">
+        <div class="lc-head"><span class="ttl">計測ログ</span><button id="log-clear">消去</button></div>
+        <div class="log-list" id="log-list"><div class="empty">まだ計測がありません。刺激を実行すると記録されます。</div></div>
+      </div>
+
+      <!-- 伝導曲線モーダル -->
+      <div class="curve-modal hidden" id="curve-modal">
+        <div class="curve-box">
+          <div class="cb-head"><h3 id="curve-title">房室結節伝導曲線</h3><span class="flag-unsup">教育用簡略モデル</span><button class="cb-close" id="curve-close">閉じる</button></div>
+          <canvas id="curve-canvas"></canvas>
+          <div class="cb-note" id="curve-note"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 下: 計測・結果(右パネルの代替) ========== -->
+  <div class="statusbar">
+    <div class="col"><div class="h">プロトコル</div><div class="v" id="st-proto">—</div></div>
+    <div class="col"><div class="h">捕捉</div><div class="v" id="st-cap">—</div></div>
+    <div class="col"><div class="h">伝導 / 計測</div><div class="v" id="st-meas">—</div></div>
+    <div class="col result"><div class="h">結果・観察ポイント</div><div class="v" id="st-result">刺激部位・モード・出力を設定し「刺激 Deliver」。</div><div class="obs" id="st-obs"></div></div>
+  </div>
+
+  <footer class="disclaimer">
+    本ツールは教育・確認補助を目的とした合成波形シミュレーターです。実患者データではありません。診断・治療判断には使用せず、実臨床では医師の指示、院内ルール、使用機器の表示を優先してください。
+  </footer>
+
+<script>
+"use strict";
+/* ==================================================================================
+   EP スティムレータ・トレーナー(心内心電図)
+   ----------------------------------------------------------------------------------
+   本体 index.html と同じ3層分離 + rolling buffer/blit-scroll 描画エンジンを用い、
+   activation model を「スティムレータ(プログラム刺激)駆動」に置き換えたもの。
+   ・刺激出力(mA)≥閾値 で捕捉、未満で刺激のみ(非捕捉)。
+   ・心房ペーシング → 房室伝導(1:1 / Wenckebach / 2:1)、S1-S2 で各ERP判定、
+     AVNRT基質では AH jump → 頻拍誘発。
+   ・心室ペーシング → 室房(VA)逆行伝導(concentric / 副伝導路は eccentric)。
+   ・合成波形のみ・教育目的。臨床判断には使用しない。
+   ================================================================================== */
+
+/* ---------- 定数 ---------- */
+const SR = 1000, PX_PER_MM_CSS = 5, GUTTER_CSS = 96, RULER_CSS = 20;
+const BASE_AMP_CSS = 15, DT_CLAMP = 0.05, RNG_SEED = 0x9e3779b9;
+
+/* ---------- シード付きノイズ(微量) ---------- */
+function hash01(n){ n=(n^RNG_SEED)>>>0; n=Math.imul(n^(n>>>15),0x2c1b3c6d)>>>0; n=Math.imul(n^(n>>>13),0x297a2d39)>>>0; n=(n^(n>>>16))>>>0; return n/4294967296; }
+
+/* ---------- イベント整形ヘルパ ---------- */
+function gaussEv(ev,center,amp,pol,sigma,kind){ ev.push({center,amp,sigma,polarity:pol,kind:kind||''}); }
+function egmEv(ev,center,amp,pol,kind,sigma){ sigma=sigma||0.0032; ev.push({center,amp,sigma,polarity:pol,kind}); ev.push({center:center+sigma*1.7,amp:amp*0.42,sigma:sigma*1.05,polarity:-pol,kind:''}); }
+
+/* ================================================================
+   生理パラメータ(教育用の簡略モデル。数値は標準的範囲の代表値)
+   ================================================================ */
+const TIMING = { sinusCL:860, hraToHisA:35, ah0:90, hv:45, csProx:28, csDist:78 };
+const AVN = { wbCL:350, twoCL:265, erp:290, refC:420, ahK:0.55 };   // 房室結節(正常)
+const ATRIAL_ERP=205, VENT_ERP=235, VA_ERP=255, VA0=145;            // 各不応期 / 逆行VA
+const DUAL = { fastERP:350, slowERP:285, fastAH:80, slowAH:265, tachyCL:345 }; // 二重房室結節
+const ACC = { tachyCL:330 };
+const STIM_OFFSET = 0.006;   // 刺激→局所捕捉の遅れ[s]
+const RECOVERY = 1.05;       // ペーシング停止後の洞調律回復までの休止[s](非心房刺激のフォールバック)
+const SNRT_BASE = 160;       // cSNRT 基準[ms](心房 CL600・8拍ドライブでの代表値。教育用簡略)
+const ENTRAIN_PPI = {        // PPI−TCL の代表値[ms](教育用簡略・基質×刺激部位)。臨床判定値ではない
+  normal:    { V:120, A:90 },
+  avnrtDual: { V:115, A:60 },   // AVNRT: 心室からは長め(回路外)、心房中隔近傍は短め
+  accessory: { V:70,  A:80 }    // AVRT: 心室からの PPI−TCL は AVNRT より短い傾向
+};
+function clampN(v,lo,hi){ return v<lo?lo:(v>hi?hi:v); }
+
+/* ---------- チャネル(標準4カテーテルEP montage) ---------- */
+const CHANNELS = [
+  { label:'ECG II',  role:'surfaceII', group:'surface', color:'#e3ecf5', baseFrac:0.60 },
+  { label:'ECG V1',  role:'surfaceV1', group:'surface', color:'#a9bccf', baseFrac:0.42 },
+  { label:'HRA 1-2', role:'HRA',  group:'egm', color:'#ffd24a', baseFrac:0.56 },
+  { label:'His d',   role:'HisD', group:'egm', color:'#46f08c', baseFrac:0.46 },
+  { label:'His p',   role:'HisP', group:'egm', color:'#37c97c', baseFrac:0.46 },
+  { label:'CS 9-10', role:'CS', csFrac:0.0, group:'egm', color:'#bdecff', baseFrac:0.52 },
+  { label:'CS 5-6',  role:'CS', csFrac:0.5, group:'egm', color:'#56c5f2', baseFrac:0.52 },
+  { label:'CS 1-2',  role:'CS', csFrac:1.0, group:'egm', color:'#1f97d6', baseFrac:0.52 },
+  { label:'RVA 1-2', role:'RVA', group:'egm', color:'#ff9d5c', baseFrac:0.58 }
+];
+
+/* ================================================================
+   スティムレータ状態 + ビート・スケジュール(activation model 層)
+   ================================================================ */
+const stim = {
+  substrate:'normal', site:'A', mode:'s1', cl:600, s2:300, s3:250, s3on:false, n:8, output:2.0, threshold:1.0,
+  running:false, tStart:0, beats:[], postStart:Infinity, postMode:'sinus', tachyCL:345,
+  preMode:'sinus', preStart:0, preTachyCL:345,            // 刺激"前"のリズム(エントレインメントでは頻拍)
+  snrt:null, csnrt:null, snrtFrom:null, snrtTo:null,      // 洞結節回復時間(心房ドライブ後)
+  ppi:null, ppiTcl:null, ppiFrom:null, ppiTo:null, entrainSite:null  // エントレインメント計測
+};
+
+/* 1拍ぶんのランドマーク(全チャネル共通の真実)。
+   フィールド: tStim, pSite('A'|'V'|null), captured, tA, tHisA, tH, tV, wideV, csEcc, tRef, label */
+function sinusBeat(t0){
+  const T=TIMING, hisA=t0+T.hraToHisA/1000, h=hisA+T.ah0/1000, v=h+T.hv/1000;
+  return { tStim:null, pSite:null, captured:true, tA:t0, tHisA:hisA, tH:h, tV:v, wideV:false, csEcc:false, tRef:t0, label:'S' };
+}
+function tachyBeat(t0, cl, kind){
+  // AVNRT/AVRT 頻拍の1拍(簡略): narrow QRS, 逆行A。AVNRT=A と V 近接, AVRT=VA やや長。
+  const T=TIMING, h=t0, v=h+T.hv/1000;
+  const va = (kind==='avrt') ? 0.12 : 0.035;
+  const a = v + va;
+  return { tStim:null, pSite:null, captured:true, tA:a, tHisA:a, tH:h, tV:v, wideV:false,
+           csEcc:(kind==='avrt'), tRef:t0, label:kind };
+}
+
+/* 房室結節の前向き伝導(連結 c[ms])→ {cond, ah, jump} */
+function avConduct(c){
+  if (stim.substrate==='avnrtDual'){
+    if (c >= DUAL.fastERP) return { cond:true, ah:DUAL.fastAH, jump:false };
+    if (c >= DUAL.slowERP) return { cond:true, ah:DUAL.slowAH, jump:true };   // fast block → slow(AH jump)
+    return { cond:false };
+  }
+  if (stim.substrate==='accessory'){
+    // 副伝導路を順行(preexcitation): AV結節より速く心室に到達 → 短い"AV", wide(δ)
+    if (c < ATRIAL_ERP) return { cond:false };
+    return { cond:true, ah: 20, preexc:true };
+  }
+  // 正常
+  if (c < AVN.erp) return { cond:false };
+  const ah = Math.round(TIMING.ah0 + AVN.ahK * Math.max(0, AVN.refC - c));
+  return { cond:true, ah };
+}
+/* 室房(逆行)伝導 → {cond, va, ecc} */
+function vaConduct(c){
+  if (stim.substrate==='accessory') { if (c < VENT_ERP) return {cond:false}; return { cond:true, va:120, ecc:true }; }
+  if (c < VA_ERP) return { cond:false };
+  return { cond:true, va: Math.round(VA0 + 0.4*Math.max(0, 360 - c)), ecc:false };
+}
+
+/* ビート生成(モジュールスコープ: buildSchedule とエントレインメントで共用)。
+   captured=false なら刺激artのみ(局所も伝導もなし)。coupling[ms]を房室/室房伝導に渡す。 */
+function makeAtrialBeat(tStim, coupling, label, cap){
+  const T=TIMING, intraA=T.hraToHisA/1000;
+  const b={ tStim, pSite:'A', captured:cap, tA:null, tHisA:null, tH:null, tV:null, wideV:false, csEcc:false, tRef:tStim, label };
+  if (cap){
+    b.tA = tStim+STIM_OFFSET; b.tHisA = b.tA+intraA;
+    const r = avConduct(coupling);
+    if (r.cond){ b.tH = b.tHisA + r.ah/1000; b.tV = b.tH + T.hv/1000; b.wideV = !!r.preexc; b._ah=r.ah; b._jump=r.jump; b._preexc=r.preexc; }
+    else { b._block=true; }
+  }
+  return b;
+}
+function makeVentBeat(tStim, coupling, label, cap){
+  const T=TIMING;
+  const b={ tStim, pSite:'V', captured:cap, tA:null, tHisA:null, tH:null, tV:null, wideV:true, csEcc:false, tRef:tStim, label };
+  if (cap){
+    b.tV = tStim+STIM_OFFSET;
+    const r = vaConduct(coupling);
+    if (r.cond){ b.tA = b.tV + r.va/1000; b.csEcc = r.ecc; b.tHisA = r.ecc ? b.tA+0.005 : b.tA-0.008; b._va=r.va; b._ecc=r.ecc; }
+    else b._vablock=true;
+  }
+  return b;
+}
+
+/* Deliver: プロトコルから beats を構築し、捕捉・伝導・誘発/停止/SNRTを決める */
+function buildSchedule(){
+  const S=stim, T=TIMING, beats=[];
+  const cap = S.output >= S.threshold;
+  const wasTachy = S.running && S.postMode==='tachy' && state.tNow >= S.postStart;
+  let t = S.tStart;
+  let result={proto:'', meas:'', text:'', obs:'', bad:false};
+  // 計測フィールドをリセットし、刺激前リズムを洞調律に(通常 deliver)
+  S.snrt=S.csnrt=S.snrtFrom=S.snrtTo=null;
+  S.ppi=S.ppiTcl=S.ppiFrom=S.ppiTo=null; S.entrainSite=null; S.preMode='sinus';
+  const mk=(tStim,coupling,label)=> (S.site==='A'?makeAtrialBeat:makeVentBeat)(tStim,coupling,label,cap);
+
+  if (S.mode==='s1' || S.mode==='burst'){
+    const cl = (S.mode==='burst') ? Math.min(S.cl, 280) : S.cl;
+    const n = (S.mode==='burst') ? Math.max(S.n, 8) : S.n;
+    let ahCur=TIMING.ah0;
+    for (let i=0;i<n;i++){
+      const tS = t + i*cl/1000;
+      const b = mk(tS, cl, S.mode==='burst'?'B':'S1');
+      // 正常房室結節・心房ペーシングでの Wenckebach / 2:1(連続刺激時)
+      if (S.site==='A' && cap && stim.substrate==='normal'){
+        if (cl < AVN.wbCL && cl >= AVN.twoCL){
+          // Wenckebach: AH 漸増 → 脱落
+          if (ahCur > TIMING.ah0+170){ b.tH=null; b.tV=null; b._block=true; ahCur=TIMING.ah0; }
+          else { b.tH=b.tHisA+ahCur/1000; b.tV=b.tH+T.hv/1000; b._ah=Math.round(ahCur); b._block=false; ahCur+=42; }
+        } else if (cl < AVN.twoCL){
+          if (i%2===1){ b.tH=null; b.tV=null; b._block=true; } // 2:1
+        }
+      }
+      beats.push(b);
+    }
+    const tBase = t;
+    t += n*cl/1000;
+    const lastStim = tBase + (n-1)*cl/1000, lastA = lastStim + STIM_OFFSET;
+    // 誘発 / 停止 / SNRT 判定
+    if (cap && wasTachy){ S.postMode='sinus'; S.postStart=t+RECOVERY; result.text='頻拍を停止 → 洞調律復帰'; result.obs='頻拍中のオーバードライブ/バーストで停止(overdrive termination)。'; }
+    else if (cap && S.site==='A' && S.substrate==='avnrtDual' && S.mode==='burst' && cl<=300){
+      S.postMode='tachy'; S.tachyCL=DUAL.tachyCL; S.postStart=t+0.30; result.text='AVNRT 誘発(速い心房バースト)'; result.obs='二重房室結節で順行が slow に乗り換わり連続旋回。';
+    } else if (cap && S.site==='A'){
+      // 洞結節回復時間: 心房オーバードライブ後、最終ペース拍→最初の洞回復までの休止
+      const csnrt=Math.round(clampN(SNRT_BASE+(600-cl)*0.55+(Math.min(n,16)-8)*6,120,540)), snrt=T.sinusCL+csnrt;
+      S.csnrt=csnrt; S.snrt=snrt; S.snrtFrom=lastA; S.snrtTo=lastA+snrt/1000; S.postMode='sinus'; S.postStart=S.snrtTo;
+      result.text='心房オーバードライブ → 洞結節抑制(SNRT)';
+      result.obs='SNRT '+snrt+'ms / cSNRT '+csnrt+'ms('+((snrt<1500&&csnrt<550)?'正常範囲の代表値':'延長')+')。最終ペース拍→最初の洞回復の休止。';
+    } else { S.postMode='sinus'; S.postStart=t+RECOVERY; }
+    result.proto = (S.site==='A'?'心房':'心室')+' '+(S.mode==='burst'?'バースト':'連続S1')+' '+cl+'ms ×'+n;
+    if (S.site==='A' && cap && S.substrate==='normal'){
+      if (cl<AVN.twoCL) result.meas='2:1 房室ブロック';
+      else if (cl<AVN.wbCL) result.meas='Wenckebach(AH漸増→脱落)';
+      else result.meas='1:1 房室伝導 AH≈'+avConduct(cl).ah+'ms';
+    } else if (S.site==='V' && cap){
+      const r=vaConduct(cl); result.meas = r.cond ? ('室房 1:1 VA≈'+r.va+'ms '+(r.ecc?'(eccentric)':'(concentric)')) : '室房ブロック(VA解離)';
+    } else if (S.site==='A' && cap && S.substrate==='accessory'){ result.meas='preexcitation(δ波・QRS幅広)'; }
+    if (!result.text) result.text = cap ? '捕捉して刺激を伝導' : '出力不足で非捕捉(刺激artのみ)';
+    if (cap && S.site==='A' && S.substrate==='accessory' && !result.obs) result.obs='副伝導路順行 = preexcitation(QRS幅広・δ)。心房を速く刺激するほど顕著。';
+  }
+
+  else if (S.mode==='s1s2'){
+    const n=S.n, cl=S.cl;
+    const extras = S.s3on ? [{c:S.s2,l:'S2'},{c:S.s3,l:'S3'}] : [{c:S.s2,l:'S2'}];
+    for (let i=0;i<n;i++) beats.push(mk(t+i*cl/1000, cl, 'S1'));
+    let tPrev = t + (n-1)*cl/1000;            // 最終 S1
+    let last=null;                            // 最後に出した期外刺激(運命を判定する拍)
+    for (const ex of extras){ const tS=tPrev+ex.c/1000; const b=mk(tS,ex.c,ex.l); beats.push(b); last={b,c:ex.c,l:ex.l}; tPrev=tS; }
+    t = tPrev;
+    result.proto = (S.site==='A'?'心房':'心室')+' S1 '+cl+'×'+n+' + S2 '+S.s2+(S.s3on?(' + S3 '+S.s3):'')+'ms';
+    const ex=last.b, exC=last.c, exL=last.l;
+    if (!cap){ result.text='非捕捉(出力<閾値)'; S.postMode='sinus'; S.postStart=t+RECOVERY; }
+    else if (S.site==='A'){
+      if (exC < ATRIAL_ERP){ ex.tA=ex.tHisA=ex.tH=ex.tV=null; ex._block=false; result.meas=exL+' 心房捕捉せず'; result.text='心房ERP ≈ '+exC+'ms に到達'; result.obs=exL+' で心房が捕捉できない最長連結 = 心房有効不応期。'; S.postMode='sinus'; S.postStart=t+RECOVERY; }
+      else {
+        const r=avConduct(exC);
+        if (!r.cond){ ex.tH=ex.tV=null; ex._block=true; result.meas=exL+' 房室結節でブロック'; result.text='房室結節ERP ≈ '+exC+'ms'; result.obs=exL+'は心房捕捉するがHisへ伝導しない最長連結 = AVN ERP。'; S.postMode='sinus'; S.postStart=t+RECOVERY; }
+        else if (r.jump){ result.meas='AH jump '+DUAL.fastAH+'→'+r.ah+'ms'; result.text='AVNRT 誘発(AH jump)'; result.obs='二重房室結節: fast がブロックし slow に乗り換わって連続旋回。'; S.postMode='tachy'; S.tachyCL=DUAL.tachyCL; S.postStart=t+r.ah/1000+0.20; }
+        else if (S.substrate==='accessory'){ result.meas=exL+' preexcitation(AH短/δ)'; result.text='副伝導路順行で preexcitation'; result.obs='連結を詰めると AV結節は遅延、副伝導路が優位に。'; S.postMode='sinus'; S.postStart=t+RECOVERY; }
+        else { result.meas=exL+' 房室伝導 AH='+r.ah+'ms'; result.text='伝導(decremental)'; result.obs='連結を短くするほど AH 延長(房室結節の減衰伝導)。S3 を足すとさらに短い実効連結で探れる。'; S.postMode='sinus'; S.postStart=t+RECOVERY; }
+      }
+    } else { // 心室期外
+      if (exC < VENT_ERP){ ex.tV=ex.tA=ex.tHisA=null; result.meas=exL+' 心室捕捉せず'; result.text='心室ERP ≈ '+exC+'ms'; result.obs=exL+'で心室が捕捉できない最長連結 = 心室ERP。'; }
+      else { const r=vaConduct(exC);
+        if (!r.cond){ ex.tA=ex.tHisA=null; result.meas=exL+' 室房ブロック'; result.text='室房ERP ≈ '+exC+'ms'; result.obs=exL+'は心室捕捉するが心房へ逆行しない = VA ERP。'; }
+        else { result.meas=exL+' 室房伝導 VA='+r.va+'ms '+(r.ecc?'(eccentric)':'(concentric)'); result.text='逆行伝導'; result.obs=r.ecc?'副伝導路逆行=eccentric(CS遠位が最早期)。':'房室結節逆行=concentric。'; }
+      }
+      S.postMode='sinus'; S.postStart=t+RECOVERY;
+    }
+    if (!result.text) result.text = cap ? '捕捉' : '非捕捉';
+  }
+
+  S.beats = beats;
+  updateStatus(cap, result);
+  pushLog(result.proto, [result.meas, result.obs||result.text].filter(Boolean).join(' / '));
+}
+
+/* ある時間窓に重なるビート列を返す(刺激前リズム + 刺激拍 + 刺激後リズム)。
+   刺激前/後はそれぞれ 洞調律 か 頻拍。エントレインメントでは刺激前=頻拍。 */
+function beatsInWindow(t0, t1){
+  const out=[], S=stim, cl=TIMING.sinusCL/1000;
+  function pushSinus(a,b,origin){
+    if (b<=a) return;
+    const nFrom=Math.floor((a-origin)/cl)-1, nTo=Math.ceil((b-origin)/cl)+1;
+    for (let n=nFrom;n<=nTo;n++){ const t=origin+n*cl; if (t>=a-0.5 && t<=b+0.5 && n>=(origin>0?0:-1e9)) out.push(sinusBeat(t)); }
+  }
+  function pushTachy(a,b,origin,tcl,kind){
+    if (b<=a) return;
+    const nFrom=Math.floor((a-origin)/tcl)-1, nTo=Math.ceil((b-origin)/tcl)+1;
+    for (let n=nFrom;n<=nTo;n++){ const t=origin+n*tcl; if (t>=a-0.5 && t<=b+0.5 && n>=0) out.push(tachyBeat(t,tcl,kind)); }
+  }
+  const kind=(S.substrate==='accessory')?'avrt':'avnrt';
+  if (!S.running){ pushSinus(t0,t1,0); return out; }
+  // 刺激前
+  if (S.preMode==='tachy') pushTachy(t0, Math.min(t1,S.tStart), S.preStart, S.preTachyCL/1000, kind);
+  else pushSinus(t0, Math.min(t1, S.tStart), 0);
+  // 刺激拍
+  for (const b of S.beats){ if (b.tRef>=t0-0.6 && b.tRef<=t1+0.6) out.push(b); }
+  // 刺激後
+  if (t1 >= S.postStart){
+    if (S.postMode==='tachy') pushTachy(Math.max(t0,S.postStart), t1, S.postStart, S.tachyCL/1000, kind);
+    else pushSinus(Math.max(t0,S.postStart), t1, S.postStart);
+  }
+  return out;
+}
+
+/* ビート → チャネル別イベント emit */
+function emitBeat(ev, role, cf, b){
+  const T=TIMING;
+  if (b.tStim!=null) ev.push({center:b.tStim, amp:1.7, sigma:0.0011, polarity:+1, kind:'Stim'}); // 刺激artは全chに鋭い縦線
+  const csA = (b.tA!=null)
+     ? (b.csEcc ? b.tA + (T.csProx + (1-cf)*(T.csDist-T.csProx))/1000     // eccentric: 遠位最早期
+                : b.tA + (T.csProx + cf*(T.csDist-T.csProx))/1000)        // concentric
+     : null;
+  switch(role){
+    case 'surfaceII':
+      if (b.tA!=null) gaussEv(ev, b.tA+0.030, 0.11, (b.pSite==='V'?-1:1), 0.020, 'P');
+      if (b.tV!=null){
+        if (b.wideV){ gaussEv(ev,b.tV+0.012,0.55,+1,0.030,'QRS'); gaussEv(ev,b.tV+0.075,0.30,-1,0.030,''); gaussEv(ev,b.tV+0.34,0.30,-1,0.055,'T'); }
+        else { gaussEv(ev,b.tV+0.004,0.07,-1,0.006,'QRS'); gaussEv(ev,b.tV+0.026,0.60,+1,0.011,'QRS'); gaussEv(ev,b.tV+0.050,0.12,-1,0.008,'QRS'); gaussEv(ev,b.tV+0.30,0.20,+1,0.045,'T'); }
+      }
+      break;
+    case 'surfaceV1':
+      if (b.tA!=null) gaussEv(ev, b.tA+0.028, 0.05, +1, 0.016, '');
+      if (b.tV!=null){
+        if (b.wideV){ gaussEv(ev,b.tV+0.014,0.10,+1,0.012,'QRS'); gaussEv(ev,b.tV+0.060,0.62,-1,0.030,'QRS'); gaussEv(ev,b.tV+0.34,0.14,+1,0.05,'T'); }
+        else { gaussEv(ev,b.tV+0.008,0.14,+1,0.008,'QRS'); gaussEv(ev,b.tV+0.038,0.56,-1,0.012,'QRS'); gaussEv(ev,b.tV+0.30,0.11,+1,0.045,'T'); }
+      }
+      break;
+    case 'HRA':
+      if (b.tA!=null) egmEv(ev, b.tA, 0.95, +1, 'A', 0.0032);
+      if (b.tV!=null) egmEv(ev, b.tV+0.010, 0.14, -1, 'V', 0.006);
+      break;
+    case 'HisD':
+      if (b.tHisA!=null) egmEv(ev, b.tHisA, 0.50, +1, 'A', 0.0032);
+      if (b.tH!=null) egmEv(ev, b.tH, 0.34, +1, 'H', 0.0021);
+      if (b.tV!=null) egmEv(ev, b.tV, 0.95, -1, 'V', 0.0035);
+      break;
+    case 'HisP':
+      if (b.tHisA!=null) egmEv(ev, b.tHisA, 0.90, +1, 'A', 0.0034);
+      if (b.tH!=null) egmEv(ev, b.tH, 0.28, +1, 'H', 0.0021);
+      if (b.tV!=null) egmEv(ev, b.tV, 0.45, -1, 'V', 0.0038);
+      break;
+    case 'CS':
+      if (csA!=null) egmEv(ev, csA, 0.85, +1, 'A', 0.0032);
+      if (b.tV!=null) egmEv(ev, b.tV+0.008, 0.30, -1, 'V', 0.006);
+      break;
+    case 'RVA':
+      if (b.tV!=null) egmEv(ev, b.tV+ (b.pSite==='V'?0:0.006), 1.2, +1, 'V', 0.0034);
+      if (b.tA!=null && b.pSite!=='V') egmEv(ev, b.tHisA!=null?b.tA+0.02:b.tA, 0.10, +1, 'A', 0.006);
+      break;
+  }
+}
+
+function eventsForChannel(chan, w0, w1){
+  const ev=[], beats=beatsInWindow(w0-0.6, w1+0.6);
+  for (const b of beats) emitBeat(ev, chan.role, chan.params.csFrac||0, b);
+  return ev;
+}
+
+/* ================================================================
+   render 層(index.html と同方式: grid/trace バッファ + blit-scroll)
+   ================================================================ */
+const state = { playing:true, tNow:0, remPx:0, dir:'rtl', sweep:100, egmGain:1, labelsOn:true,
+  cursorOn:false, cursorA:null, cursorB:null };
+const layout = { dpr:1, devW:0, devH:0, plotW:0, gutterDev:0, rulerDev:0, ppmDev:0, ppsDev:0, rowH:0, ringLen:0, baseAmpDev:0 };
+const screen=document.getElementById('scope'), screenCtx=screen.getContext('2d');
+const gridBuf=document.createElement('canvas'), gridCtx=gridBuf.getContext('2d');
+const traceBuf=document.createElement('canvas'), traceCtx=traceBuf.getContext('2d');
+let channels=[];
+
+function buildChannels(){
+  channels = CHANNELS.map((c,i)=>({ label:c.label, color:c.color, group:c.group, role:c.role,
+    params:{ role:c.role, csFrac:(c.csFrac!=null?c.csFrac:0) }, baseFrac:(c.baseFrac!=null?c.baseFrac:0.5),
+    noiseOffset:i*7919, ring:null, lastIdx:0, baseY:0 }));
+}
+function timeToX(t){ const d=(state.tNow-t)*layout.ppsDev; return state.dir==='rtl'?(layout.plotW-d):d; }
+function sampleToY(chan, idx){
+  const L=chan.ring.length, raw=chan.ring[((idx%L)+L)%L];
+  if (chan.group==='surface') return chan.baseY - raw * 10 * layout.ppmDev;       // 表面 mV(固定10mm/mV相当)
+  return chan.baseY - raw * layout.baseAmpDev * state.egmGain;
+}
+const SYNTH_fill = (chan, idxFrom, idxTo) => {
+  if (idxTo<=idxFrom) return; const ring=chan.ring, L=ring.length;
+  const events=eventsForChannel(chan, idxFrom/SR, (idxTo-1)/SR);
+  for (let i=idxFrom;i<idxTo;i++){ const t=i/SR; let v=0;
+    for (let e=0;e<events.length;e++){ const ev=events[e], dt=t-ev.center; if (dt<-4*ev.sigma||dt>4*ev.sigma) continue; v+=ev.polarity*ev.amp*Math.exp(-0.5*(dt/ev.sigma)*(dt/ev.sigma)); }
+    ring[((i%L)+L)%L]=v;
+  }
+};
+function relayout(){
+  const dpr=layout.dpr=Math.min(window.devicePixelRatio||1,2);
+  const rect=document.getElementById('stage').getBoundingClientRect();
+  const devW=layout.devW=Math.max(1,Math.round(rect.width*dpr)), devH=layout.devH=Math.max(1,Math.round(rect.height*dpr));
+  layout.gutterDev=Math.round(GUTTER_CSS*dpr); layout.rulerDev=Math.round(RULER_CSS*dpr);
+  layout.ppmDev=PX_PER_MM_CSS*dpr; layout.ppsDev=state.sweep*layout.ppmDev; layout.baseAmpDev=BASE_AMP_CSS*dpr;
+  layout.plotW=Math.max(1,devW-layout.gutterDev);
+  layout.rowH=(devH-layout.rulerDev)/channels.length;
+  const slowestPps=25*layout.ppmDev; layout.ringLen=Math.ceil(layout.plotW/slowestPps*SR)+2*SR;
+  screen.width=devW; screen.height=devH; gridBuf.width=layout.plotW; gridBuf.height=devH; traceBuf.width=layout.plotW; traceBuf.height=devH;
+  const idxNow=Math.floor(state.tNow*SR);
+  for (let i=0;i<channels.length;i++){ const ch=channels[i];
+    ch.baseY=layout.rulerDev+layout.rowH*(i+ch.baseFrac); ch.ring=new Float32Array(layout.ringLen);
+    SYNTH_fill(ch, idxNow-layout.ringLen+1, idxNow+1); ch.lastIdx=idxNow; }
+  drawGrid(); repaintTrace();
+}
+function drawGrid(){
+  const W=layout.plotW,H=layout.devH,dpr=layout.dpr,ppm=layout.ppmDev,pps=layout.ppsDev;
+  gridCtx.clearRect(0,0,W,H); gridCtx.fillStyle='#04070b'; gridCtx.fillRect(0,0,W,H);
+  const nowX=state.dir==='rtl'?W:0, sgn=state.dir==='rtl'?-1:1;
+  gridCtx.lineWidth=1; gridCtx.strokeStyle='rgba(120,150,140,0.10)'; gridCtx.beginPath();
+  for (let k=0;;k++){ const x=nowX+sgn*k*ppm; if (x<0||x>W) break; gridCtx.moveTo(Math.round(x)+0.5,0); gridCtx.lineTo(Math.round(x)+0.5,H); }
+  for (let y=layout.rulerDev;y<=H;y+=ppm*5){ gridCtx.moveTo(0,Math.round(y)+0.5); gridCtx.lineTo(W,Math.round(y)+0.5); }
+  gridCtx.stroke();
+  gridCtx.strokeStyle='rgba(120,150,140,0.20)'; gridCtx.beginPath();
+  for (let k=0;;k++){ const x=nowX+sgn*k*ppm*5; if (x<0||x>W) break; gridCtx.moveTo(Math.round(x)+0.5,0); gridCtx.lineTo(Math.round(x)+0.5,H); } gridCtx.stroke();
+  gridCtx.strokeStyle='rgba(190,210,200,0.32)'; gridCtx.lineWidth=Math.max(1,dpr); gridCtx.fillStyle='rgba(170,190,205,0.7)';
+  gridCtx.font=(10*dpr)+'px system-ui'; gridCtx.textBaseline='top';
+  for (let k=0;;k++){ const x=nowX+sgn*k*pps; if (x<0||x>W) break; gridCtx.beginPath(); gridCtx.moveTo(Math.round(x)+0.5,0); gridCtx.lineTo(Math.round(x)+0.5,H); gridCtx.stroke();
+    if (k>0){ gridCtx.textAlign=state.dir==='rtl'?'right':'left'; gridCtx.fillText('-'+k+'s', x+(state.dir==='rtl'?-3:3)*dpr, 3*dpr); } }
+  gridCtx.strokeStyle='rgba(120,150,140,0.26)'; gridCtx.lineWidth=1; gridCtx.beginPath();
+  for (let i=0;i<=channels.length;i++){ const y=layout.rulerDev+layout.rowH*i; gridCtx.moveTo(0,Math.round(y)+0.5); gridCtx.lineTo(W,Math.round(y)+0.5); } gridCtx.stroke();
+}
+function repaintTrace(){
+  const W=layout.plotW,H=layout.devH; traceCtx.clearRect(0,0,W,H);
+  const idxNow=Math.floor(state.tNow*SR), vis=Math.ceil(layout.plotW/layout.ppsDev*SR)+2, idxFrom=idxNow-vis;
+  for (let c=0;c<channels.length;c++){ const ch=channels[c]; traceCtx.save();
+    const top=layout.rulerDev+layout.rowH*c; traceCtx.beginPath(); traceCtx.rect(0,top,W,layout.rowH); traceCtx.clip();
+    traceCtx.strokeStyle=ch.color; traceCtx.lineWidth=Math.max(1,layout.dpr); traceCtx.lineJoin='round'; traceCtx.beginPath();
+    let started=false; for (let i=idxFrom;i<=idxNow;i++){ const x=timeToX(i/SR), y=sampleToY(ch,i); if (!started){ traceCtx.moveTo(x,y); started=true; } else traceCtx.lineTo(x,y); }
+    traceCtx.stroke(); traceCtx.restore(); ch.lastIdx=idxNow; }
+}
+function drawNewStrip(step){
+  const W=layout.plotW,H=layout.devH;
+  traceCtx.globalCompositeOperation='copy'; traceCtx.drawImage(traceBuf, state.dir==='rtl'?-step:step, 0); traceCtx.globalCompositeOperation='source-over';
+  const idxNow=Math.floor(state.tNow*SR);
+  for (let c=0;c<channels.length;c++){ const ch=channels[c], idxPrev=ch.lastIdx; if (idxNow<=idxPrev) continue;
+    SYNTH_fill(ch, idxPrev+1, idxNow+1); traceCtx.save();
+    const top=layout.rulerDev+layout.rowH*c; traceCtx.beginPath(); traceCtx.rect(0,top,W,layout.rowH); traceCtx.clip();
+    traceCtx.strokeStyle=ch.color; traceCtx.lineWidth=Math.max(1,layout.dpr); traceCtx.lineJoin='round'; traceCtx.beginPath();
+    traceCtx.moveTo(timeToX(idxPrev/SR), sampleToY(ch,idxPrev));
+    for (let i=idxPrev+1;i<=idxNow;i++) traceCtx.lineTo(timeToX(i/SR), sampleToY(ch,i));
+    traceCtx.stroke(); traceCtx.restore(); ch.lastIdx=idxNow; }
+}
+const LABEL_KINDS={ HRA:['A'], HisD:['A','H','V'], RVA:['V'], surfaceII:['P'] };
+function composite(){
+  const dpr=layout.dpr; screenCtx.clearRect(0,0,layout.devW,layout.devH);
+  screenCtx.drawImage(gridBuf,layout.gutterDev,0); screenCtx.drawImage(traceBuf,layout.gutterDev,0);
+  screenCtx.fillStyle='#070c12'; screenCtx.fillRect(0,0,layout.gutterDev,layout.devH);
+  screenCtx.strokeStyle='rgba(120,150,140,0.26)'; screenCtx.lineWidth=1; screenCtx.beginPath(); screenCtx.moveTo(layout.gutterDev+0.5,0); screenCtx.lineTo(layout.gutterDev+0.5,layout.devH); screenCtx.stroke();
+  screenCtx.textBaseline='middle'; screenCtx.textAlign='left'; screenCtx.font=(11*dpr)+'px system-ui';
+  for (let c=0;c<channels.length;c++){ const ch=channels[c]; screenCtx.fillStyle=ch.color; screenCtx.fillRect(5*dpr,ch.baseY-5*dpr,3*dpr,10*dpr); screenCtx.fillStyle='#cdd9e6'; screenCtx.fillText(ch.label,12*dpr,ch.baseY); }
+  screenCtx.fillStyle='#0a0f17'; screenCtx.fillRect(0,0,layout.gutterDev,layout.rulerDev);
+  screenCtx.fillStyle='rgba(170,190,205,0.7)'; screenCtx.font=(10*dpr)+'px system-ui'; screenCtx.fillText('time',12*dpr,layout.rulerDev/2);
+  drawLabels(); drawAutoMeasure(); drawCursors();
+}
+function drawLabels(){
+  if (!state.labelsOn) return; const dpr=layout.dpr, win=layout.plotW/layout.ppsDev;
+  const tEnd=state.tNow+0.05, tStart=state.tNow-win-0.05;
+  screenCtx.font='700 '+(9.5*dpr)+'px system-ui'; screenCtx.textAlign='center'; screenCtx.textBaseline='alphabetic';
+  for (const ch of channels){ const kinds=LABEL_KINDS[ch.role]; if (!kinds) continue;
+    const ev=eventsForChannel(ch,tStart,tEnd);
+    for (const e of ev){ if (!e.kind||kinds.indexOf(e.kind)<0) continue; const xb=timeToX(e.center); if (xb<2||xb>layout.plotW-2) continue;
+      const x=layout.gutterDev+xb, y=ch.baseY-layout.rowH*0.28;
+      screenCtx.lineWidth=3*dpr; screenCtx.strokeStyle='rgba(4,8,12,0.85)'; screenCtx.strokeText(e.kind,x,y);
+      screenCtx.fillStyle='#eaf2fb'; screenCtx.fillText(e.kind,x,y); } }
+  // Stim ラベル(HRA か RVA の刺激部位)
+  if (stim.running){ const role=stim.site==='A'?'HRA':'RVA'; const ch=channels.find(c=>c.role===role); if (ch){
+    const ev=eventsForChannel(ch,tStart,tEnd);
+    for (const e of ev){ if (e.kind!=='Stim') continue; const xb=timeToX(e.center); if (xb<2||xb>layout.plotW-2) continue;
+      const x=layout.gutterDev+xb; screenCtx.fillStyle='#ff5d6c'; screenCtx.font='700 '+(8.5*dpr)+'px system-ui'; screenCtx.textAlign='center'; screenCtx.fillText('S', x, layout.rulerDev+9*dpr); } } }
+}
+function screenXToTime(clientX){ const rect=screen.getBoundingClientRect(); const xDev=(clientX-rect.left)*(layout.devW/rect.width); const xb=xDev-layout.gutterDev; if (xb<0||xb>layout.plotW) return null; const d=state.dir==='rtl'?(layout.plotW-xb):xb; return state.tNow-d/layout.ppsDev; }
+function placeCursor(clientX){ const t=screenXToTime(clientX); if (t==null) return; if (state.cursorA==null||state.cursorB!=null){ state.cursorA=t; state.cursorB=null; } else state.cursorB=t; }
+function drawCursors(){
+  if (!state.cursorOn) return; const dpr=layout.dpr;
+  const one=(t,name)=>{ const xb=timeToX(t); if (xb<0||xb>layout.plotW) return null; const x=layout.gutterDev+xb;
+    screenCtx.strokeStyle='#ffd24a'; screenCtx.lineWidth=1*dpr; screenCtx.setLineDash([4*dpr,3*dpr]); screenCtx.beginPath(); screenCtx.moveTo(x,layout.rulerDev); screenCtx.lineTo(x,layout.devH); screenCtx.stroke(); screenCtx.setLineDash([]);
+    screenCtx.fillStyle='#ffd24a'; screenCtx.font='700 '+(10*dpr)+'px system-ui'; screenCtx.textAlign='center'; screenCtx.textBaseline='top'; screenCtx.fillText(name,x,layout.rulerDev+2*dpr); return x; };
+  const xA=state.cursorA!=null?one(state.cursorA,'A'):null, xB=state.cursorB!=null?one(state.cursorB,'B'):null;
+  if (state.cursorA!=null && state.cursorB!=null){ const ms=Math.abs(state.cursorB-state.cursorA)*1000; const midX=(xA!=null&&xB!=null)?(xA+xB)/2:(xA!=null?xA:xB);
+    if (midX!=null){ const label=ms.toFixed(0)+' ms'; screenCtx.font='700 '+(12*dpr)+'px system-ui'; screenCtx.textAlign='center'; screenCtx.textBaseline='alphabetic';
+      const w=screenCtx.measureText(label).width+12*dpr, y=layout.rulerDev+30*dpr; screenCtx.fillStyle='rgba(8,12,18,0.9)'; screenCtx.fillRect(midX-w/2,y-13*dpr,w,17*dpr); screenCtx.fillStyle='#ffe89a'; screenCtx.fillText(label,midX,y); } }
+}
+
+/* ================================================================
+   計測・解析・学習UX(描画層の上に重ねる。activation model を読むだけで臨床創作なし)
+   ================================================================ */
+
+/* 下部ステータスバー更新 */
+function updateStatus(cap, result){
+  setText('st-proto', result.proto || '—');
+  $('st-cap').innerHTML = '<span class="cap-ind '+(cap?'cap':'nocap')+'">'+(cap?'捕捉 (≥閾値)':'非捕捉 (<閾値)')+'</span>';
+  setText('st-meas', result.meas || '—');
+  const rb=document.querySelector('.statusbar .result'); rb.classList.toggle('bad', !!result.bad);
+  setText('st-result', result.text || '—');
+  setText('st-obs', result.obs || '');
+}
+
+/* チャネル検索(role→channel オブジェクト) */
+function chByRole(role){ for (const c of channels) if (c.role===role) return c; return null; }
+
+/* --- 上部左HUD: 最新拍の interval をリアルタイム読み出し --- */
+function currentBeat(){
+  const beats=beatsInWindow(state.tNow-2.6, state.tNow+0.02); let best=null;
+  for (const b of beats){
+    if (b.tRef==null || b.tRef>state.tNow+0.001) continue;
+    const lastT=Math.max(b.tStim==null?-1:b.tStim, b.tA==null?-1:b.tA, b.tH==null?-1:b.tH, b.tV==null?-1:b.tV);
+    if (lastT>state.tNow) continue;                 // まだ "now" を通過していない拍は出さない
+    if (!best || b.tRef>best.tRef) best=b;
+  }
+  return best;
+}
+let _lastReadoutHTML='';
+function updateReadout(){
+  const b=currentBeat(); let html;
+  if (!b){ html='<div class="lab">最新拍</div><div class="val">—</div>'; }
+  else {
+    const R=[], isTachy=(b.label==='avnrt'||b.label==='avrt');
+    if (!b.captured && b.pSite){ R.push(['捕捉','なし']); }
+    else if (b.pSite==='V'){
+      if (b.tStim!=null && b.tV!=null) R.push(['St–V', Math.round((b.tV-b.tStim)*1000)+' ms']);
+      if (b.tV!=null && b.tA!=null) R.push(['V–A', Math.round((b.tA-b.tV)*1000)+' ms '+(b.csEcc?'ecc':'conc')]);
+      else if (b.captured) R.push(['V–A','解離/block']);
+    } else if (isTachy){            // 頻拍中(reentry): His で H→V→逆行A
+      if (b.tH!=null && b.tV!=null) R.push(['H–V', Math.round((b.tV-b.tH)*1000)+' ms']);
+      if (b.tV!=null && b.tHisA!=null) R.push(['V–A', Math.round((b.tHisA-b.tV)*1000)+' ms '+(b.csEcc?'ecc':'conc')]);
+    } else {
+      if (b.tStim!=null && b.tA!=null) R.push(['St–A', Math.round((b.tA-b.tStim)*1000)+' ms']);
+      if (b.tHisA!=null && b.tH!=null) R.push(['A–H', Math.round((b.tH-b.tHisA)*1000)+' ms']);
+      if (b.tH!=null && b.tV!=null) R.push(['H–V', Math.round((b.tV-b.tH)*1000)+' ms']);
+      if (b.tStim!=null && b.tV!=null) R.push(['St–V', Math.round((b.tV-b.tStim)*1000)+' ms']);
+      if (b.captured && b.tA!=null && b.tV==null) R.push(['房室','block']);
+    }
+    const tag=b.label?(' · '+esc(b.label)):'';
+    html='<div class="lab">最新拍'+tag+'</div><div class="val"></div>';
+    if (!R.length) html+='<div class="lab">—</div><div class="val">—</div>';
+    for (const [l,v] of R) html+='<div class="lab">'+l+'</div><div class="val">'+esc(v)+'</div>';
+  }
+  if (html!==_lastReadoutHTML){ $('readout-rows').innerHTML=html; _lastReadoutHTML=html; }
+  let s='';
+  if (stim.running && stim.ppi!=null) s='PPI '+stim.ppi+' / PPI−TCL '+stim.ppiTcl+' ms';
+  else if (stim.running && stim.snrt!=null) s='SNRT '+stim.snrt+' / cSNRT '+stim.csnrt+' ms';
+  const spec=$('readout-spec');
+  if (s){ spec.style.display='block'; spec.textContent=s; } else spec.style.display='none';
+}
+
+/* --- 波形上の自動計測オーバーレイ(AH/HV/VA + SNRT/PPI ブラケット) --- */
+function drawAutoMeasure(){
+  if (!state.measOn) return;
+  const dpr=layout.dpr, win=layout.plotW/layout.ppsDev;
+  const tEnd=state.tNow+0.05, tStart=state.tNow-win-0.05;
+  const beats=beatsInWindow(tStart, tEnd);
+  const his=chByRole('HisD')||chByRole('His'), hra=chByRole('HRA');
+  screenCtx.save(); screenCtx.font='600 '+(9*dpr)+'px system-ui'; screenCtx.textBaseline='alphabetic'; screenCtx.textAlign='center';
+  const seg=(ch,ta,tb,txt,color)=>{
+    if (ch==null||ta==null||tb==null) return;
+    const xa=timeToX(ta), xb=timeToX(tb); if (xb<2||xa>layout.plotW-2) return;
+    if (Math.abs(xb-xa) < 14*dpr) return;            // 近すぎる時はラベル省略(slow sweep等)
+    const xm=layout.gutterDev+(xa+xb)/2, y=ch.baseY - layout.rowH*0.30;
+    screenCtx.strokeStyle=color; screenCtx.lineWidth=1*dpr; screenCtx.beginPath();
+    screenCtx.moveTo(layout.gutterDev+xa, y+2*dpr); screenCtx.lineTo(layout.gutterDev+xb, y+2*dpr); screenCtx.stroke();
+    screenCtx.lineWidth=3*dpr; screenCtx.strokeStyle='rgba(4,8,12,0.85)'; screenCtx.strokeText(txt, xm, y);
+    screenCtx.fillStyle=color; screenCtx.fillText(txt, xm, y);
+  };
+  for (const b of beats){
+    if (b.pSite && !b.captured) continue;
+    const isTachy=(b.label==='avnrt'||b.label==='avrt');
+    if (b.pSite==='V'){
+      if (b.tV!=null && b.tA!=null) seg(hra, b.tV, b.tA, 'VA'+Math.round((b.tA-b.tV)*1000), '#ffd24a');
+    } else if (isTachy){           // 頻拍: H→V→逆行A(AH は出さない)
+      if (b.tH!=null && b.tV!=null) seg(his, b.tH, b.tV, 'HV'+Math.round((b.tV-b.tH)*1000), '#5ad1ff');
+      if (b.tV!=null && b.tHisA!=null) seg(his, b.tV, b.tHisA, 'VA'+Math.round((b.tHisA-b.tV)*1000), '#ffd24a');
+    } else {
+      if (b.tHisA!=null && b.tH!=null) seg(his, b.tHisA, b.tH, 'AH'+Math.round((b.tH-b.tHisA)*1000), '#46f08c');
+      if (b.tH!=null && b.tV!=null)    seg(his, b.tH, b.tV, 'HV'+Math.round((b.tV-b.tH)*1000), '#5ad1ff');
+    }
+  }
+  screenCtx.restore();
+  if (stim.running && stim.snrtFrom!=null && stim.snrtTo!=null) drawBracket(hra, stim.snrtFrom, stim.snrtTo, 'SNRT '+stim.snrt+' / cSNRT '+stim.csnrt+'ms', '#ffd24a');
+  if (stim.running && stim.ppiFrom!=null && stim.ppiTo!=null) drawBracket(chByRole(stim.entrainSite==='V'?'RVA':'HRA'), stim.ppiFrom, stim.ppiTo, 'PPI '+stim.ppi+' (PPI−TCL '+stim.ppiTcl+')', '#ff8fae');
+}
+function drawBracket(ch, ta, tb, txt, color){
+  if (ch==null) return; const dpr=layout.dpr;
+  const xa=timeToX(ta), xb=timeToX(tb); if (xb<2 || xa>layout.plotW-2) return;
+  const y=ch.baseY - layout.rowH*0.42;
+  const Xa=layout.gutterDev+Math.max(2,xa), Xb=layout.gutterDev+Math.min(layout.plotW-2,xb);
+  screenCtx.save(); screenCtx.strokeStyle=color; screenCtx.lineWidth=1.4*dpr; screenCtx.beginPath();
+  screenCtx.moveTo(Xa,y); screenCtx.lineTo(Xb,y);
+  screenCtx.moveTo(Xa,y-4*dpr); screenCtx.lineTo(Xa,y+4*dpr); screenCtx.moveTo(Xb,y-4*dpr); screenCtx.lineTo(Xb,y+4*dpr); screenCtx.stroke();
+  const xm=(Xa+Xb)/2; screenCtx.font='700 '+(10*dpr)+'px system-ui'; screenCtx.textAlign='center'; screenCtx.textBaseline='alphabetic';
+  const w=screenCtx.measureText(txt).width+10*dpr;
+  screenCtx.fillStyle='rgba(8,12,18,0.92)'; screenCtx.fillRect(xm-w/2, y-16*dpr, w, 13*dpr);
+  screenCtx.fillStyle=color; screenCtx.fillText(txt, xm, y-5*dpr); screenCtx.restore();
+}
+
+/* --- 計測ログ --- */
+const MEASLOG=[];
+function esc(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function pushLog(proto, meas){ MEASLOG.unshift({proto:proto||'—', meas:meas||''}); if (MEASLOG.length>40) MEASLOG.pop(); renderLog(); }
+function renderLog(){ const el=$('log-list'); if (!el) return;
+  if (!MEASLOG.length){ el.innerHTML='<div class="empty">まだ計測がありません。刺激を実行すると記録されます。</div>'; return; }
+  el.innerHTML=MEASLOG.map(r=>'<div class="li"><span class="p">'+esc(r.proto)+'</span><br><span class="m">'+esc(r.meas)+'</span></div>').join('');
+}
+function clearLog(){ MEASLOG.length=0; renderLog(); }
+
+/* --- PNG 出力(単一キャンバス scope を toDataURL) --- */
+function savePNG(){
+  try{
+    const url=screen.toDataURL('image/png'); const a=document.createElement('a');
+    a.href=url; a.download='ep-stim_'+state.sweep+'mmps.png'; document.body.appendChild(a); a.click(); a.remove();
+    setText('st-obs','PNG を保存しました。');
+  }catch(err){ setText('st-obs','PNG 保存に失敗しました: '+err.message); }
+}
+
+/* --- コントロール → stim 同期 / seg ヘルパ --- */
+function syncStim(){
+  stim.substrate=$('sel-sub').value; stim.cl=+$('p-cl').value; stim.s2=+$('p-s2').value; stim.s3=+$('p-s3').value;
+  stim.s3on=$('p-s3on').checked; stim.n=+$('p-n').value; stim.output=+$('p-out').value;
+}
+function setSite(s){ seg(['site-A','site-V'], s==='A'?'site-A':'site-V', ()=>stim.site=s); }
+function setMode(m){ const id=m==='s1'?'mode-s1':(m==='s1s2'?'mode-s1s2':'mode-burst'); seg(['mode-s1','mode-s1s2','mode-burst'], id, ()=>{stim.mode=m;syncS2row();}); }
+
+/* --- プロトコル・プリセット --- */
+const PRESETS = {
+  snrt:       { sub:'normal',    site:'A', mode:'s1',   cl:500, n:12, out:2.0, teach:'snrt',       auto:true },
+  wenckebach: { sub:'normal',    site:'A', mode:'s1',   cl:350, n:10, out:2.0, teach:'wenckebach', auto:true },
+  avnERP:     { sub:'normal',    site:'A', mode:'s1s2', cl:600, s2:300, n:8, out:2.0, teach:'avnERP', auto:true },
+  avnrt:      { sub:'avnrtDual', site:'A', mode:'s1s2', cl:600, s2:290, n:8, out:2.0, teach:'avnrt',  auto:true },
+  preexc:     { sub:'accessory', site:'A', mode:'s1',   cl:400, n:8, out:2.0, teach:'preexc',     auto:true },
+  vaERP:      { sub:'normal',    site:'V', mode:'s1s2', cl:600, s2:300, n:8, out:2.0, teach:'vaERP', auto:true }
+};
+function applyPreset(key){
+  const p=PRESETS[key]; if (!p) return;
+  $('sel-sub').value=p.sub; setSite(p.site); setMode(p.mode);
+  $('p-cl').value=p.cl; if (p.s2!=null)$('p-s2').value=p.s2; if (p.n!=null)$('p-n').value=p.n; if (p.out!=null)$('p-out').value=p.out;
+  $('p-s3on').checked=false; stim.s3on=false; syncS2row();
+  document.querySelectorAll('#preset-grid .preset').forEach(b=>b.classList.toggle('on', b.dataset.preset===key));
+  setTeach(p.teach); showTeach(true);
+  if (p.auto) deliver();
+}
+
+/* --- 解説カード(AI下書き・臨床未監修・別レイヤー) --- */
+const TEACH = {
+  intro:{ title:'EP スティム・トレーナー', body:'<p>左の<b>プリセット</b>を選ぶか、刺激部位・モード・連結期を設定して「刺激 Deliver」。波形上に <b>St–A / A–H / H–V / VA</b> が自動表示され、左上HUDに最新拍の interval が出ます。</p><p class="muted">Space=刺激 / S=停止 / R=Reset / L M C 切替 / P=PNG。</p>' },
+  snrt:{ title:'洞結節回復時間 (SNRT)', body:'<h4>目的</h4><p>洞結節の自動能・回復能の評価。</p><h4>手順</h4><p>心房を一定 CL(例 500ms)でオーバードライブし停止。最終ペース拍→最初の自発洞拍までの休止 = <b>SNRT</b>。</p><h4>見るポイント</h4><p>停止後の最初の洞回復までの「間」。CL を短くするほど抑制が強く SNRT 延長。</p><h4>判定の目安(代表値)</h4><p>SNRT &lt; 約1500ms、補正 cSNRT(= SNRT − 洞周期)&lt; 約550ms が概ね正常域。</p>' },
+  wenckebach:{ title:'房室結節 Wenckebach点', body:'<h4>目的</h4><p>房室結節の順行伝導能(減衰伝導)の評価。</p><h4>手順</h4><p>心房を漸減 CL で連続ペーシング。AH が拍ごとに延長し1拍脱落する CL = <b>Wenckebach cycle length</b>。さらに短いと 2:1 房室ブロック。</p><h4>見るポイント</h4><p>AH 漸増 → QRS 脱落の周期性。CL を下げると WB→2:1 と遷移。</p>' },
+  avnERP:{ title:'房室結節 ERP (S1–S2)', body:'<h4>目的</h4><p>心房・房室結節の有効不応期(ERP)を期外刺激で測定。</p><h4>手順</h4><p>固定 S1 ドライブ + S2。S2 を 10ms ずつ短縮。① His へ伝導しない最長 S2 = AVN ERP、② 心房が捕捉しない最長 S2 = 心房 ERP。</p><h4>見るポイント</h4><p>S2 短縮に伴う AH2 延長(減衰)。二重結節では不連続な AH jump。S3 を足すとさらに短い実効連結を作れる。</p>' },
+  avnrt:{ title:'AVNRT 誘発', body:'<h4>目的</h4><p>二重房室結節を介する通常型 AVNRT の誘発。</p><h4>手順</h4><p>基質=AVNRT。心房 S1–S2(または速い心房バースト)。S2 で fast がブロックし slow へ乗り換わる(<b>AH jump</b>)と連続旋回が始まる。</p><h4>見るポイント</h4><p>jump で AH 急増 → narrow QRS 頻拍・短い VA・His が V 直前。誘発後は「エントレインメント/PPI」も試せます。</p>' },
+  preexc:{ title:'副伝導路 preexcitation', body:'<h4>目的</h4><p>副伝導路の順行伝導(早期興奮)の確認。</p><h4>手順</h4><p>基質=副伝導路。心房ペーシング CL を短くするほど房室結節は減衰し副伝導路が優位 → QRS 幅広化(δ 波)。</p><h4>見るポイント</h4><p>速い心房ペースで QRS がより wide(preexcitation 増強)。</p>' },
+  vaERP:{ title:'心室 ERP / VA 評価', body:'<h4>目的</h4><p>心室 ERP と室房(逆行)伝導の評価。</p><h4>手順</h4><p>心室 S1–S2。S2 短縮で ① 心室が捕捉しない最長 S2 = 心室 ERP、② 心房へ逆行しない最長 S2 = VA ERP。</p><h4>見るポイント</h4><p>逆行 A の最早期部位。房室結節逆行=concentric(中隔最早期)、副伝導路逆行=eccentric(CS遠位最早期)。</p>' },
+  curve:{ title:'伝導曲線スキャン', body:'<h4>目的</h4><p>連結期に対する伝導時間の関係を一括作図。</p><h4>見るポイント</h4><p>A1–A2 を短くすると A2–H2 が延長(減衰伝導)。<b>不連続な jump</b> があれば二重房室結節。連続した滑らかな曲線なら単一伝導路。</p>' },
+  entrain:{ title:'エントレインメント / PPI', body:'<h4>目的</h4><p>頻拍回路への関与の評価(機序鑑別)。</p><h4>手順</h4><p>頻拍中に TCL より ~20ms 速い CL でオーバードライブ → 頻拍を加速。停止後、最終ペース刺激→同部位の最初の頻拍回復までの <b>PPI</b> を計測。<b>PPI − TCL</b> を見る。</p><h4>判定の目安(代表値)</h4><p>PPI − TCL &lt; 約30ms ならペース部位は回路内に近い。AVNRT を心室から entrain すると長く、AVRT では比較的短い傾向。</p>' }
+};
+function setTeach(key){ const t=TEACH[key]||TEACH.intro; $('teach-title').textContent=t.title; $('teach-body').innerHTML=t.body; }
+function showTeach(on){ $('teach-card').classList.toggle('hidden', !on); $('btn-teach').classList.toggle('on', on); }
+function toggleTeach(){ showTeach($('teach-card').classList.contains('hidden')); }
+
+/* --- 伝導曲線(S1-S2 スキャン: A1A2 vs A2H2 / V1V2 vs V2A2) --- */
+let currentCurve=null;
+function scanCurve(){
+  syncStim(); const site=stim.site, pts=[]; let jumpAt=null, erp=null, prevY=null;
+  for (let c=400;c>=150;c-=5){
+    let cond,y;
+    if (site==='A'){ const r=avConduct(c); cond=r.cond; y=cond?r.ah:null; }
+    else { const r=vaConduct(c); cond=r.cond; y=cond?r.va:null; }
+    pts.push({x:c,y,cond});
+    if (cond && prevY!=null && (y-prevY)>=50 && jumpAt==null) jumpAt={x:c, from:prevY, to:y};
+    if (!cond && erp==null && prevY!=null) erp=c;     // 伝導後にブロックした最長連結 ≒ ERP
+    if (cond) prevY=y;
+  }
+  return {site, pts, jumpAt, erp, sub:stim.substrate};
+}
+function openCurve(){
+  const data=scanCurve(); currentCurve=data;
+  $('curve-title').textContent = data.site==='A' ? '房室結節伝導曲線 (A1–A2 vs A2–H2)' : '室房伝導曲線 (V1–V2 vs V2–A2)';
+  const subName={normal:'正常房室伝導', avnrtDual:'AVNRT基質(二重房室結節)', accessory:'副伝導路'}[data.sub]||data.sub;
+  let note;
+  if (data.site==='A'){
+    note='基質=「'+subName+'」。連結期 A1–A2 を短くするほど房室結節の A2–H2 が延長(減衰伝導)。'
+      + (data.jumpAt ? ' 約'+data.jumpAt.x+'ms で A2–H2 が '+Math.round(data.jumpAt.to-data.jumpAt.from)+'ms 不連続にジャンプ → fast がブロックし slow に乗り換わる二重伝導路の所見(連続曲線にならない)。'
+                     : ' 連続した滑らかな曲線 = 単一伝導路パターン(jump なし)。')
+      + (data.erp?(' AVN ERP ≈ '+data.erp+'ms 付近で伝導ブロック。'):'');
+  } else {
+    note='基質=「'+subName+'」。V1–V2 を短くした時の室房(逆行)伝導 V2–A2。'+(data.sub==='accessory'?'副伝導路は減衰が少なく一定(eccentric)。':'房室結節逆行は減衰性(concentric)。')+(data.erp?(' VA ERP ≈ '+data.erp+'ms。'):'');
+  }
+  $('curve-note').textContent=note; $('curve-modal').classList.remove('hidden');
+  requestAnimationFrame(()=>drawCurve(data));     // 表示後に clientWidth を取得して描画
+}
+function closeCurve(){ $('curve-modal').classList.add('hidden'); }
+function drawCurve(data){
+  const cv=$('curve-canvas'), dpr=Math.min(window.devicePixelRatio||1,2);
+  const cssW=cv.clientWidth||580, cssH=cv.clientHeight||300;
+  cv.width=Math.round(cssW*dpr); cv.height=Math.round(cssH*dpr);
+  const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
+  const W=cssW,H=cssH, mL=54,mR=16,mT=16,mB=40, x0=mL,x1=W-mR,y0=H-mB,y1=mT;
+  const xmin=150,xmax=400; let ymax=0; for(const p of data.pts) if(p.y!=null&&p.y>ymax) ymax=p.y;
+  ymax=Math.ceil((Math.max(ymax,120)+20)/50)*50;
+  const X=c=>x0+(c-xmin)/(xmax-xmin)*(x1-x0), Y=v=>y0-(v/ymax)*(y0-y1);
+  g.clearRect(0,0,W,H); g.fillStyle='#04070b'; g.fillRect(0,0,W,H);
+  g.strokeStyle='rgba(120,150,140,0.18)'; g.fillStyle='rgba(170,190,205,0.8)'; g.font='10px system-ui'; g.lineWidth=1;
+  g.textAlign='center'; g.textBaseline='top';
+  for(let c=xmin;c<=xmax;c+=50){ g.beginPath(); g.moveTo(X(c),y1); g.lineTo(X(c),y0); g.stroke(); g.fillText(c,X(c),y0+6); }
+  g.textAlign='right'; g.textBaseline='middle';
+  for(let v=0;v<=ymax;v+=50){ g.beginPath(); g.moveTo(x0,Y(v)); g.lineTo(x1,Y(v)); g.stroke(); g.fillText(v,x0-6,Y(v)); }
+  g.fillStyle='#cdd9e6'; g.textAlign='center'; g.textBaseline='alphabetic';
+  g.fillText(data.site==='A'?'A1–A2 連結期 (ms)':'V1–V2 連結期 (ms)', (x0+x1)/2, H-6);
+  g.save(); g.translate(13,(y0+y1)/2); g.rotate(-Math.PI/2); g.fillText(data.site==='A'?'A2–H2 房室結節伝導 (ms)':'V2–A2 室房伝導 (ms)',0,0); g.restore();
+  if (data.erp){ g.fillStyle='rgba(255,93,108,0.10)'; g.fillRect(x0,y1, X(data.erp)-x0, y0-y1);
+    g.fillStyle='rgba(255,120,132,0.9)'; g.textAlign='left'; g.textBaseline='top'; g.fillText('ERP ≈ '+data.erp+'ms → block', x0+4, y1+4); }
+  g.strokeStyle='#46f08c'; g.lineWidth=2; g.beginPath(); let started=false;
+  for(const p of data.pts){ if(p.y==null){ started=false; continue; } const px=X(p.x),py=Y(p.y); if(!started){g.moveTo(px,py);started=true;} else g.lineTo(px,py); }
+  g.stroke();
+  g.fillStyle='#9af0c4'; for(const p of data.pts){ if(p.y==null) continue; g.beginPath(); g.arc(X(p.x),Y(p.y),2.2,0,7); g.fill(); }
+  if (data.jumpAt){ const jx=X(data.jumpAt.x);
+    g.strokeStyle='#ffd24a'; g.setLineDash([5,4]); g.lineWidth=1.6; g.beginPath(); g.moveTo(jx,Y(data.jumpAt.from)); g.lineTo(jx,Y(data.jumpAt.to)); g.stroke(); g.setLineDash([]);
+    g.fillStyle='#ffd24a'; g.textAlign='left'; g.textBaseline='bottom'; g.font='700 11px system-ui';
+    g.fillText('AH jump '+Math.round(data.jumpAt.to-data.jumpAt.from)+'ms', jx+6, Y(data.jumpAt.to)-2); }
+}
+
+/* --- エントレインメント / PPI(頻拍中のみ) --- */
+function entrain(){
+  if (!(stim.running && stim.postMode==='tachy' && state.tNow>=stim.postStart)){ flashAdv('エントレインメントは頻拍中のみ有効です。まず誘発してください。'); return; }
+  syncStim();
+  const tcl=stim.tachyCL, site=stim.site, paceCL=Math.max(200,tcl-20), nP=8;
+  const table=ENTRAIN_PPI[stim.substrate]||ENTRAIN_PPI.normal;
+  const ppiTcl=(table[site]!=null)?table[site]:100, ppi=tcl+ppiTcl;
+  stim.preMode='tachy'; stim.preStart=stim.postStart; stim.preTachyCL=tcl;     // 刺激前=現在の頻拍
+  stim.tStart=state.tNow+0.20;
+  buildEntrainSchedule(paceCL, nP, site, tcl, ppi, ppiTcl);
+  if (!state.playing) togglePlay();
+  setTeach('entrain'); showTeach(true);
+}
+function buildEntrainSchedule(paceCL,nP,site,tcl,ppi,ppiTcl){
+  const S=stim, beats=[], mk=(site==='A')?makeAtrialBeat:makeVentBeat, t0=S.tStart;
+  for (let i=0;i<nP;i++) beats.push(mk(t0+i*paceCL/1000, paceCL, 'P', true));
+  const lastStim=t0+(nP-1)*paceCL/1000, ppiFrom=lastStim+STIM_OFFSET;
+  const offV=TIMING.hv/1000, offA=TIMING.hv/1000 + (S.substrate==='accessory'?0.12:0.035);
+  let postStart, ppiTo;
+  if (site==='V'){ postStart=ppiFrom+ppi/1000-offV; ppiTo=postStart+offV; }
+  else { postStart=ppiFrom+ppi/1000-offA; ppiTo=postStart+offA; }
+  S.beats=beats; S.postMode='tachy'; S.tachyCL=tcl; S.postStart=postStart;
+  S.ppiFrom=ppiFrom; S.ppiTo=ppiTo; S.ppi=Math.round((ppiTo-ppiFrom)*1000); S.ppiTcl=ppiTcl; S.entrainSite=site;
+  S.snrt=S.csnrt=S.snrtFrom=S.snrtTo=null;
+  const result={ proto:(site==='A'?'心房':'心室')+' オーバードライブ '+paceCL+'ms ×'+nP+' (エントレインメント, TCL '+tcl+'ms)',
+    meas:'PPI '+S.ppi+'ms / PPI−TCL '+ppiTcl+'ms '+(ppiTcl<30?'(回路内の目安)':'(回路外寄りの目安)'),
+    text:'オーバードライブで頻拍を加速 → 停止後に頻拍再開',
+    obs:'PPI=最終ペース刺激→ペース部位の最初の頻拍回復。PPI−TCL は教育用の目安(<30msで回路内傾向)。', bad:false };
+  updateStatus(true, result); pushLog(result.proto, result.meas);
+}
+function flashAdv(msg){ const e=$('hint-adv'); if (!e) return; const o=e.getAttribute('data-base')||e.textContent;
+  e.setAttribute('data-base',o); e.textContent=msg; e.style.color='var(--warn)';
+  setTimeout(()=>{ e.textContent=o; e.style.color=''; }, 2600); }
+
+/* --- 表示トグル / Reset --- */
+function toggleLabels(){ state.labelsOn=!state.labelsOn; $('btn-labels').classList.toggle('on',state.labelsOn); }
+function toggleMeasure(){ state.measOn=!state.measOn; $('btn-measure').classList.toggle('on',state.measOn); }
+function toggleCursor(){ state.cursorOn=!state.cursorOn; $('btn-cursor').classList.toggle('on',state.cursorOn); if (!state.cursorOn){ state.cursorA=null; state.cursorB=null; } }
+function toggleLog(){ const hidden=$('log-card').classList.toggle('hidden'); $('btn-log').classList.toggle('on', !hidden); }
+function resetAll(){ stopStim(); state.tNow=0; state.remPx=0; for (const ch of channels){ SYNTH_fill(ch,-layout.ringLen+1,1); ch.lastIdx=0; } repaintTrace(); }
+function onKey(e){
+  const tag=(document.activeElement&&document.activeElement.tagName)||'';
+  if (tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'||e.metaKey||e.ctrlKey||e.altKey) return;
+  const k=e.key;
+  if (k===' '){ e.preventDefault(); deliver(); }
+  else if (k==='s'||k==='S') stopStim();
+  else if (k==='r'||k==='R') resetAll();
+  else if (k==='l'||k==='L') toggleLabels();
+  else if (k==='m'||k==='M') toggleMeasure();
+  else if (k==='c'||k==='C') toggleCursor();
+  else if (k==='p'||k==='P') savePNG();
+  else if (k==='e'||k==='E') entrain();
+  else if (k==='Escape'){ closeCurve(); showTeach(false); }
+}
+
+/* ---------- ループ ---------- */
+let lastT=0, needReset=true, msEma=0;
+function frame(now){
+  if (needReset){ lastT=now; needReset=false; } let dt=(now-lastT)/1000; lastT=now; if (dt<0) dt=0; const dtC=Math.min(dt,DT_CLAMP);
+  if (dt>0 && dt<0.1) msEma=msEma?msEma*0.88+dt*1000*0.12:dt*1000;
+  if (state.playing){ const adv=layout.ppsDev*dtC+state.remPx; let step=Math.floor(adv); state.remPx=adv-step;
+    if (step>0){ if (step>=layout.plotW){ state.tNow+=step/layout.ppsDev; const idxNow=Math.floor(state.tNow*SR); for (const ch of channels) SYNTH_fill(ch,ch.lastIdx+1,idxNow+1); repaintTrace(); }
+      else { state.tNow+=step/layout.ppsDev; drawNewStrip(step); } } }
+  composite(); updateReadout();
+  const en=$('btn-entrain'); if (en){ const live=stim.running && stim.postMode==='tachy' && state.tNow>=stim.postStart; en.disabled=!live; }
+  setText('hud-fps', msEma?(1000/msEma).toFixed(0):'–'); requestAnimationFrame(frame);
+}
+
+/* ---------- UI ---------- */
+function $(id){ return document.getElementById(id); }
+function setText(id,t){ const e=$(id); if (e) e.textContent=t; }
+function seg(ids, active, set){ ids.forEach(id=>$(id).classList.remove('on')); $(active).classList.add('on'); set(); }
+function syncS2row(){
+  const isS1S2=(stim.mode==='s1s2');
+  $('row-s2').style.opacity=isS1S2?'1':'0.4'; $('p-s2').disabled=!isS1S2;
+  $('row-s3chk').style.opacity=isS1S2?'1':'0.4'; $('p-s3on').disabled=!isS1S2;
+  const s3on=$('p-s3on').checked && isS1S2;
+  $('row-s3').style.opacity=s3on?'1':'0.4'; $('p-s3').disabled=!s3on;
+}
+
+function deliver(){
+  syncStim();
+  stim.running=true; stim.tStart=state.tNow+0.35;        // 少し先から開始(ドライブの立ち上がりが見える)
+  buildSchedule();
+  if (!state.playing) togglePlay();                       // 自動再生
+}
+function stopStim(){
+  stim.running=false; stim.beats=[]; stim.postStart=Infinity; stim.preMode='sinus';
+  stim.snrt=stim.csnrt=stim.snrtFrom=stim.snrtTo=null;
+  stim.ppi=stim.ppiTcl=stim.ppiFrom=stim.ppiTo=null; stim.entrainSite=null;
+  setText('st-proto','—'); $('st-cap').textContent='—'; setText('st-meas','—'); setText('st-result','刺激停止 → 洞調律'); setText('st-obs','');
+  document.querySelector('.statusbar .result').classList.remove('bad');
+  document.querySelectorAll('#preset-grid .preset').forEach(b=>b.classList.remove('on'));
+}
+function togglePlay(){ state.playing=!state.playing; if (state.playing) needReset=true; }
+
+function wire(){
+  $('site-A').onclick=()=>setSite('A');
+  $('site-V').onclick=()=>setSite('V');
+  $('mode-s1').onclick=()=>setMode('s1');
+  $('mode-s1s2').onclick=()=>setMode('s1s2');
+  $('mode-burst').onclick=()=>setMode('burst');
+  $('p-s3on').onchange=()=>{ stim.s3on=$('p-s3on').checked; syncS2row(); };
+  $('btn-deliver').onclick=deliver;
+  $('btn-stop').onclick=stopStim;
+  $('btn-reset').onclick=resetAll;
+  $('btn-curve').onclick=openCurve;
+  $('btn-entrain').onclick=entrain;
+  $('sel-sweep').onchange=e=>{ state.sweep=+e.target.value; layout.ppsDev=state.sweep*layout.ppmDev; setText('hud-sweep',state.sweep); drawGrid(); repaintTrace(); };
+  $('sel-gain').onchange=e=>{ state.egmGain=+e.target.value; setText('hud-gain',e.target.value); repaintTrace(); };
+  $('btn-labels').onclick=toggleLabels;
+  $('btn-measure').onclick=toggleMeasure;
+  $('btn-cursor').onclick=toggleCursor;
+  $('btn-teach').onclick=toggleTeach;
+  $('btn-log').onclick=toggleLog;
+  $('btn-png').onclick=savePNG;
+  $('teach-close').onclick=()=>showTeach(false);
+  $('curve-close').onclick=closeCurve;
+  $('curve-modal').addEventListener('click', e=>{ if (e.target.id==='curve-modal') closeCurve(); });
+  $('log-clear').onclick=clearLog;
+  document.querySelectorAll('#preset-grid .preset').forEach(btn=> btn.onclick=()=>applyPreset(btn.dataset.preset));
+  screen.addEventListener('click', e=>{ if (state.cursorOn) placeCursor(e.clientX); });
+  document.addEventListener('keydown', onKey);
+}
+
+/* ---------- 起動 ---------- */
+buildChannels(); wire(); syncS2row(); setTeach('intro'); renderLog(); relayout();
+new ResizeObserver(()=>relayout()).observe(document.getElementById('stage'));
+document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) needReset=true; });
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
