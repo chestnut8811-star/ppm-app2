@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="format-detection" content="telephone=no">
-<link rel="preload" href="assets/portal-hero-stage.png" as="image">
+<link rel="preload" href="../assets/portal-hero-stage.png" as="image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23030608'/%3E%3Cpath d='M12 38h8l4-16 7 28 6-22 4 10h11' fill='none' stroke='%2358F0D0' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-<title>臨床トレーニングラボ</title>
+<title>心電図 Lab｜臨床トレーニングラボ</title>
 <style>
   :root{
     --bg:#030608;
@@ -142,7 +142,7 @@
     position:absolute;
     inset:0;
     z-index:-3;
-    background-image:url("assets/portal-hero-stage.png");
+    background-image:url("../assets/portal-hero-stage.png");
     background-size:cover;
     background-position:center top;
   }
@@ -255,7 +255,7 @@
   }
   .lab-grid{
     display:grid;
-    grid-template-columns:repeat(3, minmax(0, 1fr));
+    grid-template-columns:repeat(2, minmax(0, 1fr));
     gap:20px;
   }
   .lab-card{
@@ -425,7 +425,6 @@
   .d4{ animation-delay:.3s; }
   .d5{ animation-delay:.4s; }
   .d6{ animation-delay:.5s; }
-  .d7{ animation-delay:.6s; }
   @keyframes rise{
     from{ opacity:0; transform:translateY(18px); }
     to{ opacity:1; transform:translateY(0); }
@@ -534,6 +533,8 @@
         </span>
       </div>
       <span class="header-spacer"></span>
+      <a class="status-chip reveal d2" href="../PaceCheckLab.html"
+         style="text-decoration:none;margin-right:10px">← ラボ一覧へ</a>
       <span class="status-chip reveal d2">
         <span class="dot" aria-hidden="true"></span>教育・トレーニング目的
       </span>
@@ -544,12 +545,12 @@
     <section class="hero-stage hero" aria-labelledby="portal-title">
       <div class="wrap hero-content">
         <div class="hero-copy">
-          <p class="kicker reveal d1">Clinical Training Lab</p>
-          <h1 id="portal-title" class="reveal d2">臨床トレーニングラボ</h1>
-          <p class="subtitle reveal d3">心電図・循環器デバイス・IABP・電気生理の自己学習ツール</p>
-          <ul class="hero-meta reveal d4" aria-label="ポータル情報">
-            <li><strong>4 Labs</strong><span>ECG / Pacing / IABP / EP</span></li>
-            <li><strong>Simulation</strong><span>Device training</span></li>
+          <p class="kicker reveal d1">Surface ECG · 心電図</p>
+          <h1 id="portal-title" class="reveal d2">心電図 Lab</h1>
+          <p class="subtitle reveal d3">モニター心電図と12誘導心電図を、波形から学び・試す自己学習ツール</p>
+          <ul class="hero-meta reveal d4" aria-label="ラボ情報">
+            <li><strong>2 Tools</strong><span>Monitor / 12-Lead</span></li>
+            <li><strong>ECG</strong><span>波形トレーニング</span></li>
             <li><strong>2026.06.14</strong><span>Last updated</span></li>
           </ul>
         </div>
@@ -559,12 +560,12 @@
     <section class="lab-section" aria-labelledby="lab-list-title">
       <div class="wrap">
         <div class="section-head reveal d3">
-          <h2 id="lab-list-title">Training Labs</h2>
+          <h2 id="lab-list-title">Training Tools</h2>
         </div>
 
         <div class="lab-grid">
-          <a class="lab-card reveal d4" style="--c:var(--cyan)" href="./心電図%20Lab/index.html"
-             aria-label="心電図 Lab を開く（モニター心電図・12誘導心電図 教育ツール）">
+          <a class="lab-card reveal d4" style="--c:var(--cyan)" href="./心電図トレーナー.html"
+             aria-label="心電図トレーナー ICU EDITION を開く（モニター心電図トレーニング）">
             <div class="lab-scope" aria-hidden="true">
               <svg viewBox="0 0 96 72" preserveAspectRatio="none">
                 <g class="flow-54">
@@ -574,65 +575,29 @@
               </svg>
             </div>
             <div>
-              <p class="lab-kicker">CH 01 · SURFACE</p>
-              <h3>心電図 Lab</h3>
-              <p>モニター心電図・12誘導心電図 教育ツール</p>
-              <span class="lab-modules">モニター心電図 / 12誘導心電図</span>
+              <p class="lab-kicker">ICU EDITION · MONITOR</p>
+              <h3>心電図トレーナー</h3>
+              <p>モニター心電図（不整脈）の判読トレーニング</p>
+              <span class="lab-modules">ICU EDITION</span>
             </div>
             <span class="lab-enter" aria-hidden="true">↗</span>
           </a>
 
-          <a class="lab-card reveal d5" style="--c:var(--mint)" href="./PaceCheck%20Lab/PaceCheckLab.html"
-             aria-label="PaceCheck Lab を開く（CIED・ペースメーカプログラマ教育ツール）">
+          <a class="lab-card reveal d5" style="--c:var(--mint)" href="./12誘導心電図.html"
+             aria-label="12誘導心電図トレーナーを開く（心電図検定対策）">
             <div class="lab-scope" aria-hidden="true">
               <svg viewBox="0 0 96 72" preserveAspectRatio="none">
-                <g class="flow-72">
-                  <path class="trace" d="M-72 44 h12 q5-10 10 0 h8 l3 5 4-34 4 38 3-9 h8 q8-9 16 0 h20 h12 q5-10 10 0 h8 l3 5 4-34 4 38 3-9 h8 q8-9 16 0 h20 h12 q5-10 10 0 h8 l3 5 4-34 4 38 3-9 h8 q8-9 16 0 h20"
+                <g class="flow-54">
+                  <path class="trace" d="M-54 44 h6 q3 -7 6 0 h4 l2 4 l3 -30 l3 32 l2 -6 h6 q4 -10 8 0 h14 h6 q3 -7 6 0 h4 l2 4 l3 -30 l3 32 l2 -6 h6 q4 -10 8 0 h14 h6 q3 -7 6 0 h4 l2 4 l3 -30 l3 32 l2 -6 h6 q4 -10 8 0 h14 h6 q3 -7 6 0 h4 l2 4 l3 -30 l3 32 l2 -6 h6 q4 -10 8 0 h14"
                         fill="none" stroke="var(--c)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
                 </g>
               </svg>
             </div>
             <div>
-              <p class="lab-kicker">CH 02 · PACING</p>
-              <h3>PaceCheck Lab</h3>
-              <p>CIED・ペースメーカ<wbr>プログラマ教育ツール</p>
-              <span class="lab-modules">Studio / Arena / CRT / ICD</span>
-            </div>
-            <span class="lab-enter" aria-hidden="true">↗</span>
-          </a>
-
-          <a class="lab-card reveal d6" style="--c:var(--coral)" href="./IABP%20Training%20Lab/index.html"
-             aria-label="IABP Training Lab を開く（IABP操作・波形理解 教育ツール）">
-            <div class="lab-scope" aria-hidden="true">
-              <svg viewBox="0 0 96 72" preserveAspectRatio="none">
-                <g class="flow-54">
-                  <path class="trace" d="M-54 52 l7-40 5 21 4-5 9-17 13 35 5 6 h15 l7-40 5 21 4-5 9-17 13 35 5 6 h15 l7-40 5 21 4-5 9-17 13 35 5 6 h15"
-                        fill="none" stroke="var(--c)" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
-                </g>
-              </svg>
-            </div>
-            <div>
-              <p class="lab-kicker">CH 03 · AORTIC</p>
-              <h3>IABP Training Lab</h3>
-              <p>IABP操作・波形理解 教育ツール</p>
-            </div>
-            <span class="lab-enter" aria-hidden="true">↗</span>
-          </a>
-
-          <a class="lab-card reveal d7" style="--c:var(--amber)" href="./EP%20Signal%20Lab/index.html"
-             aria-label="EP Signal Lab を開く（心内心電図・アブレーション 教育ツール）">
-            <div class="lab-scope" aria-hidden="true">
-              <svg viewBox="0 0 96 72" preserveAspectRatio="none">
-                <g class="flow-54">
-                  <path class="trace" d="M-54 44 h14 l4-24 4 34 5-10 h16 h14 l4-24 4 34 5-10 h16 h14 l4-24 4 34 5-10 h16 h14 l4-24 4 34 5-10 h16"
-                        fill="none" stroke="var(--c)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                </g>
-              </svg>
-            </div>
-            <div>
-              <p class="lab-kicker">CH 04 · INTRACARDIAC</p>
-              <h3>EP Signal Lab</h3>
-              <p>心内心電図・アブレーション 教育ツール</p>
+              <p class="lab-kicker">12-LEAD · EXAM PREP</p>
+              <h3>12誘導心電図</h3>
+              <p>12誘導心電図の判読・心電図検定対策</p>
+              <span class="lab-modules">心電図検定対策</span>
             </div>
             <span class="lab-enter" aria-hidden="true">↗</span>
           </a>
