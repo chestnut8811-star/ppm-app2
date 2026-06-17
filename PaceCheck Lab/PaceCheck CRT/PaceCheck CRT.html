@@ -794,7 +794,7 @@
         </label>
         <div class="hero-note">
           <span>Focus</span>
-          <strong>BiV capture、LV閾値、AV/VV最適化、LV offset、MPPを心不全評価とセットで確認</strong>
+          <strong>AV/VV最適化・LVベクトル/出力（PNS回避）を操作し、％BiVペーシング・QRSの結果を確認（BiV%等は測定値）</strong>
         </div>
       </section>
 
@@ -932,75 +932,113 @@
     <script>
       "use strict";
 
+      // optimal: プログラム可能な目標値（AV/VV）のみ。
+      // settings: 実機の現プログラム値（操作対象）。
+      // dx: インテロゲーションで「読む」測定値・生理モデル（操作不可）。
+      //   ％BiVペーシング・LV捕捉閾値・PNS閾値は dx から算出（=測定値であり直接ダイヤルしない）。
       const scenarios = [
         {
           id: "lbbb-crtp",
           title: "LBBB HFrEF / CRT-P: AV・VV最適化",
           device: "CRT-P",
-          context: { lvef: "28%", qrs: "168 ms", rhythm: "洞調律", hf: "NYHA III", biv: "96%" },
+          context: { lvef: "28%", qrs: "168 ms", rhythm: "洞調律", hf: "NYHA III", biv: "94%（前回）" },
           baselineQrs: 168,
-          optimal: { avDelay: 120, vvDelay: -20, lvOffset: -20, bivPace: 97, lvOutput: 2.5, mpp: false },
-          settings: { avDelay: 150, vvDelay: 0, lvOffset: 0, bivPace: 94, lvOutput: 2.5, mpp: false },
+          optimal: { pacedAv: 120, vvDelay: -20 },
+          settings: { pacedAv: 150, vvDelay: 0, lvOutput: 2.5, lvVectorIndex: 0, mpp: false, rateControl: false },
+          dx: {
+            intrinsicAV: true, avFusionAbove: 140, fusionSlopePerMs: 0.5,
+            needsRateControl: false, rateControlPenalty: 0,
+            bivCeiling: 99, bivGoal: 97, captureMarginX: 2,
+            lvVectors: [{ name: "LV1→RV coil", threshold: 1.0, pns: 6.0 }]
+          },
           notes: [
-            "LBBB + HFrEFではBiV capture率とQRS短縮をセットで見る。",
-            "AV delayは短すぎても長すぎても融合/自己伝導との競合が起きる。",
-            "VV delay/LV offsetは12誘導ECGや施設手順に沿って調整する。"
+            "LBBB + HFrEF。AV delayが長いと自己伝導と融合し、有効BiVペーシングが低下する。",
+            "％BiVペーシング・LV捕捉閾値・PNS閾値はインテロゲーションで読む測定値（直接は変更できない）。",
+            "VV delayは12誘導ECGや施設手順に沿ってLV先行側で調整する。"
           ]
         },
         {
           id: "af-crtd-low-biv",
-          title: "恒久性AF / CRT-D: BiV capture低下",
+          title: "恒久性AF / CRT-D: ％BiVペーシング低下",
           device: "CRT-D",
-          context: { lvef: "25%", qrs: "160 ms", rhythm: "AF", hf: "NYHA III", biv: "82%" },
+          context: { lvef: "25%", qrs: "160 ms", rhythm: "AF（高頻度伝導）", hf: "NYHA III", biv: "83%（前回）" },
           baselineQrs: 160,
-          optimal: { avDelay: 120, vvDelay: -10, lvOffset: -10, bivPace: 96, lvOutput: 2.7, mpp: false },
-          settings: { avDelay: 150, vvDelay: 0, lvOffset: 0, bivPace: 82, lvOutput: 2.7, mpp: false },
+          optimal: { pacedAv: 120, vvDelay: -10 },
+          settings: { pacedAv: 130, vvDelay: 0, lvOutput: 2.7, lvVectorIndex: 0, mpp: false, rateControl: false },
+          dx: {
+            intrinsicAV: false, avFusionAbove: 999, fusionSlopePerMs: 0,
+            needsRateControl: true, rateControlPenalty: 16,
+            bivCeiling: 99, bivGoal: 95, captureMarginX: 2,
+            lvVectors: [{ name: "LV1→RV coil", threshold: 1.3, pns: 5.5 }]
+          },
           notes: [
-            "AFではBiV captureが低いとCRT効果が落ちる。",
-            "レート管理、PVC、AF高頻度伝導、AVJ ablation後かを確認する。",
-            "CRT-DではICD治療設定と心不全評価も同時に確認する。"
+            "AFの高頻度自己伝導でBiVペーシングが取り切れず、％BiVペーシングが低い。",
+            "改善の鍵はレート管理（薬剤調整／AVJ ablationの検討）。％BiVは設定の結果として上がる。",
+            "CRT-DではICD治療設定と心不全評価も同じ時系列で確認する。"
           ]
         },
         {
           id: "phrenic-lv-vector",
-          title: "LVリード / 横隔神経刺激: ベクトルと出力調整",
+          title: "LVリード / 横隔神経刺激: ベクトルと出力",
           device: "CRT-P",
-          context: { lvef: "32%", qrs: "154 ms", rhythm: "洞調律", hf: "NYHA II", biv: "98%" },
+          context: { lvef: "32%", qrs: "154 ms", rhythm: "洞調律", hf: "NYHA II", biv: "98%（前回）" },
           baselineQrs: 154,
-          optimal: { avDelay: 130, vvDelay: -30, lvOffset: -30, bivPace: 98, lvOutput: 2.0, mpp: false },
-          settings: { avDelay: 130, vvDelay: -10, lvOffset: -10, bivPace: 98, lvOutput: 3.5, mpp: false },
+          optimal: { pacedAv: 130, vvDelay: -30 },
+          settings: { pacedAv: 130, vvDelay: -30, lvOutput: 3.5, lvVectorIndex: 0, mpp: false, rateControl: false },
+          dx: {
+            intrinsicAV: true, avFusionAbove: 150, fusionSlopePerMs: 0.4,
+            needsRateControl: false, rateControlPenalty: 0,
+            bivCeiling: 99, bivGoal: 97, captureMarginX: 2,
+            lvVectors: [
+              { name: "LV1→RV coil（現在）", threshold: 1.5, pns: 3.0 },
+              { name: "LV2→LV1", threshold: 1.0, pns: 5.5 },
+              { name: "LV3→RV coil", threshold: 2.2, pns: 4.5 }
+            ]
+          },
           notes: [
-            "LV閾値と横隔神経刺激閾値の安全域を分けて見る。",
-            "出力低下だけでなくLVベクトル変更も候補になる。",
-            "捕捉安全域を残したまま症状を回避できるかがポイント。"
+            "現在のLVベクトルは横隔神経刺激(PNS)閾値が低く、捕捉に必要な出力でPNSが出る。",
+            "出力を下げ過ぎると捕捉喪失。まずPNS閾値の高いLVベクトルへ変更し、捕捉安全域を確保する。",
+            "AV/VVは概ね最適。LVベクトル選択と出力の安全窓を学ぶ症例。"
           ]
         },
         {
           id: "mpp-nonresponder",
-          title: "CRT-D Non-responder: 設定・リード・心不全治療の見直し（MPPは検討）",
+          title: "CRT-D Non-responder: 設定・リードの見直し（MPPは検討）",
           device: "CRT-D",
-          context: { lvef: "24%", qrs: "176 ms", rhythm: "洞調律", hf: "NYHA III", biv: "97%" },
+          context: { lvef: "24%", qrs: "176 ms", rhythm: "洞調律", hf: "NYHA III", biv: "97%（前回）" },
           baselineQrs: 176,
           mppOptional: true,
-          optimal: { avDelay: 110, vvDelay: -40, lvOffset: -40, bivPace: 98, lvOutput: 2.8, mpp: true },
-          settings: { avDelay: 150, vvDelay: 0, lvOffset: 0, bivPace: 97, lvOutput: 2.8, mpp: false },
+          optimal: { pacedAv: 110, vvDelay: -40 },
+          settings: { pacedAv: 150, vvDelay: 0, lvOutput: 2.8, lvVectorIndex: 0, mpp: false, rateControl: false },
+          dx: {
+            intrinsicAV: true, avFusionAbove: 140, fusionSlopePerMs: 0.4,
+            needsRateControl: false, rateControlPenalty: 0,
+            bivCeiling: 99, bivGoal: 97, captureMarginX: 2,
+            lvVectors: [{ name: "LV1→RV coil", threshold: 1.4, pns: 5.0 }]
+          },
           notes: [
-            "まず BiV capture・AV/VV・LV offset・リード位置・心不全治療を総合的に見直す。MPP の ON/OFF は採点に影響しない（どちらでも可）。",
-            "MPP の有効性は 2023 HRS/APHRS/LAHRS 生理的ペーシングガイドラインでも不確実とされ、ルーチン推奨ではない。電池消費・閾値・横隔神経刺激・施設方針を踏まえた『検討』にとどめる。",
+            "まずAV/VV最適化・LV捕捉安全域・リード位置・心不全治療を総合的に見直す。MPPのON/OFFは採点に影響しない。",
+            "MPPの有効性は2023 HRS/APHRS/LAHRS 生理的ペーシングガイドラインでも不確実で、ルーチン推奨ではない（『検討』にとどめる）。",
             "CRT-DではICDイベント、VT治療、心不全増悪を同じ時系列で見る。"
           ]
         },
         {
           id: "upgrade-rv-pacing",
-          title: "高RV pacing負荷 / CRT-D upgrade: BiV capture確認",
+          title: "高RV pacing負荷 / CRT-D upgrade: AV最適化と％BiV確認",
           device: "CRT-D",
-          context: { lvef: "35%", qrs: "paced 182 ms", rhythm: "AVB", hf: "NYHA II", biv: "90%" },
+          context: { lvef: "35%", qrs: "paced 182 ms", rhythm: "AVB", hf: "NYHA II", biv: "88%（前回）" },
           baselineQrs: 182,
-          optimal: { avDelay: 140, vvDelay: -20, lvOffset: -20, bivPace: 97, lvOutput: 2.4, mpp: false },
-          settings: { avDelay: 160, vvDelay: 0, lvOffset: 0, bivPace: 90, lvOutput: 2.4, mpp: false },
+          optimal: { pacedAv: 140, vvDelay: -20 },
+          settings: { pacedAv: 170, vvDelay: 0, lvOutput: 2.4, lvVectorIndex: 0, mpp: false, rateControl: false },
+          dx: {
+            intrinsicAV: true, avFusionAbove: 140, fusionSlopePerMs: 0.6,
+            needsRateControl: false, rateControlPenalty: 0,
+            bivCeiling: 99, bivGoal: 97, captureMarginX: 2,
+            lvVectors: [{ name: "LV1→RV coil", threshold: 1.2, pns: 5.0 }]
+          },
           notes: [
-            "高RV pacing負荷ではCRT化後にBiV captureとQRS変化を見る。",
-            "PVCや自己伝導混入でBiV率が下がっていないか確認する。",
+            "高RV pacing負荷からのCRT化。AV delayが長いと間欠的な自己伝導と融合し、有効BiVが下がる。",
+            "AVを適正化して％BiVペーシングを高く保ち、QRS短縮を確認する。",
             "電池、LV閾値、リード抵抗、心不全症状を前回値と比較する。"
           ]
         }
@@ -1021,12 +1059,15 @@
       let testLog = [];
       let soundEnabled = localStorage.getItem("pacecheck-crt-sound") !== "false";
 
+      // 実臨床のCRTチェック順：AV最適化 → VV最適化 → LV捕捉安全域 → PNS回避 → ％BiVを目標へ。
+      // ％BiVペーシングは「測定される結果」。原因（長いAV／AFレート未管理／LV捕捉喪失）を
+      // 正しい操作で取り除くと目標に達する（直接ダイヤルする項目ではない）。
       const TEST_STEPS = [
-        { id: "avDelay",  label: "AV delay を最適化",            points: 18, check: (s, opt) => Math.abs(s.avDelay - opt.avDelay) <= 10 },
-        { id: "vvDelay",  label: "VV delay を最適化",            points: 18, check: (s, opt) => Math.abs(s.vvDelay - opt.vvDelay) <= 10 },
-        { id: "lvOffset", label: "LV offset を最適化",           points: 18, check: (s, opt) => Math.abs(s.lvOffset - opt.lvOffset) <= 10 },
-        { id: "bivPace",  label: "BiV capture を最適化（目標値以上）", points: 18, check: (s, opt) => s.bivPace >= opt.bivPace - 1 },
-        { id: "lvMpp",    label: "LV output を最適化（MPP は任意）", points: 18, check: (s, opt, scenario) => Math.abs(s.lvOutput - opt.lvOutput) <= 0.5 && (scenario?.mppOptional || s.mpp === opt.mpp) },
+        { id: "av",  label: "AV delay を最適化（自己伝導との融合回避）", points: 18, check: (s, opt) => Math.abs(s.pacedAv - opt.pacedAv) <= 10 },
+        { id: "vv",  label: "VV delay を最適化", points: 18, check: (s, opt) => Math.abs(s.vvDelay - opt.vvDelay) <= 10 },
+        { id: "cap", label: "LV捕捉の安全域を確保（≥2倍閾値）", points: 18, check: (s, opt, scenario) => lvCaptureSafe(scenario) },
+        { id: "pns", label: "横隔神経刺激(PNS)を回避（ベクトル/出力）", points: 18, check: (s, opt, scenario) => noPns(scenario) },
+        { id: "biv", label: "％BiVペーシングを目標へ（原因に対処）", points: 18, check: (s, opt, scenario) => effectiveBivPct(scenario) >= scenario.dx.bivGoal },
       ];
       const TEST_PASS = 80;
       const TEST_MAX = 100;
@@ -1212,18 +1253,22 @@
       function render() {
         const scenario = currentScenario();
         const score = syncScore(scenario);
-        const qrs = estimatedQrs(scenario, score);
+        const qrs = estimatedQrs(scenario);
+        const vec = currentVector(scenario);
+        const biv = effectiveBivPct(scenario);
         document.getElementById("caseTitle").textContent = scenario.title;
         document.getElementById("deviceBadge").textContent = scenario.device;
         document.getElementById("deviceBadge").className = scenario.device === "CRT-D" ? "pill warn" : "pill";
         document.getElementById("caseGrid").innerHTML = Object.entries(scenario.context)
           .map(([key, value]) => metricCell(labelForContext(key), value))
           .join("");
+        // 測定値（インテロゲーションで読む値・操作不可）
         document.getElementById("metrics").innerHTML = [
           ["同期スコア", `${score} / 100`],
+          ["％BiVペーシング（測定）", `${biv}%`],
           ["推定QRS", `${qrs} ms`],
-          ["BiV capture", `${settings.bivPace}%`],
-          ["LV出力", `${settings.lvOutput.toFixed(1)} V`]
+          ["LV捕捉閾値", `${vec.threshold.toFixed(1)} V`],
+          ["PNS閾値", `${vec.pns.toFixed(1)} V`]
         ].map(([label, value]) => metricCell(label, value)).join("");
         document.getElementById("syncBadge").textContent = score >= 82 ? "良好" : score >= 65 ? "要調整" : "再評価";
         document.getElementById("syncBadge").className = score >= 82 ? "pill ok" : "pill warn";
@@ -1326,23 +1371,73 @@
         return { lvef: "LVEF", qrs: "Baseline QRS", rhythm: "Rhythm", hf: "HF status", biv: "Current BiV" }[key] || key;
       }
 
-      function syncScore(scenario) {
-        const target = scenario.optimal;
-        let score = 100;
-        score -= Math.min(28, Math.abs(settings.avDelay - target.avDelay) / 5);
-        score -= Math.min(22, Math.abs(settings.vvDelay - target.vvDelay) / 4);
-        score -= Math.min(16, Math.abs(settings.lvOffset - target.lvOffset) / 5);
-        score -= Math.max(0, target.bivPace - settings.bivPace) * 2.3;
-        if (scenario.id === "phrenic-lv-vector" && settings.lvOutput > 3.0) score -= 22;
-        // MPP の有効性は不確実なため、mppOptional 症例では MPP の ON/OFF を採点に反映しない。
-        if (!scenario.mppOptional && scenario.optimal.mpp !== settings.mpp) score -= scenario.optimal.mpp ? 12 : 5;
-        return Math.max(0, Math.round(score));
+      // ===== 測定値（読取専用）の算出 =====
+      // 選択中のLVペーシングベクトル（捕捉閾値・PNS閾値を保持）
+      function currentVector(scenario) {
+        const vs = scenario.dx.lvVectors;
+        const i = clamp(Math.round(settings.lvVectorIndex || 0), 0, vs.length - 1);
+        return vs[i];
       }
 
-      function estimatedQrs(scenario, score) {
-        const narrow = Math.round((score / 100) * 42);
-        const mppBonus = settings.mpp && scenario.optimal.mpp ? 8 : 0;
-        return Math.max(105, scenario.baselineQrs - narrow - mppBonus);
+      // ％BiVペーシング（測定値）。直接は変更できず、設定の結果として変動する。
+      function effectiveBivPct(scenario) {
+        const dx = scenario.dx;
+        let b = dx.bivCeiling;
+        // 自己伝導が残る症例でAV delayが長いと融合し有効BiVが低下
+        if (dx.intrinsicAV && settings.pacedAv > dx.avFusionAbove) {
+          b -= (settings.pacedAv - dx.avFusionAbove) * dx.fusionSlopePerMs;
+        }
+        // AF高頻度伝導：レート管理が未対処だと低い
+        if (dx.needsRateControl && !settings.rateControl) {
+          b -= dx.rateControlPenalty;
+        }
+        // LV捕捉喪失（出力 < 閾値）→ 実質RVのみで両室同期が崩れる
+        if (settings.lvOutput < currentVector(scenario).threshold) {
+          b -= 35;
+        }
+        return clamp(Math.round(b), 40, 100);
+      }
+
+      // LV捕捉の安全域（出力 ≥ 閾値 × 安全係数）
+      function lvCaptureSafe(scenario) {
+        const v = currentVector(scenario);
+        return settings.lvOutput >= v.threshold * (scenario.dx.captureMarginX || 2);
+      }
+
+      // 横隔神経刺激(PNS)を回避できているか（出力 < PNS閾値）
+      function noPns(scenario) {
+        return settings.lvOutput < currentVector(scenario).pns;
+      }
+
+      // AV/VV最適化の度合い（0..1）
+      function syncQuality(scenario) {
+        const t = scenario.optimal;
+        let q = 1;
+        q -= Math.min(0.55, Math.abs(settings.pacedAv - t.pacedAv) / 120);
+        q -= Math.min(0.45, Math.abs(settings.vvDelay - t.vvDelay) / 120);
+        return Math.max(0, q);
+      }
+
+      // 同期スコア（ライブ表示用の総合指標）
+      function syncScore(scenario) {
+        const t = scenario.optimal;
+        let s = 100;
+        s -= Math.min(30, Math.abs(settings.pacedAv - t.pacedAv) / 4);
+        s -= Math.min(22, Math.abs(settings.vvDelay - t.vvDelay) / 4);
+        if (!lvCaptureSafe(scenario)) s -= 18;
+        if (!noPns(scenario)) s -= 18;
+        s -= Math.max(0, scenario.dx.bivGoal - effectiveBivPct(scenario)) * 1.5;
+        return clamp(Math.round(s), 0, 100);
+      }
+
+      // 推定QRS：実際にBiVペーシングが届いた割合（％BiV）× 同期品質で短縮
+      function estimatedQrs(scenario) {
+        const biv = effectiveBivPct(scenario) / 100;
+        const q = syncQuality(scenario);
+        const maxNarrow = Math.max(0, scenario.baselineQrs - 110);
+        const narrow = maxNarrow * biv * (0.55 + 0.45 * q);
+        const mppBonus = settings.mpp && scenario.mppOptional ? 4 : 0;
+        return Math.max(105, Math.round(scenario.baselineQrs - narrow - mppBonus));
       }
 
       function ecgMorphologyLabel(score) {
@@ -1469,11 +1564,12 @@
       }
 
       function drawPacingMarkers(ctx, width, seconds, period, phase, baseline, qrsCenter, scenario, score) {
-        const atrialFib = scenario.context.rhythm === "AF";
-        const offsetSeconds = (settings.vvDelay + settings.lvOffset / 2) / 1000;
+        const atrialFib = scenario.context.rhythm.indexOf("AF") === 0;
+        const offsetSeconds = settings.vvDelay / 1000;
         const qrsTime = qrsCenter * period;
         const rvTime = qrsTime;
         const lvTime = qrsTime + offsetSeconds;
+        const bivPct = effectiveBivPct(scenario);
         const startBeat = Math.floor(phase - 2);
         const endBeat = Math.ceil(phase + seconds / period + 2);
         for (let beat = startBeat; beat <= endBeat; beat += 1) {
@@ -1482,7 +1578,7 @@
             drawSpike(ctx, timeToX(beatStart + 0.11 * period, seconds, phase, period, width), baseline, "#8fd6d0", 28);
           }
           drawSpike(ctx, timeToX(beatStart + rvTime, seconds, phase, period, width), baseline, "#7fb2d5", 44);
-          if (settings.bivPace >= 92 || beat % 5 !== 0) {
+          if (bivPct >= 92 || beat % 5 !== 0) {
             drawSpike(ctx, timeToX(beatStart + lvTime, seconds, phase, period, width), baseline, "#ffbf73", 38);
           } else {
             drawMissedLv(ctx, timeToX(beatStart + lvTime, seconds, phase, period, width), baseline);
@@ -1517,7 +1613,7 @@
         const rows = [
           ["A", "#8fd6d0", 0.11 * period],
           ["RV", "#7fb2d5", qrsCenter * period],
-          ["LV", "#ffbf73", qrsCenter * period + (settings.vvDelay + settings.lvOffset / 2) / 1000]
+          ["LV", "#ffbf73", qrsCenter * period + settings.vvDelay / 1000]
         ];
         ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
         rows.forEach(([label, color, eventTime], index) => {
@@ -1546,7 +1642,7 @@
       }
 
       function qrsCenterFraction(period) {
-        return clamp(0.11 + settings.avDelay / 1000 / period, 0.27, 0.58);
+        return clamp(0.11 + settings.pacedAv / 1000 / period, 0.27, 0.58);
       }
 
       function timeToX(time, seconds, phase, period, width) {
@@ -1562,9 +1658,10 @@
       }
 
       function renderLanes() {
-        const av = clamp(settings.avDelay, 80, 220);
-        const rv = clamp(av, 80, 220);
-        const lv = clamp(av + settings.vvDelay + settings.lvOffset / 2, 60, 240);
+        const av = clamp(settings.pacedAv, 80, 250);
+        const rv = clamp(av, 80, 250);
+        // VV delay: 負=LV先行 / 正=RV先行（LV時刻 = RV時刻 + vvDelay）
+        const lv = clamp(av + settings.vvDelay, 40, 260);
         const toPercent = (value) => 8 + ((value - 40) / 220) * 84;
         document.getElementById("pulseA").style.left = "8%";
         document.getElementById("pulseRv").style.left = `${toPercent(rv)}%`;
@@ -1572,34 +1669,65 @@
         document.getElementById("labelA").textContent = "0 ms";
         document.getElementById("labelRv").textContent = `${rv} ms`;
         document.getElementById("labelLv").textContent = `${Math.round(lv)} ms`;
-        const qrs = estimatedQrs(currentScenario(), syncScore(currentScenario()));
+        const qrs = estimatedQrs(currentScenario());
         document.getElementById("qrsText").textContent = `${qrs} ms`;
         document.getElementById("qrsFill").style.width = `${clamp((qrs - 90) / 110 * 100, 18, 100)}%`;
       }
 
       function renderControls() {
+        const scenario = currentScenario();
         const rows = [
-          { key: "avDelay", label: "AV delay", unit: "ms", step: 10, min: 80, max: 220 },
-          { key: "vvDelay", label: "VV delay", unit: "ms", step: 10, min: -60, max: 60 },
-          { key: "lvOffset", label: "LV offset", unit: "ms", step: 10, min: -80, max: 40 },
-          { key: "bivPace", label: "BiV capture", unit: "%", step: 1, min: 70, max: 100 },
-          { key: "lvOutput", label: "LV output", unit: "V", step: 0.1, min: 0.5, max: 5.0 }
+          { key: "pacedAv", label: "AV delay", unit: "ms", step: 10, min: 80, max: 250 },
+          { key: "vvDelay", label: "VV delay", unit: "ms", step: 10, min: -80, max: 80 },
+          { key: "lvOutput", label: "LV出力", unit: "V", step: 0.1, min: 0.5, max: 5.0 }
         ];
-        document.getElementById("settingsGrid").innerHTML = rows.map((row) => `
+        const vec = currentVector(scenario);
+        const vecCount = scenario.dx.lvVectors.length;
+
+        const stepRows = rows.map((row) => {
+          let disp;
+          if (row.key === "vvDelay") {
+            const v = Math.round(settings.vvDelay);
+            const lead = v < 0 ? "（LV先行）" : v > 0 ? "（RV先行）" : "（同時）";
+            disp = `${v > 0 ? "+" : ""}${v} ms ${lead}`;
+          } else {
+            disp = formatValue(settings[row.key], row.unit);
+          }
+          return `
+            <div class="setting-cell">
+              <div class="setting-row">
+                <strong>${escapeHtml(row.label)}</strong>
+                <button class="step-button" type="button" aria-label="${escapeHtml(row.label)} を下げる" data-step="${row.key}" data-dir="-1">▼</button>
+                <span class="value-box">${escapeHtml(disp)}</span>
+                <button class="step-button" type="button" aria-label="${escapeHtml(row.label)} を上げる" data-step="${row.key}" data-dir="1">▲</button>
+              </div>
+            </div>`;
+        }).join("");
+
+        const vectorRow = `
           <div class="setting-cell">
             <div class="setting-row">
-              <strong>${escapeHtml(row.label)}</strong>
-              <button class="step-button" type="button" aria-label="${escapeHtml(row.label)} を下げる" data-step="${row.key}" data-dir="-1">▼</button>
-              <span class="value-box">${escapeHtml(formatValue(settings[row.key], row.unit))}</span>
-              <button class="step-button" type="button" aria-label="${escapeHtml(row.label)} を上げる" data-step="${row.key}" data-dir="1">▲</button>
+              <strong>LVベクトル</strong>
+              <button class="step-button" type="button" aria-label="LVベクトルを切替" data-vector-cycle ${vecCount > 1 ? "" : "disabled"}>切替</button>
+              <span class="value-box" style="flex:1;text-align:left;">${escapeHtml(vec.name)}</span>
             </div>
-          </div>
-        `).join("") + `
+            <span style="display:block;color:var(--muted);font-size:11px;margin-top:2px;">捕捉閾値 ${vec.threshold.toFixed(1)}V ／ PNS閾値 ${vec.pns.toFixed(1)}V（測定値）</span>
+          </div>`;
+
+        const mppRow = `
           <div class="setting-cell toggle-row">
             <strong>LV multipoint pacing</strong>
             <button class="toggle ${settings.mpp ? "on" : ""}" type="button" data-toggle-mpp>${settings.mpp ? "ON" : "OFF"}</button>
-          </div>
-        `;
+          </div>`;
+
+        const rateRow = scenario.dx.needsRateControl ? `
+          <div class="setting-cell toggle-row">
+            <strong>レート管理（薬剤 / AVJ ablation）</strong>
+            <button class="toggle ${settings.rateControl ? "on" : ""}" type="button" data-toggle-rate>${settings.rateControl ? "対応済" : "未対応"}</button>
+          </div>` : "";
+
+        document.getElementById("settingsGrid").innerHTML = stepRows + vectorRow + mppRow + rateRow;
+
         document.querySelectorAll("[data-step]").forEach((button) => {
           button.addEventListener("click", () => {
             const row = rows.find((item) => item.key === button.dataset.step);
@@ -1610,8 +1738,23 @@
             render();
           });
         });
+        const vc = document.querySelector("[data-vector-cycle]");
+        if (vc) vc.addEventListener("click", () => {
+          if (vecCount <= 1) return;
+          settings.lvVectorIndex = ((settings.lvVectorIndex || 0) + 1) % vecCount;
+          saveSettings();
+          if (testActive) evaluateTestSteps();
+          render();
+        });
         document.querySelector("[data-toggle-mpp]").addEventListener("click", () => {
           settings.mpp = !settings.mpp;
+          saveSettings();
+          if (testActive) evaluateTestSteps();
+          render();
+        });
+        const rt = document.querySelector("[data-toggle-rate]");
+        if (rt) rt.addEventListener("click", () => {
+          settings.rateControl = !settings.rateControl;
           saveSettings();
           if (testActive) evaluateTestSteps();
           render();
@@ -1620,40 +1763,74 @@
 
       function renderLogic(scenario, score, qrs) {
         document.getElementById("logicSummary").textContent = scenario.notes[0];
-        const dynamic = [
-          settings.bivPace < 95 ? "BiV captureが低めです。AF、PVC、自己伝導混入、AVJ ablation後かを確認します。" : "BiV captureは保たれています。次にQRS幅、症状、閾値、電池消費を見ます。",
-          qrs > 150 ? "推定QRSが広めです。AV/VV delay、LV offset、リード位置、12誘導ECGでの変化を確認します。" : "QRS短縮は良好です。心不全症状と前回値の変化を合わせます。",
-          scenario.id === "phrenic-lv-vector" && settings.lvOutput > 3.0 ? "LV出力が高く横隔神経刺激リスクがあります。捕捉安全域を残しつつベクトル変更を検討します。" : "LV閾値、横隔神経刺激閾値、出力安全域を分けて記録します。",
-          scenario.device === "CRT-D" ? "CRT-DではICDイベント、VT/VFゾーン、ATP/ショック履歴も同じ時系列で確認します。" : "CRT-Pでは心不全指標、BiV率、LVリード安全性を中心に見ます。"
-        ];
+        const dx = scenario.dx;
+        const vec = currentVector(scenario);
+        const biv = effectiveBivPct(scenario);
+        const dynamic = [];
+        if (biv < dx.bivGoal) {
+          if (dx.needsRateControl && !settings.rateControl) {
+            dynamic.push("％BiVが低い主因はAFの高頻度自己伝導です。レート管理（薬剤調整／AVJ ablationの検討）で改善します。");
+          } else if (dx.intrinsicAV && settings.pacedAv > dx.avFusionAbove) {
+            dynamic.push("AV delayが長く自己伝導と融合し、有効BiVが低下しています。AVを短縮します。");
+          } else if (settings.lvOutput < vec.threshold) {
+            dynamic.push("LV出力が捕捉閾値未満で捕捉喪失しています。出力を安全域へ上げます。");
+          } else {
+            dynamic.push("％BiVが目標未満です。AV・レート・LV捕捉の原因を順に確認します。");
+          }
+        } else {
+          dynamic.push("％BiVペーシングは良好です（測定値）。QRS短縮・症状・電池消費を併せて確認します。");
+        }
+        if (!noPns(scenario)) {
+          dynamic.push(`現在のLVベクトルはPNS閾値 ${vec.pns.toFixed(1)}V。出力 ${settings.lvOutput.toFixed(1)}V で横隔神経刺激の恐れがあります。まずPNS閾値の高いベクトルへ変更します。`);
+        } else if (!lvCaptureSafe(scenario)) {
+          dynamic.push(`LV捕捉の安全域が不足（閾値 ${vec.threshold.toFixed(1)}V）。PNS閾値 ${vec.pns.toFixed(1)}V 未満の範囲で出力を上げます。`);
+        } else {
+          dynamic.push("LV捕捉の安全域とPNS回避は確保されています（いずれも測定閾値ベース）。");
+        }
+        dynamic.push(qrs > 150 ? "推定QRSが広めです。AV/VV最適化と％BiV到達を見直します。" : "QRSは短縮傾向です。心不全症状と前回値の変化を合わせます。");
+        dynamic.push(scenario.device === "CRT-D" ? "CRT-DではICDイベント、VT/VFゾーン、ATP/ショック履歴も同じ時系列で確認します。" : "CRT-Pでは心不全指標、％BiV、LVリード安全性を中心に見ます。");
         document.getElementById("logicList").innerHTML = [...scenario.notes.slice(1), ...dynamic]
           .map((item) => `<li>${escapeHtml(item)}</li>`)
           .join("");
       }
 
       function renderChecks(scenario, score) {
+        const vec = currentVector(scenario);
+        const biv = effectiveBivPct(scenario);
+        const avvvOk = Math.abs(settings.pacedAv - scenario.optimal.pacedAv) <= 10 && Math.abs(settings.vvDelay - scenario.optimal.vvDelay) <= 10;
         const checks = [
           {
-            title: "BiV capture",
-            ok: settings.bivPace >= 95,
-            body: settings.bivPace >= 95 ? "95%以上を維持。心不全症状とQRS変化を確認します。" : "低めです。AF、PVC、自己伝導、設定、AVJ ablation後かを確認します。"
+            title: "AV / VV 最適化",
+            ok: avvvOk,
+            body: avvvOk ? "AV delay（融合回避）とVV delayは目標範囲内です。" : "AV delay・VV delayを12誘導/施設手順に沿って最適化します。"
           },
           {
-            title: "AV/VV最適化",
-            ok: score >= 75,
-            body: score >= 75 ? "同期条件は概ね良好です。" : "AV delay、VV delay、LV offsetを再評価します。"
+            title: "LV捕捉の安全域",
+            ok: lvCaptureSafe(scenario),
+            body: lvCaptureSafe(scenario)
+              ? `出力 ${settings.lvOutput.toFixed(1)}V は捕捉閾値 ${vec.threshold.toFixed(1)}V に対し安全域内です。`
+              : `捕捉閾値 ${vec.threshold.toFixed(1)}V に対し安全域が不足。出力を上げます。`
           },
           {
-            title: "LV閾値・横隔神経刺激",
-            ok: !(scenario.id === "phrenic-lv-vector" && settings.lvOutput > 3.0),
-            body: scenario.id === "phrenic-lv-vector" && settings.lvOutput > 3.0 ? "横隔神経刺激リスクあり。LVベクトル変更や出力調整を検討します。" : "LV出力安全域と刺激症状を分けて確認します。"
+            title: "横隔神経刺激(PNS)回避",
+            ok: noPns(scenario),
+            body: noPns(scenario)
+              ? `PNS閾値 ${vec.pns.toFixed(1)}V 未満で運用できています。`
+              : `出力がPNS閾値 ${vec.pns.toFixed(1)}V 以上です。LVベクトル変更/出力調整で回避します。`
+          },
+          {
+            title: "％BiVペーシング（測定値）",
+            ok: biv >= scenario.dx.bivGoal,
+            body: biv >= scenario.dx.bivGoal
+              ? `${biv}%（目標 ${scenario.dx.bivGoal}% 以上）。直接は設定できず、原因対処の結果として上がる値です。`
+              : `${biv}%（目標 ${scenario.dx.bivGoal}%）。AV短縮・レート管理・LV捕捉など原因に対処します。`
           },
           {
             title: "LV multipoint pacing（検討）",
-            ok: scenario.mppOptional ? true : scenario.optimal.mpp === settings.mpp,
+            ok: true,
             body: scenario.mppOptional
-              ? "MPP の有効性は不確実（2023 HRS CPP ガイドライン）。ON/OFF は採点に影響しません。まず設定・リード・心不全治療を見直し、MPP は電池消費・閾値・刺激症状・施設方針を踏まえて検討します。"
-              : (settings.mpp ? "MPP ON。電池消費、閾値、刺激症状も確認します。" : "MPP OFF。適応とデメリットを検討します。")
+              ? "MPPの有効性は不確実（2023 HRS CPP）。ON/OFFは採点に影響せず『検討』にとどめます。"
+              : (settings.mpp ? "MPP ON。電池消費・閾値・刺激症状も確認します。" : "標準はBiVペーシング。MPPは適応とデメリットを検討します。")
           }
         ];
         document.getElementById("checkList").innerHTML = checks.map((check) => `
