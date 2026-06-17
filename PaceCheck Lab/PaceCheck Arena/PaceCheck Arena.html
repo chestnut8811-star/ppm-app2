@@ -141,6 +141,38 @@
             <div><strong>イベント</strong><span>カウンタ、持続時間、保存EGM、症状時刻を分けて見る。</span></div>
           </div>
         </article>
+        <article>
+          <p class="eyebrow">Check Flow</p>
+          <h2>チェックの基本の流れ</h2>
+          <div class="legend-grid">
+            <div><strong>① 状態把握</strong><span>まず心電図とマーカーで自己波・AP・VP、ペースメーカー依存性を確認する。</span></div>
+            <div><strong>② 測定</strong><span>波高値は自己波（AS/VS）、閾値はペーシング（AP/VP）が出る条件で評価する。</span></div>
+            <div><strong>③ 一時設定変更</strong><span>見やすくする時だけ最小限に。レート・AV delay・出力を必要に応じて調整。</span></div>
+            <div><strong>④ 元設定へ復帰</strong><span>変更したら必ず初期設定へ戻す。戻し忘れは頻脈・不要VP・捕捉不全の原因。</span></div>
+            <div><strong>⑤ 記録</strong><span>測定値と「記録／測定不可」の判断、変更理由を残す。</span></div>
+            <div><strong>本ツールの範囲</strong><span>上記のうち②〜④（A/V 波高値・閾値の操作練習）を扱う。電池・リード・イベント等は対象外。</span></div>
+          </div>
+        </article>
+        <article>
+          <p class="eyebrow">Tips</p>
+          <h2>AP・VP を出すコツ</h2>
+          <div class="legend-grid">
+            <div><strong>A閾値（APを出す）</strong><span>下限レートを上げ、自己P波より先にAPを出す。AP後の伝導を見たいならAV delayを延ばす。</span></div>
+            <div><strong>V閾値（VPを出す）</strong><span>AV delayを短くし、自己QRSより先にVPを出す。fusion を避けて捕捉/脱落を見る。</span></div>
+            <div><strong>波高値は自己波</strong><span>A波高値はAS、V波高値はVSで記録。自己波が出ない依存例は「測定不可」と判断する。</span></div>
+            <div><strong>覚え方</strong><span>APは「レートを上げて出す」、VPは「AV delay を短くして出す」。最後は必ず元設定へ。</span></div>
+          </div>
+        </article>
+        <article>
+          <p class="eyebrow">V Threshold</p>
+          <h2>V閾値と AV ディレイ短縮</h2>
+          <div class="legend-grid">
+            <div><strong>AS-VP では SAV</strong><span>自己P波感知→SAV後にVP。自己伝導が残るなら SAV を短縮（例 80〜100ms）し、自己QRSより先にVPを出す。</span></div>
+            <div><strong>AP-VP では PAV</strong><span>心房ペーシング→PAV後にVP。AP-VP で測るなら PAV を短縮（例 100〜150ms）する。</span></div>
+            <div><strong>短縮する理由</strong><span>自己房室伝導・fusion・偽性捕捉を避け、「本当に VP で心室捕捉しているか」を見やすくするため。短くしないと閾値が低く見えることがある。</span></div>
+            <div><strong>CAVB は不要</strong><span>自己伝導が全くない症例は VP のみなので、AV delay を変えなくても V閾値を測りやすい。測定後は必ず元設定へ戻す。</span></div>
+          </div>
+        </article>
       </section>
 
       <section class="history-panel" id="historyPanel" aria-label="練習履歴"></section>

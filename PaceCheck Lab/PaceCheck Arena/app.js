@@ -215,7 +215,7 @@ const COMMON_STEPS = {
   "create-as-for-p": { label: "ASを出してP波測定条件を作る", hint: "APからASへ切り替え、P波が見える条件を作ります。", points: 0 },
   "create-ap-for-a-threshold": { label: "APを出してA閾値条件を作る", hint: "ASからAPへ切り替え、A閾値テストの条件を作ります。", points: 0 },
   "extend-pav-for-ap-vs": { label: "PAVを延長してAP-VSを保つ", hint: "自己伝導を保ち、A 捕捉判定を容易にするため PAV を avDelayNeeded 以上に設定します。", points: 0 },
-  "create-vp-for-v-threshold": { label: "VPを出してV閾値条件を作る", hint: "VSからVPへ切り替え、V閾値テストの条件を作ります。", points: 0 },
+  "create-vp-for-v-threshold": { label: "VPを出してV閾値条件を作る", hint: "AV delayを短縮（AS中はSAV／AP中はPAV）して自己QRSより先にVPを出し、fusion・偽性捕捉を避けてVSからVPへ切り替えます。", points: 0 },
   "start-a-threshold": { label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 0, check: "aThreshold" },
   "find-a-loss": { label: "A出力を下げてLOCを確認", hint: "A出力を下げ、A LOCが出る境界を観察します。", points: 0 },
   "record-a-threshold": { label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 0, check: "aThreshold" },
@@ -260,7 +260,7 @@ const SIMULATOR_PROFILES = {
     { id: "restore-settings", label: "デフォルト設定", hint: "測定後は下限レートを戻します。", points: 25, check: "restore" }
   ],
   "ddd-asvs-v-threshold": [
-    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "SAVを短縮し、AS-VSからAS-VPへ切り替えます。", points: 18 },
+    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "SAVを短縮し（AS中はSAVが有効）、自己QRSより先にVPを出してAS-VSからAS-VPへ。fusion・偽性捕捉を避けます。", points: 18 },
     { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 12, check: "vThreshold" },
     { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 22 },
     { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 22, check: "vThreshold" },
@@ -292,7 +292,7 @@ const SIMULATOR_PROFILES = {
     { id: "create-as-for-p", label: "ASを出してP波測定条件を作る", hint: "下限レートを下げ、APからASへ切り替えます。", points: 12 },
     { id: "record-p-wave", label: "P波波高値を記録", hint: "AS表示中にAリード波高値を記録します。", points: 12, check: "pWave" },
     { id: "record-r-difficult", label: "V波高値は測定不可", hint: "自己R波が出ない症例と判断し、測定不可とします。", points: 12, check: "rDifficult" },
-    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "下限レートを戻すかAV delayを短縮し、VP優位に戻します。", points: 10 },
+    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "下限レートを戻してAP-VPに戻します。自己伝導がない症例なのでAV短縮は不要、VP優位に戻します。", points: 10 },
     { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 8, check: "vThreshold" },
     { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 12 },
     { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 12, check: "vThreshold" },
@@ -300,7 +300,7 @@ const SIMULATOR_PROFILES = {
   ],
   "vvi-vs-rwave-vthreshold": [
     { id: "record-r-wave", label: "R波波高値を記録", hint: "VVI-VS表示中にVリード波高値を記録します。", points: 18, check: "rWave" },
-    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "下限レートを上げ、VVI-VPへ切り替えます。", points: 14 },
+    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "下限レートを上げて自己心拍より速くし、VVI-VPへ切り替えます（VVIはAV delay非該当）。", points: 14 },
     { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 10, check: "vThreshold" },
     { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCが出る境界を観察します。", points: 14 },
     { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 18, check: "vThreshold" },
@@ -320,7 +320,7 @@ const SIMULATOR_PROFILES = {
     { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 7, check: "aThreshold" },
     { id: "find-a-loss", label: "A出力を下げてLOCを確認", hint: "A出力を下げ、A LOCの境界を観察します。", points: 9 },
     { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 9, check: "aThreshold" },
-    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "AV delayを短縮し、VSからVPへ切り替えます。", points: 8 },
+    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "SAVを短縮し（AS中はSAVが有効）、自己QRSより先にVPを出してVSからVPへ。fusion・偽性捕捉を避けます。", points: 8 },
     { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 7, check: "vThreshold" },
     { id: "find-v-loss", label: "V出力を下げてLOCを確認", hint: "V出力を下げ、V LOCの境界を観察します。", points: 9 },
     { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 9, check: "vThreshold" },
@@ -348,7 +348,7 @@ const SIMULATOR_PROFILES = {
     { id: "start-a-threshold", label: "A閾値テストを開始", hint: "AP表示中にA閾値テストを開始します。", points: 7, check: "aThreshold" },
     { id: "find-a-loss", label: "A LOCを確認", hint: "A出力を下げ、捕捉/脱落の境界を確認します。", points: 8 },
     { id: "record-a-threshold", label: "A閾値を記録", hint: "捕捉/脱落境界を確認してからA閾値を記録します。", points: 8, check: "aThreshold" },
-    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "PAVを短縮し、AP-VSからAP-VPへ切り替えます。", points: 7 },
+    { id: "create-vp-for-v-threshold", label: "VPを出してV閾値条件を作る", hint: "PAVを短縮し（AP中はPAVが有効）、自己QRSより先にVPを出してAP-VSからAP-VPへ。fusion・偽性捕捉を避けます。", points: 7 },
     { id: "start-v-threshold", label: "V閾値テストを開始", hint: "VP表示中にV閾値テストを開始します。", points: 7, check: "vThreshold" },
     { id: "find-v-loss", label: "V LOCを確認", hint: "V出力を下げ、捕捉/脱落の境界を確認します。", points: 8 },
     { id: "record-v-threshold", label: "V閾値を記録", hint: "捕捉/脱落境界を確認してからV閾値を記録します。", points: 8, check: "vThreshold" },
@@ -1387,18 +1387,20 @@ function controlHint(key, scenario, rhythm) {
     if (effectiveMode(scenario) === "DDD" && rhythm.atrial === "AP" && p.pWave) return "下げる: AP→ASでP波";
     if (effectiveMode(scenario) === "DDD" && rhythm.atrial === "AS" && p.aThreshold) return "上げる: AS→APでA閾値";
   }
+  // AS 中は SAV が AV タイミングを支配（AP 中は無効）。
   if (key === "sensedAv" && rhythm.atrial === "AS") {
-    if (rhythm.ventricular === "VP" && p.rWave) return "延ばす: AS-VP→AS-VS";
-    if (rhythm.ventricular === "VS" && p.vThreshold) return "短く: AS-VS→AS-VP";
+    if (rhythm.ventricular === "VP" && p.rWave) return "延ばす: AS-VP→AS-VS（自己R波）";
+    if (rhythm.ventricular === "VS" && p.vThreshold) return "短く: AS-VS→AS-VP（VP誘発）";
   }
+  // AP 中は PAV が AV タイミングを支配（AS 中は無効）。
   if (key === "pacedAv" && rhythm.atrial === "AP") {
     // A 閾値テスト準備中（state.activeTest はまだ無い）で自己伝導があるなら、
     // PAV を延ばして AP-VS を保ち、A 捕捉判定を容易にする
     if (!state.activeTest && p.aThreshold && p.rWave && p.avDelayNeeded) {
-      return "延ばす: 自己伝導を保ち A 捕捉判定を容易に";
+      return "延ばす: AP-VS を保ち A 捕捉判定を容易に";
     }
-    if (rhythm.ventricular === "VP" && p.rWave) return "延ばす: AP-VP→AP-VS";
-    if (rhythm.ventricular === "VS" && p.vThreshold) return "短く: AP-VS→AP-VP";
+    if (rhythm.ventricular === "VP" && p.rWave) return "延ばす: AP-VP→AP-VS（自己伝導）";
+    if (rhythm.ventricular === "VS" && p.vThreshold) return "短く: AP-VS→AP-VP（VP誘発）";
   }
   if (key === "aOutput") {
     if (state.activeTest?.chamber === "A") return "下げる: A捕捉/脱落を観察";
@@ -1438,21 +1440,21 @@ function directGoalText(scenario, rhythm) {
   }
   if (rhythm.ventricular === "VP" && p.rWave && !rWaveDone) {
     if (effectiveMode(scenario) === "VVI") {
-      return "V波高値はVSで記録します。Lower Rateを自己心拍より下げ、VPからVSへ切り替えます。";
+      return "V波高値は VS で記録します（コツ：波高値は自己波）。Lower Rate を自己心拍より下げ、VP から VS へ切り替えます。";
     }
-    return "V波高値はVSで記録します。AV Delayを延ばす、またはLower Rateを下げてVPからVSへ切り替えます。";
+    return "V波高値は VS で記録します（コツ：波高値は自己波）。AV Delay を延ばす、または Lower Rate を下げて VP から VS へ切り替えます。";
   }
   if (rhythm.ventricular === "VS" && p.vThreshold) {
-    return "R波は記録可能です。V閾値はVPを出してから、V出力を上下して捕捉/脱落を確認します。";
+    return "R波は記録可能です。V閾値は VP を出してから V 出力を上下して捕捉/脱落を確認します。コツ：自己伝導が残る症例では AV delay を短縮（AS 中は SAV、AP 中は PAV）し、自己 QRS・fusion・偽性捕捉を避けて VP 捕捉を見やすくします。CAVB など自己伝導がなければ短縮不要。";
   }
   if (effectiveMode(scenario) === "DDD" && rhythm.atrial === "AP" && p.pWave) {
-    return "A波高値はASで記録します。Lower Rateを下げ、APからASへ切り替えます。";
+    return "A波高値は AS で記録します。コツ：波高値は自己波——下限レートを下げて AP→AS にし、自己 P 波を出します。";
   }
   if (effectiveMode(scenario) === "DDD" && rhythm.atrial === "AS" && p.aThreshold) {
     if (p.rWave && p.avDelayNeeded) {
-      return "P波は記録可能です。A閾値は下限レートを上げて AP を誘発しますが、自己伝導がある症例では PAV を延ばしておくと AP-VS が保たれ、A 捕捉/脱落が判定しやすくなります。";
+      return "P波は記録可能です。A閾値は下限レートを上げて AP を誘発します（コツ：AP はレートを上げて出す）。自己伝導がある症例では PAV を延ばしておくと AP-VS が保たれ、A 捕捉/脱落が判定しやすくなります。";
     }
-    return "P波は記録可能です。A閾値はAPを出してから、A出力を上下して捕捉/脱落を確認します。";
+    return "P波は記録可能です。A閾値は AP を出してから A 出力を上下して捕捉/脱落を確認します。コツ：AP は下限レートを上げて自己 P 波より先に出す。AP になったら効くのは PAV で、延ばすと AP-VS（自己伝導を確認）、短いと AP-VP。";
   }
   // AP 表示中で自己伝導あるが VP が出てしまっている場合（PAV < avDelayNeeded）
   if (effectiveMode(scenario) === "DDD" && rhythm.atrial === "AP" && rhythm.ventricular === "VP" &&
@@ -1832,7 +1834,15 @@ function nextSuggestedStep(scenario) {
   }
   if (nextTarget === "rWave") {
     if (!p.rWave) {
-      if (effectiveMode(scenario) === "DDD" && !isStepDone("confirm-no-vs")) return scoringStep(scenario, "confirm-no-vs");
+      // confirm-no-vs を採点工程に含む症例（CAVB系）では、DDD/VVI どちらに切替えても
+      // 確認が済むまでこのステップに留める。これにより「先に VVI へ切替えてから下限レートを
+      // 下げる」手順でも、現在ステップが record-r-difficult へ飛んでモード変更が
+      // 目的外操作（-10点）と誤判定されることを防ぐ。
+      // confirm-no-vs を持たない他の DDD 症例は従来どおり DDD 時のみソフトに確認を促す。
+      const hasConfirmStep = simulatorSteps(scenario).some((s) => s.id === "confirm-no-vs");
+      if (!isStepDone("confirm-no-vs") && (hasConfirmStep || effectiveMode(scenario) === "DDD")) {
+        return scoringStep(scenario, "confirm-no-vs");
+      }
       return scoringStep(scenario, "record-r-difficult");
     }
     if (rhythm.ventricular !== "VS") return scoringStep(scenario, "create-vs-for-r");
