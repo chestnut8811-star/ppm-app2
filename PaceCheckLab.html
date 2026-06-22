@@ -24,6 +24,7 @@
     --coral:#FF765F;
     --amber:#FFC95C;
     --violet:#A78BFA;
+    --rose:#FF8FAB;
     --radius:8px;
     --font-sans:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Hiragino Sans",
                 "BIZ UDPGothic",Meiryo,"Yu Gothic","Segoe UI","Noto Sans JP",sans-serif;
@@ -428,6 +429,7 @@
   .d6{ animation-delay:.5s; }
   .d7{ animation-delay:.6s; }
   .d8{ animation-delay:.7s; }
+  .d9{ animation-delay:.8s; }
   @keyframes rise{
     from{ opacity:0; transform:translateY(18px); }
     to{ opacity:1; transform:translateY(0); }
@@ -550,7 +552,7 @@
           <h1 id="portal-title" class="reveal d2">臨床トレーニングラボ</h1>
           <p class="subtitle reveal d3">心電図・循環器デバイス・IABP・電気生理の自己学習ツール</p>
           <ul class="hero-meta reveal d4" aria-label="ポータル情報">
-            <li><strong>5 Tools</strong><span>ECG / Pace / IABP / EP / KB</span></li>
+            <li><strong>6 Tools</strong><span>ECG / Pace / IABP / EP / KB</span></li>
             <li><strong>Simulation</strong><span>Device training</span></li>
             <li><strong>2026.06.18</strong><span>Last updated</span></li>
           </ul>
@@ -565,8 +567,8 @@
         </div>
 
         <div class="lab-grid">
-          <a class="lab-card reveal d4" style="--c:var(--cyan)" href="./心電図%20Lab/index.html"
-             aria-label="心電図 Lab を開く（モニター心電図・12誘導心電図 教育ツール）">
+          <a class="lab-card reveal d4" style="--c:var(--cyan)" href="./心電図トレーナー.html"
+             aria-label="心電図トレーナー を開く（モニター心電図トレーニング）">
             <div class="lab-scope" aria-hidden="true">
               <svg viewBox="0 0 96 72" preserveAspectRatio="none">
                 <g class="flow-54">
@@ -576,15 +578,34 @@
               </svg>
             </div>
             <div>
-              <p class="lab-kicker">CH 01 · SURFACE</p>
-              <h3>心電図 Lab</h3>
-              <p>モニター心電図・12誘導心電図 教育ツール</p>
-              <span class="lab-modules">モニター心電図 / 12誘導心電図</span>
+              <p class="lab-kicker">CH 01 · MONITOR</p>
+              <h3>心電図トレーナー</h3>
+              <p>モニター心電図（不整脈）の判読トレーニング</p>
+              <span class="lab-modules">ICU EDITION</span>
             </div>
             <span class="lab-enter" aria-hidden="true">↗</span>
           </a>
 
-          <a class="lab-card reveal d5" style="--c:var(--mint)" href="./PaceCheck%20Lab/PaceCheckLab.html"
+          <a class="lab-card reveal d5" style="--c:var(--rose)" href="./12誘導心電図.html"
+             aria-label="12誘導心電図トレーナー を開く（心電図検定対策）">
+            <div class="lab-scope" aria-hidden="true">
+              <svg viewBox="0 0 96 72" preserveAspectRatio="none">
+                <g class="flow-54">
+                  <path class="trace" d="M-54 44 h6 q3 -7 6 0 h4 l2 4 l3 -30 l3 32 l2 -6 h6 q4 -10 8 0 h14 h6 q3 -7 6 0 h4 l2 4 l3 -30 l3 32 l2 -6 h6 q4 -10 8 0 h14 h6 q3 -7 6 0 h4 l2 4 l3 -30 l3 32 l2 -6 h6 q4 -10 8 0 h14 h6 q3 -7 6 0 h4 l2 4 l3 -30 l3 32 l2 -6 h6 q4 -10 8 0 h14"
+                        fill="none" stroke="var(--c)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </g>
+              </svg>
+            </div>
+            <div>
+              <p class="lab-kicker">CH 02 · 12-LEAD</p>
+              <h3>12誘導心電図</h3>
+              <p>12誘導心電図の判読・心電図検定対策</p>
+              <span class="lab-modules">心電図検定対策</span>
+            </div>
+            <span class="lab-enter" aria-hidden="true">↗</span>
+          </a>
+
+          <a class="lab-card reveal d6" style="--c:var(--mint)" href="./PaceCheck%20Lab/PaceCheckLab.html"
              aria-label="PaceCheck Lab を開く（CIED・ペースメーカプログラマ教育ツール）">
             <div class="lab-scope" aria-hidden="true">
               <svg viewBox="0 0 96 72" preserveAspectRatio="none">
@@ -595,7 +616,7 @@
               </svg>
             </div>
             <div>
-              <p class="lab-kicker">CH 02 · PACING</p>
+              <p class="lab-kicker">CH 03 · PACING</p>
               <h3>PaceCheck Lab</h3>
               <p>CIED・ペースメーカ<wbr>プログラマ教育ツール</p>
               <span class="lab-modules">Studio / Arena / CRT / ICD</span>
@@ -603,7 +624,7 @@
             <span class="lab-enter" aria-hidden="true">↗</span>
           </a>
 
-          <a class="lab-card reveal d6" style="--c:var(--coral)" href="./IABP%20Training%20Lab/index.html"
+          <a class="lab-card reveal d7" style="--c:var(--coral)" href="./IABP%20Training%20Lab/index.html"
              aria-label="IABP Training Lab を開く（IABP操作・波形理解 教育ツール）">
             <div class="lab-scope" aria-hidden="true">
               <svg viewBox="0 0 96 72" preserveAspectRatio="none">
@@ -614,14 +635,14 @@
               </svg>
             </div>
             <div>
-              <p class="lab-kicker">CH 03 · AORTIC</p>
+              <p class="lab-kicker">CH 04 · AORTIC</p>
               <h3>IABP Training Lab</h3>
               <p>IABP操作・波形理解 教育ツール</p>
             </div>
             <span class="lab-enter" aria-hidden="true">↗</span>
           </a>
 
-          <a class="lab-card reveal d7" style="--c:var(--amber)" href="./EP%20Signal%20Lab/index.html"
+          <a class="lab-card reveal d8" style="--c:var(--amber)" href="./EP%20Signal%20Lab/index.html"
              aria-label="EP Signal Lab を開く（心内心電図・アブレーション 教育ツール）">
             <div class="lab-scope" aria-hidden="true">
               <svg viewBox="0 0 96 72" preserveAspectRatio="none">
@@ -632,14 +653,14 @@
               </svg>
             </div>
             <div>
-              <p class="lab-kicker">CH 04 · INTRACARDIAC</p>
+              <p class="lab-kicker">CH 05 · INTRACARDIAC</p>
               <h3>EP Signal Lab</h3>
               <p>心内心電図・アブレーション 教育ツール</p>
             </div>
             <span class="lab-enter" aria-hidden="true">↗</span>
           </a>
 
-          <a class="lab-card reveal d8" style="--c:var(--violet)" href="./院内オブシディアン/オブシディアン_ナレッジ空版.html"
+          <a class="lab-card reveal d9" style="--c:var(--violet)" href="./院内オブシディアン/オブシディアン_ナレッジ空版.html"
              aria-label="院内オブシディアン を開く（院内ナレッジベースの検索・参照ツール）">
             <div class="lab-scope" aria-hidden="true">
               <svg viewBox="0 0 72 72">
@@ -657,7 +678,7 @@
               </svg>
             </div>
             <div>
-              <p class="lab-kicker">CH 05 · KNOWLEDGE</p>
+              <p class="lab-kicker">CH 06 · KNOWLEDGE</p>
               <h3>院内オブシディアン</h3>
               <p>院内ナレッジベースの検索・参照ツール</p>
               <span class="lab-modules">臨床工学室 ナレッジアシスタント</span>
